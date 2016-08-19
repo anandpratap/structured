@@ -15,12 +15,13 @@ typedef unsigned int uint;
 
 
 
-#define ENABLE_EIGEN
-#define ENABLE_ARMA
+// #define ENABLE_EIGEN
+// #define ENABLE_ARMA
+// #define ENABLE_PETSC
 
-//#if defined(ENABLE_EIGEN) && defined(ENABLE_ARMA)
-//#error "Cannot use both the linear algebra library at the same time."
-//#endif
+#if defined(ENABLE_EIGEN) && defined(ENABLE_ARMA)
+#error "Cannot use both the linear algebra library at the same time."
+#endif
 
 #if defined(ENABLE_ARMA)
 #include <armadillo>
@@ -31,6 +32,10 @@ typedef unsigned int uint;
 #include <Eigen/Dense>
 #endif
 
+/* #if defined(ENABLE_PETSC) */
+/* #include "petsc.h" */
+/* #include "petscksp.h" */
+/* #endif */
 
 #include <chrono>
 class Timer {

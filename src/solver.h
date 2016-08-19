@@ -20,7 +20,12 @@ public:
 	void solve();
 	adouble ***a_q, ***a_rhs;
 
+#if defined(ENABLE_ARMA)
+	LinearSolverArma *linearsolver;
+#endif
+#if defined(ENABLE_EIGEN)
 	LinearSolverEigen *linearsolver;
+#endif
 	
 	T *rhs;
 	T **lhs;
@@ -83,7 +88,14 @@ Solver<T>::Solver(Mesh<T> *val_mesh){
 	a_q_ravel = allocate_1d_array<adouble>(nic*njc*nq);
 	a_rhs_ravel = allocate_1d_array<adouble>(nic*njc*nq);
 
+#if defined(ENABLE_ARMA)
+	linearsolver = new LinearSolverArma(mesh);
+#endif
+
+#if defined(ENABLE_EIGEN)
 	linearsolver = new LinearSolverEigen(mesh);
+#endif
+
 }
 template <class T>
 Solver<T>::~Solver(){

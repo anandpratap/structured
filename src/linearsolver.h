@@ -2,7 +2,7 @@
 #define _LINEARSOLVER_H
 #include "common.h"
 
-
+#if defined(ENABLE_ARMA)
 class LinearSolverArma{
  public:
 	Mesh<double> *mesh;
@@ -58,6 +58,9 @@ class LinearSolverArma{
 	};
 };
 
+#endif
+
+#if defined(ENABLE_EIGEN)
 class LinearSolverEigen{
 	Mesh<double> *mesh;
 	Eigen::MatrixXd rhs, dq;
@@ -124,6 +127,50 @@ class LinearSolverEigen{
 
 };
 
+#endif
+// #define CONFIG_PETSC_TOL 1e-12
+// #define CONFIG_PETSC_MAXITER 1000
 
+/* class LinearSolverPetsc{ */
+/* 	Mesh<double> *mesh; */
+/* 	Vec dq, rhs; */
+/* 	Mat jac; */
+/* 	PC pc; */
+/* 	KSP ksp; */
+
+/*  public: */
+/* 	LinearSolverPetsc(Mesh<double> *val_mesh){ */
+/* 		mesh = val_mesh; */
+/* 		uint nic = mesh->nic; */
+/* 		uint njc = mesh->njc; */
+/* 		uint nq = mesh->solution->nq; */
+/* 		int nvar = nic*njc*nq; */
+
+/* 		PetscInitialize(NULL, NULL, NULL, NULL); */
+
+/* 		PetscErrorCode ierr; */
+/* 		ierr = VecCreate(PETSC_COMM_WORLD, &dq); */
+/* 		ierr = PetscObjectSetName((PetscObject) dq, "Solution"); */
+/* 		ierr = VecSetSizes(dq, PETSC_DECIDE, nvar); */
+/* 		ierr = VecSetFromOptions(dq); */
+/* 		ierr = VecDuplicate(dq,&rhs); */
+
+/* 		MatCreateSeqAIJ(PETSC_COMM_WORLD, nvar, nvar, 36, NULL, &jac); */
+
+/* 		ierr = KSPCreate(PETSC_COMM_WORLD, &ksp); */
+/* 		ierr = KSPSetOperators(ksp, jac, jac, SAME_NONZERO_PATTERN); */
+/* 		ierr = KSPGetPC(ksp, &pc); */
+/* 		ierr = PCSetType(pc, PCJACOBI); */
+/* 		ierr = KSPSetTolerances(ksp, CONFIG_PETSC_TOL, PETSC_DEFAULT, PETSC_DEFAULT, CONFIG_PETSC_MAXITER); */
+/* 		ierr = KSPSetFromOptions(ksp); */
+/* 	}; */
+
+/* 	~LinearSolverPetsc(){ */
+/* 		VecDestroy(&rhs); */
+/* 		VecDestroy(&dq); */
+/* 		MatDestroy(&jac); */
+/* 		PetscFinalize(); */
+/* 	} */
+/* }; */
 
 #endif
