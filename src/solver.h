@@ -3,6 +3,7 @@
 #include "common.h"
 #include "utils.h"
 #include "mesh.h"
+#include "linearsolver.h"
 
 template<class T>
 class Solver{
@@ -19,6 +20,7 @@ public:
 	void solve();
 	adouble ***a_q, ***a_rhs;
 
+	LinearSolverEigen *linearsolver;
 	
 	T *rhs;
 	T **lhs;
@@ -26,15 +28,6 @@ public:
 	T *q;
 	adouble *a_q_ravel, *a_rhs_ravel;
 
-#if defined(ENABLE_ARMA)
-	arma::mat arma_rhs, arma_dq;
-	arma::sp_mat arma_jac;
-#elif defined(ENABLE_EIGEN)
-	Eigen::MatrixXd eigen_rhs, eigen_dq;
-	Eigen::SparseMatrix<double, Eigen::ColMajor> eigen_jac;
-#endif
-
-	
 	Solver(Mesh<T> *val_mesh);
 	~Solver();
 	void copy_from_solution();
@@ -89,17 +82,8 @@ Solver<T>::Solver(Mesh<T> *val_mesh){
 	q = allocate_1d_array<T>(nic*njc*nq);
 	a_q_ravel = allocate_1d_array<adouble>(nic*njc*nq);
 	a_rhs_ravel = allocate_1d_array<adouble>(nic*njc*nq);
-	
-#if defined(ENABLE_ARMA)
-	arma_rhs = arma::mat(nic*njc*nq, 1);
-	arma_dq = arma::mat(nic*njc*nq, 1);
-	arma_jac = arma::sp_mat(nic*njc*nq, nic*njc*nq);
-#elif defined(ENABLE_EIGEN)
-	eigen_jac = Eigen::SparseMatrix<double,Eigen::ColMajor>(nic*njc*nq, nic*njc*nq);
-	eigen_rhs = Eigen::MatrixXd(nic*njc*nq, 1);
-	eigen_dq = Eigen::MatrixXd(nic*njc*nq, 1);
-#endif
-	
+
+	linearsolver = new LinearSolverEigen(mesh);
 }
 template <class T>
 Solver<T>::~Solver(){
@@ -115,6 +99,7 @@ Solver<T>::~Solver(){
 	release_1d_array(a_q_ravel, nic*njc*nq);
 	release_1d_array(a_rhs_ravel, nic*njc*nq);
 	release_1d_array(rhs, nic*njc*nq);
+	delete linearsolver;
 }
 
 
@@ -162,51 +147,16 @@ void Solver<T>::solve(){
 		sparse_jac(1,nic*njc*nq,nic*njc*nq,repeat,q,&nnz,&rind,&cind,&values,options);
 		std::cout<<"NNZ = "<<nnz<<std::endl;
 
-#if defined(ENABLE_EIGEN)
 		if(counter == 0)
-			eigen_jac.reserve(nnz);
-#endif		
-		timer.reset();
+			linearsolver->preallocate(nnz);
 
-		T value_tmp;
-		for(int i=0; i<nnz; i++){
-			value_tmp = -values[i];
-			//	if(i%1000 == 0)
-			//	std::cout<<(float)i/nnz<<std::endl;
-			if(rind[i] == cind[i]){value_tmp += 1.0/dt;}
-#if defined(ENABLE_ARMA)
-			arma_jac(rind[i],cind[i]) = value_tmp;
-#elif defined(ENABLE_EIGEN)
-			eigen_jac.coeffRef(rind[i],cind[i]) = value_tmp;
-#endif
-		}
+		timer.reset();
+		linearsolver->set_jac(nnz, rind, cind, values);
+		linearsolver->set_rhs(rhs);
+		linearsolver->solve_and_update(q);
 		
-		for(int i=0; i<nic*njc*nq; i++){
-#if defined(ENABLE_ARMA)
-			arma_rhs(i, 0) = rhs[i];
-#elif defined(ENABLE_EIGEN)
-			eigen_rhs(i, 0) = rhs[i];
-#endif
-		}
-		std::cout<<"Matrix set, now solving"<<std::endl;
-#if defined(ENABLE_ARMA)
-		arma_dq = arma::spsolve(arma_jac, arma_rhs, "lapack");
-#elif defined(ENABLE_EIGEN)
-		eigen_jac.makeCompressed();
-		if(counter == 0)
-			eigen_solver.analyzePattern(eigen_jac);
-		eigen_solver.factorize(eigen_jac);
-		eigen_dq = eigen_solver.solve(eigen_rhs);
-#endif
-		
-		for(int i=0; i<nic*njc*nq; i++){
-#if defined(ENABLE_ARMA)
-			q[i] = q[i] + arma_dq(i,0);
-#elif defined(ENABLE_EIGEN)
-			q[i] = q[i] + eigen_dq(i,0);
-#endif
 	//q[i][j][k] = q[i][j][k] + rhs[i][j][k]*dt;
-		}
+		
 		float dt_perf = timer.diff();
 		std::cout<<"time = "<<dt_perf<<std::endl;
 

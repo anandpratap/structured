@@ -16,18 +16,19 @@ typedef unsigned int uint;
 
 
 #define ENABLE_EIGEN
-//#define ENABLE_ARMA
+#define ENABLE_ARMA
 
-#if defined(ENABLE_EIGEN) && defined(ENABLE_ARMA)
-#error "Cannot use both the linear algebra library at the same time."
-#endif
+//#if defined(ENABLE_EIGEN) && defined(ENABLE_ARMA)
+//#error "Cannot use both the linear algebra library at the same time."
+//#endif
 
 #if defined(ENABLE_ARMA)
 #include <armadillo>
-#elif defined(ENABLE_EIGEN)
+#endif
+
+#if defined(ENABLE_EIGEN)
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
-#include <Eigen/SuperLUSupport>
 #endif
 
 
