@@ -17,6 +17,15 @@ public:
 	void calc_residual();
 	void solve();
 	adouble ***a_q, ***a_rhs;
+
+
+	T ***rhs;
+	T **lhs;
+
+	T *tmp_q;
+	adouble *a_q_ravel, *a_rhs_ravel;
+	arma::mat arma_rhs, arma_dq;
+	arma::sp_mat arma_jac;
 	
 	Solver(Mesh<T> *val_mesh);
 	~Solver();
@@ -25,13 +34,40 @@ public:
 template <class T>
 Solver<T>::Solver(Mesh<T> *val_mesh){
 	mesh = val_mesh;
+	uint ni = mesh->ni;
+	uint nj = mesh->nj;
+	uint nic = mesh->nic;
+	uint njc = mesh->njc;
+	uint nq = mesh->solution->nq;
+	
+	
 	a_q = allocate_3d_array<adouble>(mesh->nic, mesh->njc, mesh->solution->nq);
 	a_rhs = allocate_3d_array<adouble>(mesh->nic, mesh->njc, mesh->solution->nq);
+	
+	rhs = allocate_3d_array<T>(nic, njc, nq);
+	tmp_q = allocate_1d_array<T>(nic*njc*nq);
+	a_q_ravel = allocate_1d_array<adouble>(nic*njc*nq);
+	a_rhs_ravel = allocate_1d_array<adouble>(nic*njc*nq);
+	
+	arma_rhs = arma::mat(nic*njc*nq, 1);
+	arma_dq = arma::mat(nic*njc*nq, 1);
+	arma_jac = arma::sp_mat(nic*njc*nq, nic*njc*nq);
+
 }
 template <class T>
 Solver<T>::~Solver(){
+	uint ni = mesh->ni;
+	uint nj = mesh->nj;
+	uint nic = mesh->nic;
+	uint njc = mesh->njc;
+	uint nq = mesh->solution->nq;
+
 	release_3d_array(a_q, mesh->nic, mesh->njc, mesh->solution->nq);
 	release_3d_array(a_rhs, mesh->nic, mesh->njc, mesh->solution->nq);
+	release_1d_array(tmp_q, nic*njc*nq);
+	release_1d_array(a_q_ravel, nic*njc*nq);
+	release_1d_array(a_rhs_ravel, nic*njc*nq);
+	release_3d_array(rhs, nic, njc, nq);
 }
 
 
@@ -46,7 +82,6 @@ void Solver<T>::solve(){
 
 	uint counter = 0;
 	T ***q = mesh->solution->q;
-	T ***rhs = mesh->solution->rhs;
 	double dt = 1e2;
 	double t = 0.0;
 	while(1){
@@ -55,8 +90,8 @@ void Solver<T>::solve(){
 		for(uint i=0; i<nic; i++){
 			for(uint j=0; j<njc; j++){
 				for(uint k=0; k<nq; k++){
-					mesh->solution->a_q[i*njc*nq + j*nq + k] <<= mesh->solution->q[i][j][k];
-					mesh->solution->tmp_q[i*njc*nq + j*nq + k] = mesh->solution->q[i][j][k];
+					a_q_ravel[i*njc*nq + j*nq + k] <<= mesh->solution->q[i][j][k];
+					tmp_q[i*njc*nq + j*nq + k] = mesh->solution->q[i][j][k];
 				}
 			}
 		}
@@ -66,27 +101,27 @@ void Solver<T>::solve(){
 		for(uint i=0; i<nic; i++){
 			for(uint j=0; j<njc; j++){
 				for(uint k=0; k<nq; k++){
-					mesh->solution->a_rhs[i*njc*nq + j*nq + k] >>= mesh->solution->rhs[i][j][k];
+					a_rhs_ravel[i*njc*nq + j*nq + k] >>= rhs[i][j][k];
 				}
 			}
 		}
 		
 		trace_off();
-		sparse_jac(1,nic*njc*nq,nic*njc*nq,0,mesh->solution->tmp_q,&nnz,&rind,&cind,&values,options);
+		sparse_jac(1,nic*njc*nq,nic*njc*nq,0,tmp_q,&nnz,&rind,&cind,&values,options);
 		std::cout<<"NNZ = "<<nnz<<std::endl;
 		for(int i=0; i<nnz; i++){
-			mesh->solution->arma_jac(rind[i],cind[i]) = -values[i];
+			arma_jac(rind[i],cind[i]) = -values[i];
 		}
 		
 		for(int i=0; i<nic*njc*nq; i++){
-			mesh->solution->arma_jac(i,i) += 1.0/dt;
+			arma_jac(i,i) += 1.0/dt;
 		}
 
 		for(int i=0; i<nic*njc*nq; i++){
-			mesh->solution->arma_rhs(i, 0) = mesh->solution->a_rhs[i].value();
+			arma_rhs(i, 0) = a_rhs_ravel[i].value();
 		}
 
-		mesh->solution->arma_dq = arma::spsolve(mesh->solution->arma_jac, mesh->solution->arma_rhs, "lapack");
+		arma_dq = arma::spsolve(arma_jac, arma_rhs, "lapack");
 
 		free(rind); rind=nullptr;
 		free(cind); cind=nullptr;
@@ -97,7 +132,7 @@ void Solver<T>::solve(){
 			for(uint j=0; j<njc; j++){
 				for(uint k=0; k<nq; k++){
 					//q[i][j][k] = q[i][j][k] + rhs[i][j][k]*dt;
-					q[i][j][k] = q[i][j][k] + mesh->solution->arma_dq(i*njc*nq + j*nq + k, 0);
+					q[i][j][k] = q[i][j][k] + arma_dq(i*njc*nq + j*nq + k, 0);
 				}
 			}
 		}
@@ -132,7 +167,7 @@ void Solver<T>::calc_residual(){
 	for(uint i=0; i<nic; i++){
 		for(uint j=0; j<njc; j++){
 			for(uint k=0; k<nq; k++){
-				a_q[i][j][k] = mesh->solution->a_q[i*njc*nq + j*nq + k];
+				a_q[i][j][k] = a_q_ravel[i*njc*nq + j*nq + k];
 			}
 		}
 	}
@@ -285,7 +320,7 @@ void Solver<T>::calc_residual(){
 	for(uint i=0; i<nic; i++){
 		for(uint j=0; j<njc; j++){
 			for(uint k=0; k<nq; k++){
-				mesh->solution->a_rhs[i*njc*nq + j*nq + k] = a_rhs[i][j][k];
+				a_rhs_ravel[i*njc*nq + j*nq + k] = a_rhs[i][j][k];
 			}
 		}
 	}
