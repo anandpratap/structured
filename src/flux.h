@@ -1,3 +1,6 @@
+#ifndef _FLUX_H
+#define _FLUX_H
+
 template <class T>
 void roeflux(const T nx, const T ny,
 			 const T rlft, const T ulft, const T vlft, const T plft,
@@ -77,3 +80,6 @@ void roeflux(const T nx, const T ny,
 	f[2] = aj*(rvlft*uulft + rvrht*uurht + r2*plar - aq3);
 	f[3] = aj*(eplft*uulft + eprht*uurht - aq4);
 }
+
+
+#endif
