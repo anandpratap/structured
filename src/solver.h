@@ -8,51 +8,98 @@ template<class T>
 class Solver{
 public:
 	int nnz;
+	int repeat = 0;
 	unsigned int *rind = nullptr;
 	unsigned int *cind = nullptr;
 	double *values = nullptr;
-	int options[4] = {0,0,0,0};
-	
+	int options[4] = {0,0,0,1};
+	Timer timer;
 	Mesh<T> *mesh;
 	void calc_residual();
 	void solve();
 	adouble ***a_q, ***a_rhs;
 
-
-	T ***rhs;
+	
+	T *rhs;
 	T **lhs;
 
-	T *tmp_q;
+	T *q;
 	adouble *a_q_ravel, *a_rhs_ravel;
+
+#if defined(ENABLE_ARMA)
 	arma::mat arma_rhs, arma_dq;
 	arma::sp_mat arma_jac;
+#elif defined(ENABLE_EIGEN)
+	Eigen::MatrixXd eigen_rhs, eigen_dq;
+	Eigen::SparseMatrix<double, Eigen::ColMajor> eigen_jac;
+#endif
+
 	
 	Solver(Mesh<T> *val_mesh);
 	~Solver();
+	void copy_from_solution();
+	void copy_to_solution();
 };
 
 template <class T>
+void Solver<T>::copy_from_solution(){
+	uint nic = mesh->nic;
+	uint njc = mesh->njc;
+	uint nq = mesh->solution->nq;
+
+	for(uint i=0; i<mesh->nic; i++){
+		for(uint j=0; j<mesh->njc; j++){
+			for(uint k=0; k<mesh->solution->nq; k++){
+				q[i*njc*nq + j*nq + k] = mesh->solution->q[i][j][k];
+			}
+		}
+	}
+}
+
+template <class T>
+void Solver<T>::copy_to_solution(){
+	uint nic = mesh->nic;
+	uint njc = mesh->njc;
+	uint nq = mesh->solution->nq;
+
+	for(uint i=0; i<mesh->nic; i++){
+		for(uint j=0; j<mesh->njc; j++){
+			for(uint k=0; k<mesh->solution->nq; k++){
+				mesh->solution->q[i][j][k] = q[i*njc*nq + j*nq + k];
+			}
+		}
+	}
+}
+
+
+template <class T>
 Solver<T>::Solver(Mesh<T> *val_mesh){
+	timer = Timer();
 	mesh = val_mesh;
 	uint ni = mesh->ni;
 	uint nj = mesh->nj;
 	uint nic = mesh->nic;
 	uint njc = mesh->njc;
 	uint nq = mesh->solution->nq;
-	
-	
+ 
 	a_q = allocate_3d_array<adouble>(mesh->nic, mesh->njc, mesh->solution->nq);
 	a_rhs = allocate_3d_array<adouble>(mesh->nic, mesh->njc, mesh->solution->nq);
 	
-	rhs = allocate_3d_array<T>(nic, njc, nq);
-	tmp_q = allocate_1d_array<T>(nic*njc*nq);
+	rhs = allocate_1d_array<T>(nic*njc*nq);
+	q = allocate_1d_array<T>(nic*njc*nq);
 	a_q_ravel = allocate_1d_array<adouble>(nic*njc*nq);
 	a_rhs_ravel = allocate_1d_array<adouble>(nic*njc*nq);
 	
+#if defined(ENABLE_ARMA)
 	arma_rhs = arma::mat(nic*njc*nq, 1);
 	arma_dq = arma::mat(nic*njc*nq, 1);
 	arma_jac = arma::sp_mat(nic*njc*nq, nic*njc*nq);
-
+#elif defined(ENABLE_EIGEN)
+	eigen_jac = Eigen::SparseMatrix<double,Eigen::ColMajor>(nic*njc*nq, nic*njc*nq);
+	eigen_rhs = Eigen::MatrixXd(nic*njc*nq, 1);
+	eigen_dq = Eigen::MatrixXd(nic*njc*nq, 1);
+#endif
+	
 }
 template <class T>
 Solver<T>::~Solver(){
@@ -64,15 +111,20 @@ Solver<T>::~Solver(){
 
 	release_3d_array(a_q, mesh->nic, mesh->njc, mesh->solution->nq);
 	release_3d_array(a_rhs, mesh->nic, mesh->njc, mesh->solution->nq);
-	release_1d_array(tmp_q, nic*njc*nq);
+	release_1d_array(q, nic*njc*nq);
 	release_1d_array(a_q_ravel, nic*njc*nq);
 	release_1d_array(a_rhs_ravel, nic*njc*nq);
-	release_3d_array(rhs, nic, njc, nq);
+	release_1d_array(rhs, nic*njc*nq);
 }
 
 
 template <class T>
 void Solver<T>::solve(){
+#if defined(ENABLE_EIGEN)
+	Eigen::SparseLU<Eigen::SparseMatrix<double>> eigen_solver;
+	//Eigen::SuperLU<Eigen::SparseMatrix<double>> eigen_solver;
+#endif
+	
 	uint ni = mesh->ni;
 	uint nj = mesh->nj;
 	uint nic = mesh->nic;
@@ -81,17 +133,17 @@ void Solver<T>::solve(){
 	double l2norm = 1e10;
 
 	uint counter = 0;
-	T ***q = mesh->solution->q;
 	double dt = 1e2;
 	double t = 0.0;
+
+	copy_from_solution();
+
 	while(1){
-		counter += 1;
 		trace_on(1);
 		for(uint i=0; i<nic; i++){
 			for(uint j=0; j<njc; j++){
 				for(uint k=0; k<nq; k++){
-					a_q_ravel[i*njc*nq + j*nq + k] <<= mesh->solution->q[i][j][k];
-					tmp_q[i*njc*nq + j*nq + k] = mesh->solution->q[i][j][k];
+					a_q_ravel[i*njc*nq + j*nq + k] <<= q[i*njc*nq + j*nq + k];
 				}
 			}
 		}
@@ -101,56 +153,94 @@ void Solver<T>::solve(){
 		for(uint i=0; i<nic; i++){
 			for(uint j=0; j<njc; j++){
 				for(uint k=0; k<nq; k++){
-					a_rhs_ravel[i*njc*nq + j*nq + k] >>= rhs[i][j][k];
+					a_rhs_ravel[i*njc*nq + j*nq + k] >>= rhs[i*njc*nq + j*nq + k];
 				}
 			}
 		}
 		
 		trace_off();
-		sparse_jac(1,nic*njc*nq,nic*njc*nq,0,tmp_q,&nnz,&rind,&cind,&values,options);
+		sparse_jac(1,nic*njc*nq,nic*njc*nq,repeat,q,&nnz,&rind,&cind,&values,options);
 		std::cout<<"NNZ = "<<nnz<<std::endl;
+
+#if defined(ENABLE_EIGEN)
+		if(counter == 0)
+			eigen_jac.reserve(nnz);
+#endif		
+		timer.reset();
+
+		T value_tmp;
 		for(int i=0; i<nnz; i++){
-			arma_jac(rind[i],cind[i]) = -values[i];
+			value_tmp = -values[i];
+			//	if(i%1000 == 0)
+			//	std::cout<<(float)i/nnz<<std::endl;
+			if(rind[i] == cind[i]){value_tmp += 1.0/dt;}
+#if defined(ENABLE_ARMA)
+			arma_jac(rind[i],cind[i]) = value_tmp;
+#elif defined(ENABLE_EIGEN)
+			eigen_jac.coeffRef(rind[i],cind[i]) = value_tmp;
+#endif
 		}
 		
 		for(int i=0; i<nic*njc*nq; i++){
-			arma_jac(i,i) += 1.0/dt;
+#if defined(ENABLE_ARMA)
+			arma_rhs(i, 0) = rhs[i];
+#elif defined(ENABLE_EIGEN)
+			eigen_rhs(i, 0) = rhs[i];
+#endif
 		}
-
-		for(int i=0; i<nic*njc*nq; i++){
-			arma_rhs(i, 0) = a_rhs_ravel[i].value();
-		}
-
+		std::cout<<"Matrix set, now solving"<<std::endl;
+#if defined(ENABLE_ARMA)
 		arma_dq = arma::spsolve(arma_jac, arma_rhs, "lapack");
+#elif defined(ENABLE_EIGEN)
+		eigen_jac.makeCompressed();
+		if(counter == 0)
+			eigen_solver.analyzePattern(eigen_jac);
+		eigen_solver.factorize(eigen_jac);
+		eigen_dq = eigen_solver.solve(eigen_rhs);
+#endif
+		
+		for(int i=0; i<nic*njc*nq; i++){
+#if defined(ENABLE_ARMA)
+			q[i] = q[i] + arma_dq(i,0);
+#elif defined(ENABLE_EIGEN)
+			q[i] = q[i] + eigen_dq(i,0);
+#endif
+	//q[i][j][k] = q[i][j][k] + rhs[i][j][k]*dt;
+		}
+		float dt_perf = timer.diff();
+		std::cout<<"time = "<<dt_perf<<std::endl;
 
 		free(rind); rind=nullptr;
 		free(cind); cind=nullptr;
 		free(values); values=nullptr;
 		
-		
-		for(uint i=0; i<nic; i++){
-			for(uint j=0; j<njc; j++){
-				for(uint k=0; k<nq; k++){
-					//q[i][j][k] = q[i][j][k] + rhs[i][j][k]*dt;
-					q[i][j][k] = q[i][j][k] + arma_dq(i*njc*nq + j*nq + k, 0);
-				}
-			}
-		}
+
+		/* for(uint i=0; i<nic; i++){ */
+		/* 	for(uint j=0; j<njc; j++){ */
+		/* 		for(uint k=0; k<nq; k++){ */
+		/* 			//q[i][j][k] = q[i][j][k] + rhs[i][j][k]*dt; */
+		/* 			q[i][j][k] = q[i][j][k] + arma_dq(i*njc*nq + j*nq + k, 0); */
+		/* 		} */
+		/* 	} */
+		/* } */
 		t += dt;
 		counter += 1;
 		
 		if (l2norm < 1e-8) break;
 		if(counter % 1 == 0){
 			l2norm = 0.0;
-			for(uint i=0; i<nic; i++){
-				for(uint j=0; j<njc; j++){
-					l2norm += rhs[i][j][0]*rhs[i][j][0];
+			for(int i=0; i<nic*njc*nq; i++){
+				if(i%4 == 0){
+					l2norm += rhs[i]*rhs[i];
 				}
 			}
 			l2norm = sqrt(l2norm);
 			std::cout<<"l2norm = "<<l2norm;
 			std::cout<<" t = "<<t;
 			std::cout<<" counter = "<<counter<<std::endl;
+
+			copy_to_solution();
+
 			write_solution(mesh, "base.tec");
 		}		
 	}
