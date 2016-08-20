@@ -24,7 +24,7 @@ class LinearSolverArma{
 
 	void set_jac(int nnz, unsigned int *rind, unsigned int *cind, double *values){
 		double value_tmp;
-		double dt = 1e2;
+		double dt = 1e4;
 		for(uint i=0; i<nnz; i++){
 			value_tmp = -values[i];
 			if(rind[i] == cind[i]){value_tmp += 1.0/dt;}
@@ -47,9 +47,9 @@ class LinearSolverArma{
 		uint njc = mesh->njc;
 		uint nq = mesh->solution->nq;
 
-		dq = arma::spsolve(jac, rhs, "lapack");
+		dq = arma::spsolve(jac, rhs, "superlu");
 		for(int i=0; i<nic*njc*nq; i++){
-			q[i] = q[i] + dq(i,0);
+			q[i] = q[i] + dq(i,0)*0.9;
 		}
 	};
 
@@ -94,7 +94,7 @@ class LinearSolverEigen{
 
 	void set_jac(int nnz, unsigned int *rind, unsigned int *cind, double *values){
 		double value_tmp;
-		double dt = 1e2;
+		double dt = 1e4;
 		for(uint i=0; i<nnz; i++){
 			value_tmp = -values[i];
 			if(rind[i] == cind[i]){value_tmp += 1.0/dt;}
@@ -121,7 +121,7 @@ class LinearSolverEigen{
 		solver->factorize(jac);
 		dq = solver->solve(rhs);
 		for(int i=0; i<nic*njc*nq; i++){
-			q[i] = q[i] + dq(i,0);
+			q[i] = q[i] + dq(i,0)*0.9;
 		}
 	};
 

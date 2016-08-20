@@ -130,7 +130,7 @@ void Solver<T>::solve(){
 	double l2norm = 1e10;
 
 	uint counter = 0;
-	double dt = 1e2;
+	double dt = 1e0;
 	double t = 0.0;
 
 	copy_from_solution();

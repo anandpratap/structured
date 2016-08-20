@@ -127,6 +127,8 @@ Mesh<T>::Mesh(const Mesh<T>* mesh, const uint nskipi, const uint nskipj, const u
 	} else{
 		ni = mesh->ni + (mesh->ni-1)*nskipi;
 		nj = mesh->nj + (mesh->nj-1)*nskipj;
+		j1 = mesh->j1 + (mesh->j1-1)*nskipi;
+		nb = mesh->nb + (mesh->nb-1)*nskipi;
 	}
 	
 	nic = ni - 1;
