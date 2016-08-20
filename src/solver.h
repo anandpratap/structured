@@ -4,7 +4,7 @@
 #include "utils.h"
 #include "mesh.h"
 #include "linearsolver.h"
-
+double CFL = 1e2;
 template<class T>
 class Solver{
 public:
@@ -32,7 +32,7 @@ public:
 	
 	T *rhs;
 	T **lhs;
-
+	T *dt;
 	T *q;
 	adouble *a_q_ravel, *a_rhs_ravel;
 
@@ -40,8 +40,27 @@ public:
 	~Solver();
 	void copy_from_solution();
 	void copy_to_solution();
+	void calc_dt();
 };
+template <class T>
+void Solver<T>::calc_dt(){
+	uint nic = mesh->nic;
+	uint njc = mesh->njc;
+	uint nq = mesh->solution->nq;
 
+	for(uint i=0; i<mesh->nic; i++){
+		for(uint j=0; j<mesh->njc; j++){
+			double rho = q[i*njc*nq + j*nq + 0];
+			double u = q[i*njc*nq + j*nq + 1]/rho;
+			double v = q[i*njc*nq + j*nq + 2]/rho;
+			double rhoE = q[i*njc*nq + j*nq + 3];
+			double p = (rhoE - 0.5*rho*(u*u + v*v))*(GAMMA-1.0);
+			double lambda = sqrt(GAMMA*p/rho) + abs(u) + abs(v);
+			dt[i*njc + j] = std::min(mesh->ds_eta[i][j], mesh->ds_chi[i][j])/lambda*CFL;
+		}
+	}
+
+}
 template <class T>
 void Solver<T>::copy_from_solution(){
 	uint nic = mesh->nic;
@@ -86,6 +105,7 @@ Solver<T>::Solver(Mesh<T> *val_mesh){
 	a_q = allocate_3d_array<adouble>(mesh->nic, mesh->njc, mesh->solution->nq);
 	a_rhs = allocate_3d_array<adouble>(mesh->nic, mesh->njc, mesh->solution->nq);
 	
+	dt = allocate_1d_array<T>(nic*njc);
 	rhs = allocate_1d_array<T>(nic*njc*nq);
 	q = allocate_1d_array<T>(nic*njc*nq);
 	a_q_ravel = allocate_1d_array<adouble>(nic*njc*nq);
@@ -118,6 +138,7 @@ Solver<T>::~Solver(){
 	release_1d_array(a_q_ravel, nic*njc*nq);
 	release_1d_array(a_rhs_ravel, nic*njc*nq);
 	release_1d_array(rhs, nic*njc*nq);
+	release_1d_array(dt, nic*njc);
 	delete linearsolver;
 }
 
@@ -137,7 +158,6 @@ void Solver<T>::solve(){
 	double l2norm = 1e10;
 
 	uint counter = 0;
-	double dt = 1e0;
 	double t = 0.0;
 
 	copy_from_solution();
@@ -168,7 +188,14 @@ void Solver<T>::solve(){
 
 		if(counter == 0)
 			linearsolver->preallocate(nnz);
-
+		calc_dt();
+		double dt_local = 0;
+		for(uint i=0; i<nnz; i++){
+			dt_local = dt[rind[i]/nq];
+			values[i] = -values[i];
+			//			std::cout<<dt_local<<std::endl;
+			if(rind[i] == cind[i]){values[i] += 1.0/dt_local;}
+		}
 		timer.reset();
 		linearsolver->set_jac(nnz, rind, cind, values);
 		linearsolver->set_rhs(rhs);
@@ -192,7 +219,7 @@ void Solver<T>::solve(){
 		/* 		} */
 		/* 	} */
 		/* } */
-		t += dt;
+		t += 0;
 		counter += 1;
 		
 		if (l2norm < 1e-8) break;

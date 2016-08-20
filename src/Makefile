@@ -9,9 +9,9 @@ LIB = -L/home/anandps/local/adolc/lib64 -ladolc -lgfortran
 LIB += -L/home/anandps/local/armadillo/usr/lib -larmadillo
 LIB += -L/home/anandps/local/petsc_3_7_3/lib -lpetsc
 LIB += -L/home/anandps/local/superlu/usr/local/lib/ -lsuperlu -llapack -lblas
-CFLAGS = --std=c++11 -O3
+CFLAGS = --std=c++11 -O3 -fopenmp
 
-make: arma eigen
+make: arma eigen petsc
 eigen:
 	$(CXX) main.cpp -o main_eigen $(CFLAGS) $(INC) $(LIB) -DENABLE_EIGEN
 arma:

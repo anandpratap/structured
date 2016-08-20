@@ -27,8 +27,7 @@ class LinearSolverArma{
 		double value_tmp;
 		double dt = dt_global;
 		for(uint i=0; i<nnz; i++){
-			value_tmp = -values[i];
-			if(rind[i] == cind[i]){value_tmp += 1.0/dt;}
+			value_tmp = values[i];
 			jac(rind[i],cind[i]) = value_tmp;
 		}
 	};
@@ -97,8 +96,7 @@ class LinearSolverEigen{
 		double value_tmp;
 		double dt = dt_global;
 		for(uint i=0; i<nnz; i++){
-			value_tmp = -values[i];
-			if(rind[i] == cind[i]){value_tmp += 1.0/dt;}
+			value_tmp = values[i];
 			jac.coeffRef(rind[i],cind[i]) = value_tmp;
 		}
 	};
@@ -133,6 +131,7 @@ class LinearSolverEigen{
 #if defined(ENABLE_PETSC)
 #define CONFIG_PETSC_TOL 1e-12
 #define CONFIG_PETSC_MAXITER 1000
+#include "petscviewer.h"
 
 class LinearSolverPetsc{
 	Mesh<double> *mesh;
@@ -190,14 +189,14 @@ class LinearSolverPetsc{
 		int row_idx, col_idx;
 		double dt = dt_global;
 		for(uint i=0; i<nnz; i++){
-			value_tmp = -values[i];
-			if(rind[i] == cind[i]){value_tmp += 1.0/dt;}
+			value_tmp = values[i];
 			row_idx = rind[i];
 			col_idx = cind[i];
 			MatSetValue(jac, row_idx, col_idx, value_tmp ,INSERT_VALUES);
 		}
 		MatAssemblyBegin(jac, MAT_FINAL_ASSEMBLY);
 		MatAssemblyEnd(jac, MAT_FINAL_ASSEMBLY);
+		//MatView(jac, PETSC_VIEWER_DRAW_WORLD);
 	};
 
 	void set_rhs(double *val_rhs){
