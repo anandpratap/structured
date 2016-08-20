@@ -1,7 +1,8 @@
 #ifndef _LINEARSOLVER_H
 #define _LINEARSOLVER_H
 #include "common.h"
-
+double dt_global = 1e1;
+double fac_global = 0.6;
 #if defined(ENABLE_ARMA)
 class LinearSolverArma{
  public:
@@ -24,7 +25,7 @@ class LinearSolverArma{
 
 	void set_jac(int nnz, unsigned int *rind, unsigned int *cind, double *values){
 		double value_tmp;
-		double dt = 1e4;
+		double dt = dt_global;
 		for(uint i=0; i<nnz; i++){
 			value_tmp = -values[i];
 			if(rind[i] == cind[i]){value_tmp += 1.0/dt;}
@@ -49,7 +50,7 @@ class LinearSolverArma{
 
 		dq = arma::spsolve(jac, rhs, "superlu");
 		for(int i=0; i<nic*njc*nq; i++){
-			q[i] = q[i] + dq(i,0)*0.9;
+			q[i] = q[i] + dq(i,0)*fac_global;
 		}
 	};
 
@@ -94,7 +95,7 @@ class LinearSolverEigen{
 
 	void set_jac(int nnz, unsigned int *rind, unsigned int *cind, double *values){
 		double value_tmp;
-		double dt = 1e4;
+		double dt = dt_global;
 		for(uint i=0; i<nnz; i++){
 			value_tmp = -values[i];
 			if(rind[i] == cind[i]){value_tmp += 1.0/dt;}
@@ -121,56 +122,110 @@ class LinearSolverEigen{
 		solver->factorize(jac);
 		dq = solver->solve(rhs);
 		for(int i=0; i<nic*njc*nq; i++){
-			q[i] = q[i] + dq(i,0)*0.9;
+			q[i] = q[i] + dq(i,0)*fac_global;
 		}
 	};
 
 };
 
 #endif
-// #define CONFIG_PETSC_TOL 1e-12
-// #define CONFIG_PETSC_MAXITER 1000
 
-/* class LinearSolverPetsc{ */
-/* 	Mesh<double> *mesh; */
-/* 	Vec dq, rhs; */
-/* 	Mat jac; */
-/* 	PC pc; */
-/* 	KSP ksp; */
+#if defined(ENABLE_PETSC)
+#define CONFIG_PETSC_TOL 1e-12
+#define CONFIG_PETSC_MAXITER 1000
 
-/*  public: */
-/* 	LinearSolverPetsc(Mesh<double> *val_mesh){ */
-/* 		mesh = val_mesh; */
-/* 		uint nic = mesh->nic; */
-/* 		uint njc = mesh->njc; */
-/* 		uint nq = mesh->solution->nq; */
-/* 		int nvar = nic*njc*nq; */
+class LinearSolverPetsc{
+	Mesh<double> *mesh;
+	Vec dq, rhs;
+	Mat jac;
+	double *dq_array;
+	PC pc;
+	KSP ksp;
 
-/* 		PetscInitialize(NULL, NULL, NULL, NULL); */
+ public:
+	LinearSolverPetsc(Mesh<double> *val_mesh){
+		mesh = val_mesh;
+		uint nic = mesh->nic;
+		uint njc = mesh->njc;
+		uint nq = mesh->solution->nq;
+		int nvar = nic*njc*nq;
+		PetscInitialize(NULL, NULL, NULL, NULL);
 
-/* 		PetscErrorCode ierr; */
-/* 		ierr = VecCreate(PETSC_COMM_WORLD, &dq); */
-/* 		ierr = PetscObjectSetName((PetscObject) dq, "Solution"); */
-/* 		ierr = VecSetSizes(dq, PETSC_DECIDE, nvar); */
-/* 		ierr = VecSetFromOptions(dq); */
-/* 		ierr = VecDuplicate(dq,&rhs); */
+		PetscErrorCode ierr;
+		ierr = VecCreate(PETSC_COMM_WORLD, &dq);
+		ierr = PetscObjectSetName((PetscObject) dq, "Solution");
+		ierr = VecSetSizes(dq, PETSC_DECIDE, nvar);
+		ierr = VecSetFromOptions(dq);
+		ierr = VecDuplicate(dq,&rhs);
 
-/* 		MatCreateSeqAIJ(PETSC_COMM_WORLD, nvar, nvar, 36, NULL, &jac); */
+		MatCreateSeqAIJ(PETSC_COMM_WORLD, nvar, nvar, 36, NULL, &jac);
 
-/* 		ierr = KSPCreate(PETSC_COMM_WORLD, &ksp); */
-/* 		ierr = KSPSetOperators(ksp, jac, jac, SAME_NONZERO_PATTERN); */
-/* 		ierr = KSPGetPC(ksp, &pc); */
-/* 		ierr = PCSetType(pc, PCJACOBI); */
-/* 		ierr = KSPSetTolerances(ksp, CONFIG_PETSC_TOL, PETSC_DEFAULT, PETSC_DEFAULT, CONFIG_PETSC_MAXITER); */
-/* 		ierr = KSPSetFromOptions(ksp); */
-/* 	}; */
+		ierr = KSPCreate(PETSC_COMM_WORLD, &ksp);
+		ierr = KSPSetOperators(ksp, jac, jac);
+		ierr = KSPGetPC(ksp, &pc);
+		ierr = PCSetType(pc, PCLU);
+		ierr = KSPSetTolerances(ksp, CONFIG_PETSC_TOL, PETSC_DEFAULT, PETSC_DEFAULT, CONFIG_PETSC_MAXITER);
+		ierr = KSPSetFromOptions(ksp);
+		KSPSetType(ksp, KSPGMRES);
+			
+	};
 
-/* 	~LinearSolverPetsc(){ */
-/* 		VecDestroy(&rhs); */
-/* 		VecDestroy(&dq); */
-/* 		MatDestroy(&jac); */
-/* 		PetscFinalize(); */
-/* 	} */
-/* }; */
+	~LinearSolverPetsc(){
+		uint nic = mesh->nic;
+		uint njc = mesh->njc;
+		uint nq = mesh->solution->nq;
+		VecDestroy(&rhs);
+		VecDestroy(&dq);
+		MatDestroy(&jac);
+		PetscFinalize();
+	};
+
+	void preallocate(int nnz){
+
+	};
+	
+	void set_jac(int nnz, unsigned int *rind, unsigned int *cind, double *values){
+		PetscScalar value_tmp;
+		PetscErrorCode ierr;
+		int row_idx, col_idx;
+		double dt = dt_global;
+		for(uint i=0; i<nnz; i++){
+			value_tmp = -values[i];
+			if(rind[i] == cind[i]){value_tmp += 1.0/dt;}
+			row_idx = rind[i];
+			col_idx = cind[i];
+			MatSetValue(jac, row_idx, col_idx, value_tmp ,INSERT_VALUES);
+		}
+		MatAssemblyBegin(jac, MAT_FINAL_ASSEMBLY);
+		MatAssemblyEnd(jac, MAT_FINAL_ASSEMBLY);
+	};
+
+	void set_rhs(double *val_rhs){
+		uint nic = mesh->nic;
+		uint njc = mesh->njc;
+		uint nq = mesh->solution->nq;
+		PetscScalar value_tmp;
+		PetscErrorCode ierr;
+
+		for(int i=0; i<nic*njc*nq; i++){
+			value_tmp = val_rhs[i];
+			VecSetValue(rhs, i, value_tmp, INSERT_VALUES);
+		}
+	};
+
+	void solve_and_update(double *q){
+		uint nic = mesh->nic;
+		uint njc = mesh->njc;
+		uint nq = mesh->solution->nq;
+		KSPSolve(ksp, rhs, dq);
+		VecGetArray(dq, &dq_array);
+
+		for(int i=0; i<nic*njc*nq; i++){
+			q[i] = q[i] + dq_array[i]*fac_global;
+		}
+	};   
+};
+
+#endif
 
 #endif

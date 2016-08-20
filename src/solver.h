@@ -26,6 +26,9 @@ public:
 #if defined(ENABLE_EIGEN)
 	LinearSolverEigen *linearsolver;
 #endif
+#if defined(ENABLE_PETSC)
+	LinearSolverPetsc *linearsolver;
+#endif
 	
 	T *rhs;
 	T **lhs;
@@ -94,6 +97,10 @@ Solver<T>::Solver(Mesh<T> *val_mesh){
 
 #if defined(ENABLE_EIGEN)
 	linearsolver = new LinearSolverEigen(mesh);
+#endif
+
+#if defined(ENABLE_PETSC)
+	linearsolver = new LinearSolverPetsc(mesh);
 #endif
 
 }

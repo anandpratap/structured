@@ -21,9 +21,9 @@ int main(void){
 	//std::cout<<m.ni<<std::endl;
 
 
-	Solver<double> s = Solver<double>(&mc);
+	Solver<double> s = Solver<double>(&m);
 	s.solve();
-	write_solution(&mc, "base.tec");
+	write_solution(&m, "base.tec");
 	
 	return 0;
 }

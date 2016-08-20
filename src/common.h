@@ -32,10 +32,10 @@ typedef unsigned int uint;
 #include <Eigen/Dense>
 #endif
 
-/* #if defined(ENABLE_PETSC) */
-/* #include "petsc.h" */
-/* #include "petscksp.h" */
-/* #endif */
+#if defined(ENABLE_PETSC)
+#include "petsc.h"
+#include "petscksp.h"
+#endif
 
 #include <chrono>
 class Timer {
