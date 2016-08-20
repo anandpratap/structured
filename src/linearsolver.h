@@ -42,14 +42,14 @@ class LinearSolverArma{
 		}
 	};
 
-	void solve_and_update(double *q){
+	void solve_and_update(double *q, double UNDER_RELAXATION){
 		uint nic = mesh->nic;
 		uint njc = mesh->njc;
 		uint nq = mesh->solution->nq;
 
 		dq = arma::spsolve(jac, rhs, "superlu");
 		for(int i=0; i<nic*njc*nq; i++){
-			q[i] = q[i] + dq(i,0)*fac_global;
+			q[i] = q[i] + dq(i,0)*UNDER_RELAXATION;
 		}
 	};
 
@@ -111,7 +111,7 @@ class LinearSolverEigen{
 		}
 	};
 
-	void solve_and_update(double *q){
+	void solve_and_update(double *q, double UNDER_RELAXATION){
 		uint nic = mesh->nic;
 		uint njc = mesh->njc;
 		uint nq = mesh->solution->nq;
@@ -120,7 +120,7 @@ class LinearSolverEigen{
 		solver->factorize(jac);
 		dq = solver->solve(rhs);
 		for(int i=0; i<nic*njc*nq; i++){
-			q[i] = q[i] + dq(i,0)*fac_global;
+			q[i] = q[i] + dq(i,0)*UNDER_RELAXATION;
 		}
 	};
 
@@ -212,7 +212,7 @@ class LinearSolverPetsc{
 		}
 	};
 
-	void solve_and_update(double *q){
+	void solve_and_update(double *q, double UNDER_RELAXATION){
 		uint nic = mesh->nic;
 		uint njc = mesh->njc;
 		uint nq = mesh->solution->nq;
@@ -220,7 +220,7 @@ class LinearSolverPetsc{
 		VecGetArray(dq, &dq_array);
 
 		for(int i=0; i<nic*njc*nq; i++){
-			q[i] = q[i] + dq_array[i]*fac_global;
+			q[i] = q[i] + dq_array[i]*UNDER_RELAXATION;
 		}
 	};   
 };

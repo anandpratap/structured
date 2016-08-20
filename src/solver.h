@@ -19,7 +19,9 @@ public:
 	void calc_residual();
 	void solve();
 	adouble ***a_q, ***a_rhs;
-
+	double UNDER_RELAXATION = 1.0;
+	std::shared_ptr<cpptoml::table> config;
+	
 #if defined(ENABLE_ARMA)
 	LinearSolverArma *linearsolver;
 #endif
@@ -41,6 +43,7 @@ public:
 	void copy_from_solution();
 	void copy_to_solution();
 	void calc_dt();
+	void initialize();
 };
 template <class T>
 void Solver<T>::calc_dt(){
@@ -91,6 +94,24 @@ void Solver<T>::copy_to_solution(){
 	}
 }
 
+template <class T>
+void Solver<T>::initialize(){
+	uint nic = mesh->nic;
+	uint njc = mesh->njc;
+
+	for(uint i=0; i<nic; i++){
+		for(uint j=0; j<njc; j++){
+			auto rho_inf =  config->get_qualified_as<double>("freestream.rho_inf").value_or(1.0);
+			auto u_inf =  config->get_qualified_as<double>("freestream.u_inf").value_or(0.0);
+			auto v_inf =  config->get_qualified_as<double>("freestream.v_inf").value_or(0.0);
+			auto p_inf =  config->get_qualified_as<double>("freestream.p_inf").value_or(1.0/1.4);
+			mesh->solution->q[i][j][0] = rho_inf;
+			mesh->solution->q[i][j][1] = rho_inf*u_inf;
+			mesh->solution->q[i][j][2] = rho_inf*v_inf;
+			mesh->solution->q[i][j][3] = p_inf/(GAMMA-1.0) + 0.5*rho_inf*(u_inf*u_inf + v_inf*v_inf);
+		}
+	}
+}
 
 template <class T>
 Solver<T>::Solver(Mesh<T> *val_mesh){
@@ -123,6 +144,7 @@ Solver<T>::Solver(Mesh<T> *val_mesh){
 	linearsolver = new LinearSolverPetsc(mesh);
 #endif
 
+	config = cpptoml::parse_file("config.inp");
 }
 template <class T>
 Solver<T>::~Solver(){
@@ -159,9 +181,9 @@ void Solver<T>::solve(){
 
 	uint counter = 0;
 	double t = 0.0;
-
+	initialize();
 	copy_from_solution();
-
+	
 	while(1){
 		trace_on(1);
 		for(uint i=0; i<nic; i++){
@@ -199,7 +221,7 @@ void Solver<T>::solve(){
 		timer.reset();
 		linearsolver->set_jac(nnz, rind, cind, values);
 		linearsolver->set_rhs(rhs);
-		linearsolver->solve_and_update(q);
+		linearsolver->solve_and_update(q, UNDER_RELAXATION);
 		
 	//q[i][j][k] = q[i][j][k] + rhs[i][j][k]*dt;
 		
@@ -221,6 +243,27 @@ void Solver<T>::solve(){
 		/* } */
 		t += 0;
 		counter += 1;
+
+		auto cfl_ramp =  config->get_qualified_as<int64_t>("solver.cfl_ramp").value_or(0);
+		if(cfl_ramp){
+			auto cfl_ramp_iteration = config->get_qualified_as<int64_t>("solver.cfl_ramp_iteration").value_or(20);
+			if(counter > cfl_ramp_iteration){
+				auto cfl_ramp_exponent = config->get_qualified_as<double>("solver.cfl_ramp_exponent").value_or(1.1);
+				CFL = pow(CFL, cfl_ramp_exponent);
+				CFL = std::min(CFL, 1e6);
+			}
+		}
+
+		auto under_relaxation_ramp =  config->get_qualified_as<int64_t>("solver.under_relaxation_ramp").value_or(0);
+		if(under_relaxation_ramp){
+			auto under_relaxation_ramp_iteration = config->get_qualified_as<int64_t>("solver.under_relaxation_ramp_iteration").value_or(20);
+			if(counter > under_relaxation_ramp_iteration){
+				auto under_relaxation_ramp_exponent = config->get_qualified_as<double>("solver.under_relaxation_ramp_exponent").value_or(1.1);
+				UNDER_RELAXATION = pow(UNDER_RELAXATION, under_relaxation_ramp_exponent);
+				UNDER_RELAXATION = std::min(UNDER_RELAXATION, 10.0);
+			}
+		}
+
 		
 		if (l2norm < 1e-8) break;
 		if(counter % 1 == 0){
@@ -233,6 +276,7 @@ void Solver<T>::solve(){
 			l2norm = sqrt(l2norm);
 			std::cout<<"l2norm = "<<l2norm;
 			std::cout<<" t = "<<t;
+			std::cout<<" CFL = "<<CFL;
 			std::cout<<" counter = "<<counter<<std::endl;
 
 			copy_to_solution();
@@ -276,24 +320,28 @@ void Solver<T>::calc_residual(){
 			}
 		}
 	}
-
+	auto rho_inf =  config->get_qualified_as<double>("freestream.rho_inf").value_or(1.0);
+	auto u_inf =  config->get_qualified_as<double>("freestream.u_inf").value_or(0.0);
+	auto v_inf =  config->get_qualified_as<double>("freestream.v_inf").value_or(0.0);
+	auto p_inf =  config->get_qualified_as<double>("freestream.p_inf").value_or(1.0/1.4);
+	
 	for(uint i=0; i<nic+2; i++){
-		rho[i][njc+1] = 1.0;
-		u[i][njc+1] = 0.8;
-		v[i][njc+1] = 0.0;
-		p[i][njc+1] = 1.0/GAMMA;
+		rho[i][njc+1] = rho_inf;
+		u[i][njc+1] = u_inf;
+		v[i][njc+1] = v_inf;
+		p[i][njc+1] = p_inf;
 		
 	}
 
 	for(uint j=0; j<njc+2; j++){
-		rho[0][j] = 1.0;
-		u[0][j] = 0.8;
-		v[0][j] = 0.0;
-		p[0][j] = 1.0/GAMMA;
-		rho[nic+1][j] = 1.0;
-		u[nic+1][j] = 0.8;
-		v[nic+1][j] = 0.0;
-		p[nic+1][j] = 1.0/GAMMA;
+		rho[0][j] = rho_inf;
+		u[0][j] = u_inf;
+		v[0][j] = v_inf;
+		p[0][j] = p_inf;
+		rho[nic+1][j] = rho_inf;
+		u[nic+1][j] = u_inf;
+		v[nic+1][j] = v_inf;
+		p[nic+1][j] = p_inf;
 	}
 
 

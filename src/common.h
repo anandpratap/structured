@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iomanip>
 #include <cmath>
+#include "thirdparty/cpptoml.h"
 
 const double GAMMA = 1.4;
 typedef unsigned int uint;
