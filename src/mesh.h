@@ -5,12 +5,15 @@
 #include "utils.h"
 #include "flux.h"
 #include "solution.h"
+#include "config.h"
+
 template<class T>
 class Solution;
 
 template <class T>
 class Mesh{
 public:
+	Config *config;
 	uint ni, nj;
 	uint nic, njc;
 	uint j1, nb;
@@ -28,7 +31,7 @@ public:
 	Solution<T> *solution;
 	
 public:
-	Mesh();
+	Mesh(Config *config);
 	Mesh(const Mesh<T>* mesh, const uint nskipi=0, const uint nskipj=0, const uint refine=0);
 	~Mesh();
 	void calc_metrics();
@@ -88,18 +91,19 @@ void Mesh<T>::calc_metrics(){
 };
 
 template<class T>
-Mesh<T>::Mesh(){
-	ni = 281;
-	nj = 51;
-	j1 = 41;
-	nb = 200;
+Mesh<T>::Mesh(Config *val_config){
+	config = val_config;
+	ni = config->geometry->ni;
+	nj = config->geometry->nj;
+	j1 = config->geometry->tail;
+	nb = ni - 2*j1 + 1;
 	nic = ni - 1;
 	njc = nj - 1;
 	
 	xv = allocate_2d_array<T>(ni, nj);
 	yv = allocate_2d_array<T>(ni, nj);
 
-	simple_loader("grid.unf2");
+	simple_loader(config->geometry->filename);
 	
 	xc = allocate_2d_array<T>(nic, njc);
 	yc = allocate_2d_array<T>(nic, njc);
@@ -119,6 +123,7 @@ Mesh<T>::Mesh(){
 
 template<class T>
 Mesh<T>::Mesh(const Mesh<T>* mesh, const uint nskipi, const uint nskipj, const uint refine){
+	config = mesh->config;
 	if(!refine){
 		ni = std::ceil((float)mesh->ni/(nskipi+1U));
 		nj = std::ceil((float)mesh->nj/(nskipj+1U));
