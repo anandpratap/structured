@@ -15,12 +15,14 @@ public:
 	double *values = nullptr;
 	int options[4] = {0,0,0,1};
 	Timer timer;
+	Timer timer_main;
 	Mesh<T> *mesh;
 	void calc_residual();
 	void solve();
 	adouble ***a_q, ***a_rhs;
 	double UNDER_RELAXATION;
 	double CFL;
+	std::string label;
 	std::shared_ptr<cpptoml::table> config;
 	std::shared_ptr<spdlog::logger> logger;
 	std::shared_ptr<spdlog::logger> logger_convergence;	
@@ -113,11 +115,16 @@ void Solver<T>::initialize(){
 			mesh->solution->q[i][j][3] = p_inf/(GAMMA-1.0) + 0.5*rho_inf*(u_inf*u_inf + v_inf*v_inf);
 		}
 	}
+	if(config->get_qualified_as<bool>("io.restart").value_or(false)){
+		std::string filename_out = label + ".out";
+		read_restart_file(mesh, filename_out);
+	}
 }
 
 template <class T>
 Solver<T>::Solver(Mesh<T> *val_mesh){
 	timer = Timer();
+	timer_main = Timer();
 	mesh = val_mesh;
 	uint ni = mesh->ni;
 	uint nj = mesh->nj;
@@ -155,7 +162,7 @@ Solver<T>::Solver(Mesh<T> *val_mesh){
 	config = cpptoml::parse_file("config.inp");
 	CFL = config->get_qualified_as<double>("solver.cfl").value_or(1.0);
 	UNDER_RELAXATION = config->get_qualified_as<double>("solver.under_relaxation").value_or(1.0);
-
+	label = config->get_qualified_as<std::string>("io.label").value_or("flow");
 }
 template <class T>
 Solver<T>::~Solver(){
@@ -216,6 +223,23 @@ void Solver<T>::solve(){
 		}
 		
 		trace_off();
+
+
+		for(int j=0; j<nq; j++){
+			l2norm[j] = 0.0;
+			for(int i=0; i<nic*njc; i++){
+				l2norm[j] += rhs[i*nq+j]*rhs[i*nq+j];
+			}
+			l2norm[j] = sqrt(l2norm[j]);
+		}
+		if(l2norm[0] < 1e-8){
+			logger->info("Convergence reached!");
+			float dt_main = timer_main.diff();
+			logger->info("Final:: Step: {:08d} Time: {:.2e} Wall Time: {:.2e} CFL: {:.2e} Density Norm: {:.2e}", counter, t, dt_main, CFL, l2norm[0]);
+			break;
+		}
+
+
 		sparse_jac(1,nic*njc*nq,nic*njc*nq,repeat,q,&nnz,&rind,&cind,&values,options);
 		logger->debug("NNZ = {}", nnz);
 
@@ -255,7 +279,7 @@ void Solver<T>::solve(){
 		t += 0;
 		counter += 1;
 
-		auto cfl_ramp =  config->get_qualified_as<int64_t>("solver.cfl_ramp").value_or(0);
+		auto cfl_ramp =  config->get_qualified_as<bool>("solver.cfl_ramp").value_or(false);
 		if(cfl_ramp){
 			auto cfl_ramp_iteration = config->get_qualified_as<int64_t>("solver.cfl_ramp_iteration").value_or(20);
 			if(counter > cfl_ramp_iteration){
@@ -265,7 +289,7 @@ void Solver<T>::solve(){
 			}
 		}
 
-		auto under_relaxation_ramp =  config->get_qualified_as<int64_t>("solver.under_relaxation_ramp").value_or(0);
+		auto under_relaxation_ramp =  config->get_qualified_as<bool>("solver.under_relaxation_ramp").value_or(false);
 		if(under_relaxation_ramp){
 			auto under_relaxation_ramp_iteration = config->get_qualified_as<int64_t>("solver.under_relaxation_ramp_iteration").value_or(20);
 			if(counter > under_relaxation_ramp_iteration){
@@ -276,22 +300,20 @@ void Solver<T>::solve(){
 		}
 
 		
-		if (l2norm[0] < 1e-8) break;
 		if(counter % 1 == 0){
-			for(int j=0; j<nq; j++){
-				l2norm[j] = 0.0;
-				for(int i=0; i<nic*njc; i++){
-					l2norm[j] += rhs[i*nq+j]*rhs[i*nq+j];
-					}
-				l2norm[j] = sqrt(l2norm[j]);
-			}
-
-			logger->info("Step: {:08d} Time: {:.2e} CFL: {:.2e} Density Norm: {:.2e}", counter, t, CFL, l2norm[0]);
-			logger_convergence->info("{:08d} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e}", counter, t, CFL, l2norm[0], l2norm[1], l2norm[2], l2norm[3]);
+			float dt_main = timer_main.diff();
+			logger->info("Step: {:08d} Time: {:.2e} Wall Time: {:.2e} CFL: {:.2e} Density Norm: {:.2e}", counter, t, dt_main, CFL, l2norm[0]);
+			logger_convergence->info("{:08d} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e}", counter, t, dt_main, CFL, l2norm[0], l2norm[1], l2norm[2], l2norm[3]);
 			copy_to_solution();
 
-			write_solution(mesh, "base.tec");
-			write_solution_npy(mesh, "base.npy");
+			std::string filename_tec = label + ".tec";
+			std::string filename_npy = label + ".npy";
+			std::string filename_out = label + ".out";
+			std::string filename_surface = label + ".surface";
+			write_solution(mesh, filename_tec);
+			write_solution_npy(mesh, filename_npy);
+			write_restart_file(mesh, filename_out);
+			write_surface_file(mesh, filename_surface);
 		}		
 	}
 }
@@ -395,11 +417,19 @@ void Solver<T>::calc_residual(){
 	static adouble** vrht_xi = allocate_2d_array<adouble>(ni, njc);
 	static adouble** prht_xi = allocate_2d_array<adouble>(ni, njc);
 
-	first_order_xi(ni, nj, rho, rholft_xi, rhorht_xi);
-	first_order_xi(ni, nj, u, ulft_xi, urht_xi);
-	first_order_xi(ni, nj, v, vlft_xi, vrht_xi);
-	first_order_xi(ni, nj, p, plft_xi, prht_xi);
-
+	if(config->get_qualified_as<int64_t>("solver.order").value_or(1) == 1){
+		first_order_xi(ni, nj, rho, rholft_xi, rhorht_xi);
+		first_order_xi(ni, nj, u, ulft_xi, urht_xi);
+		first_order_xi(ni, nj, v, vlft_xi, vrht_xi);
+		first_order_xi(ni, nj, p, plft_xi, prht_xi);
+	}
+	else{
+		second_order_xi(ni, nj, rho, rholft_xi, rhorht_xi);
+		second_order_xi(ni, nj, u, ulft_xi, urht_xi);
+		second_order_xi(ni, nj, v, vlft_xi, vrht_xi);
+		second_order_xi(ni, nj, p, plft_xi, prht_xi);
+	
+	}
 
 	static adouble** rholft_eta = allocate_2d_array<adouble>(nic, nj);
 	static adouble** ulft_eta = allocate_2d_array<adouble>(nic, nj);
@@ -411,11 +441,18 @@ void Solver<T>::calc_residual(){
 	static adouble** vrht_eta = allocate_2d_array<adouble>(nic, nj);
 	static adouble** prht_eta = allocate_2d_array<adouble>(nic, nj);
 
+	if(config->get_qualified_as<int64_t>("solver.order").value_or(1) == 1){
 	first_order_eta(ni, nj, rho, rholft_eta, rhorht_eta);
 	first_order_eta(ni, nj, u, ulft_eta, urht_eta);
 	first_order_eta(ni, nj, v, vlft_eta, vrht_eta);
 	first_order_eta(ni, nj, p, plft_eta, prht_eta);
+	}else{
+	second_order_eta(ni, nj, rho, rholft_eta, rhorht_eta);
+	second_order_eta(ni, nj, u, ulft_eta, urht_eta);
+	second_order_eta(ni, nj, v, vlft_eta, vrht_eta);
+	second_order_eta(ni, nj, p, plft_eta, prht_eta);
 
+	}
 
 	static adouble*** flux_xi = allocate_3d_array<adouble>(ni, njc, 4U);
 	static adouble*** flux_eta = allocate_3d_array<adouble>(nic, nj, 4U);

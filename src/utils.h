@@ -80,6 +80,84 @@ void first_order_eta(Ti ni, Ti nj, T** q, T** ql, T** qr){
 	}
 }
 
+
+template<class T, class Ti>
+void second_order_xi(Ti ni, Ti nj, T **q, T **ql, T **qr){
+	Ti njm = nj-1;
+	for(Ti i=0; i<ni; i++){
+		for(Ti j=0; j<njm; j++){
+			ql[i][j] = q[i][j+1];
+			qr[i][j] = q[i+1][j+1];
+		}
+	}
+	Ti nim = ni-1;
+	T thm = 2.0/3.0;
+	T thp = 4.0/3.0;
+	T eps = pow(10.0/nim, 3);
+	static T **f2 = allocate_2d_array<T>(ni, njm);
+	static T **a1 = allocate_2d_array<T>(nim, njm);
+	static T **a2 = allocate_2d_array<T>(nim, njm);
+	static T **f3qt = allocate_2d_array<T>(nim, njm);
+	for(Ti i=0; i<ni; i++){
+		for(Ti j=0; j<njm; j++){
+			f2[i][j] = q[i+1][j+1] - q[i][j+1];
+		}
+	}
+	for(Ti i=0; i<nim; i++){
+		for(Ti j=0; j<njm; j++){
+			a1[i][j] = 3.0*f2[i+1][j]*f2[i][j];
+			a2[i][j] = 2*(f2[i+1][j] - f2[i][j])*(f2[i+1][j] - f2[i][j]) + a1[i][j];
+			f3qt[i][j] = 0.25*(a1[i][j] + eps)/(a2[i][j] + eps);
+		}
+	}
+	for(Ti i=0; i<nim; i++){
+		for(Ti j=0; j<njm; j++){
+			ql[i+1][j] = ql[i+1][j] + f3qt[i][j]*(thm*f2[i][j] + thp*f2[i+1][j]);
+			qr[i][j] = qr[i][j] - f3qt[i][j]*(thp*f2[i][j] + thm*f2[i+1][j]);
+		}
+	}
+}
+
+template<class T, class Ti>
+void second_order_eta(Ti ni, Ti nj, T **q, T **ql, T **qr){
+	Ti nim = ni-1;
+	for(Ti i=0; i<nim; i++){
+		for(Ti j=0; j<nj; j++){
+			ql[i][j] = q[i+1][j];
+			qr[i][j] = q[i+1][j+1];
+		}
+	}
+	Ti njm = nj-1;
+	T thm = 2.0/3.0;
+	T thp = 4.0/3.0;
+	T eps = pow(10.0/njm, 3);
+	static T **f2 = allocate_2d_array<T>(nim, nj);
+	static T **a1 = allocate_2d_array<T>(nim, njm);
+	static T **a2 = allocate_2d_array<T>(nim, njm);
+	static T **f3qt = allocate_2d_array<T>(nim, njm);
+
+	for(Ti i=0; i<nim; i++){
+		for(Ti j=0; j<nj; j++){
+			f2[i][j] = q[i+1][j+1] - q[i+1][j];
+		}
+	}
+	for(Ti i=0; i<nim; i++){
+		for(Ti j=0; j<njm; j++){
+			a1[i][j] = 3.0*f2[i][j+1]*f2[i][j];
+			a2[i][j] = 2*(f2[i][j+1] - f2[i][j])*(f2[i][j+1] - f2[i][j]) + a1[i][j];
+			f3qt[i][j] = 0.25*(a1[i][j] + eps)/(a2[i][j] + eps);
+		}
+	}
+	for(Ti i=0; i<nim; i++){
+		for(Ti j=0; j<njm; j++){
+			ql[i][j+1] = ql[i][j+1] + f3qt[i][j]*(thm*f2[i][j] + thp*f2[i][j+1]);
+			qr[i][j] = qr[i][j] - f3qt[i][j]*(thp*f2[i][j] + thm*f2[i][j+1]);
+		}
+	}
+
+}
+
+
 template<class T>
 void primvars(const T Q[4], T *rho, T *u, T *v, T *p){
   T tmp_rho = Q[0];
