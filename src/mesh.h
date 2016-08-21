@@ -253,10 +253,29 @@ void write_solution_npy(const Mesh<T> *mesh, std::string filename){
 	const unsigned int shape[] = {nic, njc};
 	const unsigned int shapeq[] = {nic, njc, 4};
 
-	cnpy::npz_save(filename,"xc",xc,shape,1,"w");
-	cnpy::npz_save(filename,"yc",yc,shape,1,"a");
-	cnpy::npz_save(filename,"q",q,shapeq,1,"a");
+	const unsigned int shapetmp[] = {5U, 2U};
+	double *xc_array = new double[nic*njc];
+	double *yc_array = new double[nic*njc];
+	double *q_array = new double[nic*njc*4];
+
 	
+	for(int i=0; i<nic; i++){
+		for(int j=0; j<njc; j++){
+			xc_array[i*njc + j] = xc[i][j];
+			yc_array[i*njc + j] = yc[i][j];
+			for(int k=0; k<4; k++){
+				q_array[i*njc*4 + j*4 + k] = q[i][j][k];
+			}
+		}
+	}
+	cnpy::npz_save(filename,"xc",xc_array,shape,2,"w");
+	cnpy::npz_save(filename,"yc",yc_array,shape,2,"a");
+	cnpy::npz_save(filename,"q",q_array,shapeq,3,"a");
+
+
+	delete[] xc_array;
+	delete[] yc_array;
+	delete[] q_array;
 }
 
 
