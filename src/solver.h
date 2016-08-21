@@ -4,7 +4,7 @@
 #include "utils.h"
 #include "mesh.h"
 #include "linearsolver.h"
-double CFL = 1e2;
+
 template<class T>
 class Solver{
 public:
@@ -19,9 +19,11 @@ public:
 	void calc_residual();
 	void solve();
 	adouble ***a_q, ***a_rhs;
-	double UNDER_RELAXATION = 1.0;
+	double UNDER_RELAXATION;
+	double CFL;
 	std::shared_ptr<cpptoml::table> config;
-	
+	std::shared_ptr<spdlog::logger> logger;
+	std::shared_ptr<spdlog::logger> logger_convergence;	
 #if defined(ENABLE_ARMA)
 	LinearSolverArma *linearsolver;
 #endif
@@ -144,7 +146,16 @@ Solver<T>::Solver(Mesh<T> *val_mesh){
 	linearsolver = new LinearSolverPetsc(mesh);
 #endif
 
+
+	spdlog::set_pattern("%v");
+	logger_convergence = spdlog::basic_logger_mt("convergence", "history.dat", true);
+	logger_convergence->info(" ");
+	logger = spdlog::stdout_logger_mt("console", true);
+	logger->set_level(spdlog::level::debug);
 	config = cpptoml::parse_file("config.inp");
+	CFL = config->get_qualified_as<double>("solver.cfl").value_or(1.0);
+	UNDER_RELAXATION = config->get_qualified_as<double>("solver.under_relaxation").value_or(1.0);
+
 }
 template <class T>
 Solver<T>::~Solver(){
@@ -177,13 +188,13 @@ void Solver<T>::solve(){
 	uint nic = mesh->nic;
 	uint njc = mesh->njc;
 	uint nq = mesh->solution->nq;
-	double l2norm = 1e10;
+	double l2norm[nq] = {1e10};
 
 	uint counter = 0;
 	double t = 0.0;
 	initialize();
 	copy_from_solution();
-	
+	logger->info("Welcome to structured!");
 	while(1){
 		trace_on(1);
 		for(uint i=0; i<nic; i++){
@@ -206,7 +217,7 @@ void Solver<T>::solve(){
 		
 		trace_off();
 		sparse_jac(1,nic*njc*nq,nic*njc*nq,repeat,q,&nnz,&rind,&cind,&values,options);
-		std::cout<<"NNZ = "<<nnz<<std::endl;
+		logger->debug("NNZ = {}", nnz);
 
 		if(counter == 0)
 			linearsolver->preallocate(nnz);
@@ -226,7 +237,7 @@ void Solver<T>::solve(){
 	//q[i][j][k] = q[i][j][k] + rhs[i][j][k]*dt;
 		
 		float dt_perf = timer.diff();
-		std::cout<<"time = "<<dt_perf<<std::endl;
+		logger->info("Linear algebra time = {:03.2f}", dt_perf);
 
 		free(rind); rind=nullptr;
 		free(cind); cind=nullptr;
@@ -265,23 +276,22 @@ void Solver<T>::solve(){
 		}
 
 		
-		if (l2norm < 1e-8) break;
+		if (l2norm[0] < 1e-8) break;
 		if(counter % 1 == 0){
-			l2norm = 0.0;
-			for(int i=0; i<nic*njc*nq; i++){
-				if(i%4 == 0){
-					l2norm += rhs[i]*rhs[i];
-				}
+			for(int j=0; j<nq; j++){
+				l2norm[j] = 0.0;
+				for(int i=0; i<nic*njc; i++){
+					l2norm[j] += rhs[i*nq+j]*rhs[i*nq+j];
+					}
+				l2norm[j] = sqrt(l2norm[j]);
 			}
-			l2norm = sqrt(l2norm);
-			std::cout<<"l2norm = "<<l2norm;
-			std::cout<<" t = "<<t;
-			std::cout<<" CFL = "<<CFL;
-			std::cout<<" counter = "<<counter<<std::endl;
 
+			logger->info("Step: {:08d} Time: {:.2e} CFL: {:.2e} Density Norm: {:.2e}", counter, t, CFL, l2norm[0]);
+			logger_convergence->info("{:08d} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e}", counter, t, CFL, l2norm[0], l2norm[1], l2norm[2], l2norm[3]);
 			copy_to_solution();
 
 			write_solution(mesh, "base.tec");
+			write_solution_npy(mesh, "base.npy");
 		}		
 	}
 }

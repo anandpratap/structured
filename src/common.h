@@ -6,7 +6,8 @@
 #include <iomanip>
 #include <cmath>
 #include "thirdparty/cpptoml.h"
-
+#include "thirdparty/cnpy.h"
+#include "thirdparty/spdlog/spdlog.h"
 const double GAMMA = 1.4;
 typedef unsigned int uint;
 

@@ -1,21 +1,21 @@
 [geometry]
-tail = 41
+1;4205;0ctail = 41
 	
 [freestream]
 rho_inf = 1.0
-u_inf = 0.3
+u_inf = 0.6
 v_inf = 0.0
 p_inf = 0.7142857142857143
 
 [solver]
-cfl = 100.0
+cfl = 10.0
 time_accurate = false
 cfl_ramp = 1
-cfl_ramp_iteration = 10
+cfl_ramp_iteration = 5
 cfl_ramp_exponent = 1.2
 under_relaxation = 1.0
 under_relaxation_ramp = 1
-under_relazation_ramp_iteration = 10
+under_relaxation_ramp_iteration = 5
 under_relaxation_ramp_exponent = 1.2	
 [zone]
 istart = 41

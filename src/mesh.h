@@ -214,7 +214,24 @@ void write_solution(const Mesh<T> *mesh, std::string filename){
 	}
 	
 	outfile.close();
-	printf("Data dumped..\n");
+	spdlog::get("console")->info("Writing tecplot data file {}.", filename);
+}
+
+
+template <class T>
+void write_solution_npy(const Mesh<T> *mesh, std::string filename){
+	uint nic = mesh->nic;
+	uint njc = mesh->njc;
+	T ***q = mesh->solution->q;
+	T **xc = mesh->xc;
+	T **yc = mesh->yc;
+	const unsigned int shape[] = {nic, njc};
+	const unsigned int shapeq[] = {nic, njc, 4};
+
+	cnpy::npz_save(filename,"xc",xc,shape,1,"w");
+	cnpy::npz_save(filename,"yc",yc,shape,1,"a");
+	cnpy::npz_save(filename,"q",q,shapeq,1,"a");
+	
 }
 
 
