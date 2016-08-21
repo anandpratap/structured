@@ -235,4 +235,72 @@ void write_solution_npy(const Mesh<T> *mesh, std::string filename){
 }
 
 
+template <class T>
+void write_restart_file(const Mesh<T> *mesh, std::string filename){
+	uint nic = mesh->nic;
+	uint njc = mesh->njc;
+	uint nq = mesh->solution->nq;
+	T ***q = mesh->solution->q;
+	T **xc = mesh->xc;
+	T **yc = mesh->yc;
+	std::ofstream outfile(filename,std::ofstream::binary);
+	for(int i=0; i<nic; i++){
+		for(int j=0; j<njc; j++){
+			outfile.write(reinterpret_cast<const char*>(q[i][j]), sizeof(T)*nq);
+		}
+	}
+	outfile.close();
+	
+}
+
+template <class T>
+void read_restart_file(const Mesh<T> *mesh, std::string filename){
+	uint nic = mesh->nic;
+	uint njc = mesh->njc;
+	uint nq = mesh->solution->nq;
+	T ***q = mesh->solution->q;
+	T **xc = mesh->xc;
+	T **yc = mesh->yc;
+	std::ifstream infile(filename,std::ofstream::binary);
+
+	infile.seekg (0,infile.end);
+	long size = infile.tellg();
+	long size_expected = nic*njc*nq*sizeof(T);
+	infile.seekg (0);
+	assert(size == size_expected);
+	
+	for(int i=0; i<nic; i++){
+		for(int j=0; j<njc; j++){
+			infile.read(reinterpret_cast<char*>(q[i][j]), sizeof(T)*nq);
+		}
+	}
+	infile.close();
+	
+}
+
+template <class T>
+void write_surface_file(const Mesh<T> *mesh, std::string filename){
+	uint nic = mesh->nic;
+	uint njc = mesh->njc;
+	uint nq = mesh->solution->nq;
+	T ***q = mesh->solution->q;
+	T **xc = mesh->xc;
+	T **yc = mesh->yc;
+	double p_inf = 1/1.4;
+	double rho_inf = 1.0;
+	double u_inf = 0.5;
+	int j1 = mesh->j1-1;
+	double rho, u, v, p, x, cp;
+	std::ofstream outfile;
+	outfile.open(filename);
+
+	for(uint i=j1; i<j1+mesh->nb; i++){
+		primvars<double>(q[i][0], &rho, &u, &v, &p);
+		x = xc[i][0];
+		cp = (p - p_inf)/(0.5*rho_inf*u_inf*u_inf);
+		outfile<<x<<" "<<cp<<std::endl;
+	}
+	outfile.close();
+}
+
 #endif
