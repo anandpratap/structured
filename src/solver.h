@@ -13,9 +13,10 @@ public:
 	unsigned int *rind = nullptr;
 	unsigned int *cind = nullptr;
 	double *values = nullptr;
-	int options[4] = {0,0,0,1};
-	Timer timer;
+	int options[4] = {0,0,0,0};
+	Timer timer_la;
 	Timer timer_main;
+	Timer timer_residual;
 	Mesh<T> *mesh;
 	void calc_residual();
 	void solve();
@@ -41,6 +42,13 @@ public:
 	T *dt;
 	T *q;
 	adouble *a_q_ravel, *a_rhs_ravel;
+
+	adouble **rho, **u, **v, **p;
+	adouble **rholft_xi, **ulft_xi, **vlft_xi, **plft_xi;
+	adouble **rhorht_xi, **urht_xi, **vrht_xi, **prht_xi;
+	adouble **rholft_eta, **ulft_eta, **vlft_eta, **plft_eta;
+	adouble **rhorht_eta, **urht_eta, **vrht_eta, **prht_eta;
+	adouble ***flux_xi, ***flux_eta;
 
 	Solver(Mesh<T> *val_mesh);
 	~Solver();
@@ -123,8 +131,9 @@ void Solver<T>::initialize(){
 
 template <class T>
 Solver<T>::Solver(Mesh<T> *val_mesh){
-	timer = Timer();
+	timer_la = Timer();
 	timer_main = Timer();
+	timer_residual = Timer();
 	mesh = val_mesh;
 	uint ni = mesh->ni;
 	uint nj = mesh->nj;
@@ -163,6 +172,36 @@ Solver<T>::Solver(Mesh<T> *val_mesh){
 	CFL = config->get_qualified_as<double>("solver.cfl").value_or(1.0);
 	UNDER_RELAXATION = config->get_qualified_as<double>("solver.under_relaxation").value_or(1.0);
 	label = config->get_qualified_as<std::string>("io.label").value_or("flow");
+
+
+	rho = allocate_2d_array<adouble>(nic+2, njc+2);
+	u = allocate_2d_array<adouble>(nic+2, njc+2);
+	v = allocate_2d_array<adouble>(nic+2, njc+2);
+	p = allocate_2d_array<adouble>(nic+2, njc+2);
+	rholft_xi = allocate_2d_array<adouble>(ni, njc);
+	ulft_xi = allocate_2d_array<adouble>(ni, njc);
+	vlft_xi = allocate_2d_array<adouble>(ni, njc);
+	plft_xi = allocate_2d_array<adouble>(ni, njc);
+
+	rhorht_xi = allocate_2d_array<adouble>(ni, njc);
+	urht_xi = allocate_2d_array<adouble>(ni, njc);
+	vrht_xi = allocate_2d_array<adouble>(ni, njc);
+	prht_xi = allocate_2d_array<adouble>(ni, njc);
+
+	rholft_eta = allocate_2d_array<adouble>(nic, nj);
+	ulft_eta = allocate_2d_array<adouble>(nic, nj);
+	vlft_eta = allocate_2d_array<adouble>(nic, nj);
+	plft_eta = allocate_2d_array<adouble>(nic, nj);
+
+	rhorht_eta = allocate_2d_array<adouble>(nic, nj);
+	urht_eta = allocate_2d_array<adouble>(nic, nj);
+	vrht_eta = allocate_2d_array<adouble>(nic, nj);
+	prht_eta = allocate_2d_array<adouble>(nic, nj);
+
+	flux_xi = allocate_3d_array<adouble>(ni, njc, 4U);
+	flux_eta = allocate_3d_array<adouble>(nic, nj, 4U);
+
+
 }
 template <class T>
 Solver<T>::~Solver(){
@@ -211,8 +250,10 @@ void Solver<T>::solve(){
 				}
 			}
 		}
-		
+		timer_residual.reset();
 		calc_residual();
+		float dt_perfs = timer_residual.diff();
+		logger->info("Residual time = {:03.2f}", dt_perfs);
 
 		for(uint i=0; i<nic; i++){
 			for(uint j=0; j<njc; j++){
@@ -253,14 +294,14 @@ void Solver<T>::solve(){
 			//			std::cout<<dt_local<<std::endl;
 			if(rind[i] == cind[i]){values[i] += 1.0/dt_local;}
 		}
-		timer.reset();
+		timer_la.reset();
 		linearsolver->set_jac(nnz, rind, cind, values);
 		linearsolver->set_rhs(rhs);
 		linearsolver->solve_and_update(q, UNDER_RELAXATION);
 		
 	//q[i][j][k] = q[i][j][k] + rhs[i][j][k]*dt;
 		
-		float dt_perf = timer.diff();
+		float dt_perf = timer_la.diff();
 		logger->info("Linear algebra time = {:03.2f}", dt_perf);
 
 		free(rind); rind=nullptr;
@@ -335,10 +376,6 @@ void Solver<T>::calc_residual(){
 	}
 	
 	adouble ***q = a_q;
-	static adouble **rho = allocate_2d_array<adouble>(nic+2, njc+2);
-	static adouble **u = allocate_2d_array<adouble>(nic+2, njc+2);
-	static adouble **v = allocate_2d_array<adouble>(nic+2, njc+2);
-	static adouble **p = allocate_2d_array<adouble>(nic+2, njc+2);
 	
 	for(uint i=0; i<nic; i++){
 		for(uint j=0; j<njc; j++){
@@ -407,15 +444,6 @@ void Solver<T>::calc_residual(){
 
 
 	
-	static adouble** rholft_xi = allocate_2d_array<adouble>(ni, njc);
-	static adouble** ulft_xi = allocate_2d_array<adouble>(ni, njc);
-	static adouble** vlft_xi = allocate_2d_array<adouble>(ni, njc);
-	static adouble** plft_xi = allocate_2d_array<adouble>(ni, njc);
-
-	static adouble** rhorht_xi = allocate_2d_array<adouble>(ni, njc);
-	static adouble** urht_xi = allocate_2d_array<adouble>(ni, njc);
-	static adouble** vrht_xi = allocate_2d_array<adouble>(ni, njc);
-	static adouble** prht_xi = allocate_2d_array<adouble>(ni, njc);
 
 	if(config->get_qualified_as<int64_t>("solver.order").value_or(1) == 1){
 		first_order_xi(ni, nj, rho, rholft_xi, rhorht_xi);
@@ -431,15 +459,6 @@ void Solver<T>::calc_residual(){
 	
 	}
 
-	static adouble** rholft_eta = allocate_2d_array<adouble>(nic, nj);
-	static adouble** ulft_eta = allocate_2d_array<adouble>(nic, nj);
-	static adouble** vlft_eta = allocate_2d_array<adouble>(nic, nj);
-	static adouble** plft_eta = allocate_2d_array<adouble>(nic, nj);
-
-	static adouble** rhorht_eta = allocate_2d_array<adouble>(nic, nj);
-	static adouble** urht_eta = allocate_2d_array<adouble>(nic, nj);
-	static adouble** vrht_eta = allocate_2d_array<adouble>(nic, nj);
-	static adouble** prht_eta = allocate_2d_array<adouble>(nic, nj);
 
 	if(config->get_qualified_as<int64_t>("solver.order").value_or(1) == 1){
 	first_order_eta(ni, nj, rho, rholft_eta, rhorht_eta);
@@ -454,8 +473,6 @@ void Solver<T>::calc_residual(){
 
 	}
 
-	static adouble*** flux_xi = allocate_3d_array<adouble>(ni, njc, 4U);
-	static adouble*** flux_eta = allocate_3d_array<adouble>(nic, nj, 4U);
 	
 	for(uint i=0; i< ni; i++){
 		for(uint j=0; j< njc; j++){
