@@ -32,12 +32,10 @@ public:
 	}
 
 	void write(uint iteration){
-		if(iteration%config->io->fileout_frequency == 0){
-			write_tecplot();
-			write_npz();
-			write_restart();
-			write_surface();
-		}
+		write_tecplot();
+		write_npz();
+		write_restart();
+		write_surface();
 	}
 	
 	void write_tecplot(){
