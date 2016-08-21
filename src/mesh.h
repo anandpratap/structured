@@ -128,7 +128,11 @@ Mesh<T>::Mesh(const Mesh<T>* mesh, const uint nskipi, const uint nskipj, const u
 		ni = mesh->ni + (mesh->ni-1)*nskipi;
 		nj = mesh->nj + (mesh->nj-1)*nskipj;
 		j1 = mesh->j1 + (mesh->j1-1)*nskipi;
-		nb = mesh->nb + (mesh->nb-1)*nskipi;
+		nb = mesh->nb + (mesh->nb-1)*nskipi + 1;
+		std::cout<<"nb "<<nb<<std::endl;
+		std::cout<<"j1 "<<j1<<std::endl;
+		//spdlog::get("console")->debug("NB = {}.", nb);
+		//spdlog::get("console")->debug("j1 = {}.", j1);
 	}
 	
 	nic = ni - 1;
@@ -145,17 +149,33 @@ Mesh<T>::Mesh(const Mesh<T>* mesh, const uint nskipi, const uint nskipj, const u
 				uint jo = j*(nskipj + 1U);
 				xv[i][j] = mesh->xv[io][jo];
 				yv[i][j] = mesh->yv[io][jo];
-			} else{
-				uint i1 = std::floor((float)i/(nskipi + 1U));
-				uint j1 = std::floor((float)j/(nskipj + 1U));
-				uint i2 = std::ceil((float)i/(nskipi + 1U));
-				uint j2 = std::ceil((float)j/(nskipj + 1U));
-				xv[i][j] = 0.5*(mesh->xv[i1][j1] + mesh->xv[i2][j2]);
-				yv[i][j] = 0.5*(mesh->yv[i1][j1] + mesh->yv[i2][j2]);
 			}
 		}
 	}
-	
+
+	if(refine){
+		for(uint i=0; i<ni; i+=2){
+			for(uint j=0; j<nj; j+=2){
+				xv[i][j] = mesh->xv[i/2][j/2];
+				yv[i][j] = mesh->yv[i/2][j/2];
+			}
+		}
+
+		for(uint i=1; i<ni; i+=2){
+			for(uint j=0; j<nj; j+=1){
+				xv[i][j] = 0.5*(xv[i+1][j] + xv[i-1][j]);
+				yv[i][j] = 0.5*(yv[i+1][j] + yv[i-1][j]);
+			}
+		}
+		
+		for(uint i=0; i<ni; i+=1){
+			for(uint j=1; j<nj; j+=2){
+				xv[i][j] = 0.5*(xv[i][j+1] + xv[i][j-1]);
+				yv[i][j] = 0.5*(yv[i][j+1] + yv[i][j-1]);
+			}
+		}
+
+	}
 	xc = allocate_2d_array<T>(nic, njc);
 	yc = allocate_2d_array<T>(nic, njc);
 
