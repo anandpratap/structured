@@ -9,7 +9,7 @@ class LinearSolverArma{
 	Mesh<double> *mesh;
 	arma::mat rhs, dq;
 	arma::sp_mat jac;
-	LinearSolverArma(Mesh<double> *val_mesh){
+	LinearSolverArma(Mesh<double> *val_mesh, Config *val_config){
 		mesh = val_mesh;
 
 		uint ni = mesh->ni;
@@ -68,7 +68,7 @@ class LinearSolverEigen{
 	Eigen::SparseLU<Eigen::SparseMatrix<double>> *solver;
 	unsigned int c = 0;
  public:
-	LinearSolverEigen(Mesh<double> *val_mesh){
+	LinearSolverEigen(Mesh<double> *val_mesh, Config *val_config){
 		mesh = val_mesh;
 
 		uint ni = mesh->ni;
@@ -148,13 +148,13 @@ class LinearSolverPetsc{
 	KSP ksp;
 
  public:
-	LinearSolverPetsc(Mesh<double> *val_mesh){
+	LinearSolverPetsc(Mesh<double> *val_mesh, Config *val_config){
 		mesh = val_mesh;
 		uint nic = mesh->nic;
 		uint njc = mesh->njc;
 		uint nq = mesh->solution->nq;
 		int nvar = nic*njc*nq;
-		PetscInitialize(NULL, NULL, NULL, NULL);
+		PetscInitialize(&val_config->argc, &val_config->argv, NULL, NULL);
 
 		PetscErrorCode ierr;
 		ierr = VecCreate(PETSC_COMM_WORLD, &dq);
@@ -169,9 +169,9 @@ class LinearSolverPetsc{
 		ierr = KSPSetOperators(ksp, jac, jac);
 		ierr = KSPGetPC(ksp, &pc);
 		ierr = PCSetType(pc, PCLU);
-		KSPSetType(ksp, KSPGMRES);
+		ierr = KSPSetType(ksp, KSPGMRES);
 		ierr = KSPSetTolerances(ksp, 1e-7, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT);
-
+		ierr = KSPSetFromOptions(ksp);
 		
 	};
 
