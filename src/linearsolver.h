@@ -85,7 +85,10 @@ class LinearSolverEigen{
 	};
 
 	void preallocate(int nnz){
-		jac.reserve(nnz);
+		uint nic = mesh->nic;
+		uint njc = mesh->njc;
+		uint nq = mesh->solution->nq;
+		jac.reserve(Eigen::VectorXi::Constant(nic*njc*nq,36));
 	};
 
 	~LinearSolverEigen(){
