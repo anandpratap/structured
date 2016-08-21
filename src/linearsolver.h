@@ -66,7 +66,7 @@ class LinearSolverEigen{
 	Eigen::MatrixXd rhs, dq;
 	Eigen::SparseMatrix<double, Eigen::ColMajor> jac;
 	Eigen::SparseLU<Eigen::SparseMatrix<double>> *solver;
-
+	unsigned int c = 0;
  public:
 	LinearSolverEigen(Mesh<double> *val_mesh){
 		mesh = val_mesh;
@@ -119,7 +119,10 @@ class LinearSolverEigen{
 		uint njc = mesh->njc;
 		uint nq = mesh->solution->nq;
 		jac.makeCompressed();
-		solver->analyzePattern(jac);
+		if(c == 0){
+			solver->analyzePattern(jac);
+			c = 1;
+		}
 		solver->factorize(jac);
 		dq = solver->solve(rhs);
 		for(int i=0; i<nic*njc*nq; i++){
@@ -161,15 +164,15 @@ class LinearSolverPetsc{
 		ierr = VecDuplicate(dq,&rhs);
 
 		MatCreateSeqAIJ(PETSC_COMM_WORLD, nvar, nvar, 36, NULL, &jac);
-
+		
 		ierr = KSPCreate(PETSC_COMM_WORLD, &ksp);
 		ierr = KSPSetOperators(ksp, jac, jac);
 		ierr = KSPGetPC(ksp, &pc);
 		ierr = PCSetType(pc, PCLU);
-		ierr = KSPSetTolerances(ksp, CONFIG_PETSC_TOL, PETSC_DEFAULT, PETSC_DEFAULT, CONFIG_PETSC_MAXITER);
-		ierr = KSPSetFromOptions(ksp);
 		KSPSetType(ksp, KSPGMRES);
-			
+		ierr = KSPSetTolerances(ksp, 1e-7, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT);
+
+		
 	};
 
 	~LinearSolverPetsc(){
