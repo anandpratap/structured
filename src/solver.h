@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "mesh.h"
 #include "linearsolver.h"
+#include "config.h"
 
 template<class T>
 class Solver{
@@ -23,8 +24,8 @@ public:
 	adouble ***a_q, ***a_rhs;
 	double UNDER_RELAXATION;
 	double CFL;
+	Config *config;
 	std::string label;
-	std::shared_ptr<cpptoml::table> config;
 	std::shared_ptr<spdlog::logger> logger;
 	std::shared_ptr<spdlog::logger> logger_convergence;	
 #if defined(ENABLE_ARMA)
@@ -50,7 +51,7 @@ public:
 	adouble **rhorht_eta, **urht_eta, **vrht_eta, **prht_eta;
 	adouble ***flux_xi, ***flux_eta;
 
-	Solver(Mesh<T> *val_mesh);
+	Solver(Mesh<T> *val_mesh, Config *config);
 	~Solver();
 	void copy_from_solution();
 	void copy_to_solution();
@@ -113,24 +114,25 @@ void Solver<T>::initialize(){
 
 	for(uint i=0; i<nic; i++){
 		for(uint j=0; j<njc; j++){
-			auto rho_inf =  config->get_qualified_as<double>("freestream.rho_inf").value_or(1.0);
-			auto u_inf =  config->get_qualified_as<double>("freestream.u_inf").value_or(0.0);
-			auto v_inf =  config->get_qualified_as<double>("freestream.v_inf").value_or(0.0);
-			auto p_inf =  config->get_qualified_as<double>("freestream.p_inf").value_or(1.0/1.4);
+			auto rho_inf = config->freestream->rho_inf;
+			auto u_inf = config->freestream->u_inf;
+			auto v_inf = config->freestream->v_inf;
+			auto p_inf = config->freestream->p_inf;
 			mesh->solution->q[i][j][0] = rho_inf;
 			mesh->solution->q[i][j][1] = rho_inf*u_inf;
 			mesh->solution->q[i][j][2] = rho_inf*v_inf;
 			mesh->solution->q[i][j][3] = p_inf/(GAMMA-1.0) + 0.5*rho_inf*(u_inf*u_inf + v_inf*v_inf);
 		}
 	}
-	if(config->get_qualified_as<bool>("io.restart").value_or(false)){
+	if(config->io->restart){
 		std::string filename_out = label + ".out";
 		read_restart_file(mesh, filename_out);
 	}
 }
 
 template <class T>
-Solver<T>::Solver(Mesh<T> *val_mesh){
+Solver<T>::Solver(Mesh<T> *val_mesh, Config *val_config){
+	config = val_config;
 	timer_la = Timer();
 	timer_main = Timer();
 	timer_residual = Timer();
@@ -151,27 +153,25 @@ Solver<T>::Solver(Mesh<T> *val_mesh){
 	a_rhs_ravel = allocate_1d_array<adouble>(nic*njc*nq);
 
 #if defined(ENABLE_ARMA)
-	linearsolver = new LinearSolverArma(mesh);
+	linearsolver = new LinearSolverArma(mesh, config);
 #endif
 
 #if defined(ENABLE_EIGEN)
-	linearsolver = new LinearSolverEigen(mesh);
+	linearsolver = new LinearSolverEigen(mesh, config);
 #endif
 
 #if defined(ENABLE_PETSC)
-	linearsolver = new LinearSolverPetsc(mesh);
+	linearsolver = new LinearSolverPetsc(mesh, config);
 #endif
 
 
-	spdlog::set_pattern("%v");
 	logger_convergence = spdlog::basic_logger_mt("convergence", "history.dat", true);
 	logger_convergence->info(" ");
-	logger = spdlog::stdout_logger_mt("console", true);
-	logger->set_level(spdlog::level::debug);
-	config = cpptoml::parse_file("config.inp");
-	CFL = config->get_qualified_as<double>("solver.cfl").value_or(1.0);
-	UNDER_RELAXATION = config->get_qualified_as<double>("solver.under_relaxation").value_or(1.0);
-	label = config->get_qualified_as<std::string>("io.label").value_or("flow");
+	logger = spdlog::get("console");
+
+	CFL = config->solver->cfl;
+	UNDER_RELAXATION = config->solver->under_relaxation;
+	label = config->io->label;
 
 
 	rho = allocate_2d_array<adouble>(nic+2, njc+2);
@@ -242,6 +242,9 @@ void Solver<T>::solve(){
 	copy_from_solution();
 	logger->info("Welcome to structured!");
 	while(1){
+		timer_residual.reset();
+		config->profiler->reset_time_residual();
+
 		trace_on(1);
 		for(uint i=0; i<nic; i++){
 			for(uint j=0; j<njc; j++){
@@ -250,11 +253,8 @@ void Solver<T>::solve(){
 				}
 			}
 		}
-		timer_residual.reset();
 		calc_residual();
-		float dt_perfs = timer_residual.diff();
-		logger->info("Residual time = {:03.2f}", dt_perfs);
-
+		
 		for(uint i=0; i<nic; i++){
 			for(uint j=0; j<njc; j++){
 				for(uint k=0; k<nq; k++){
@@ -264,6 +264,9 @@ void Solver<T>::solve(){
 		}
 		
 		trace_off();
+		config->profiler->update_time_residual();
+		float dt_perfs = timer_residual.diff();
+		logger->info("Residual time = {:03.2f}", dt_perfs);
 
 
 		for(int j=0; j<nq; j++){
@@ -280,8 +283,9 @@ void Solver<T>::solve(){
 			break;
 		}
 
-
+		config->profiler->reset_time_jacobian();
 		sparse_jac(1,nic*njc*nq,nic*njc*nq,repeat,q,&nnz,&rind,&cind,&values,options);
+		config->profiler->update_time_jacobian();
 		logger->debug("NNZ = {}", nnz);
 
 		if(counter == 0)
@@ -295,10 +299,11 @@ void Solver<T>::solve(){
 			if(rind[i] == cind[i]){values[i] += 1.0/dt_local;}
 		}
 		timer_la.reset();
+		config->profiler->reset_time_linearsolver();
 		linearsolver->set_jac(nnz, rind, cind, values);
 		linearsolver->set_rhs(rhs);
 		linearsolver->solve_and_update(q, UNDER_RELAXATION);
-		
+		config->profiler->update_time_linearsolver();
 	//q[i][j][k] = q[i][j][k] + rhs[i][j][k]*dt;
 		
 		float dt_perf = timer_la.diff();
@@ -320,21 +325,21 @@ void Solver<T>::solve(){
 		t += 0;
 		counter += 1;
 
-		auto cfl_ramp =  config->get_qualified_as<bool>("solver.cfl_ramp").value_or(false);
+		auto cfl_ramp =  config->solver->cfl_ramp;
 		if(cfl_ramp){
-			auto cfl_ramp_iteration = config->get_qualified_as<int64_t>("solver.cfl_ramp_iteration").value_or(20);
+			auto cfl_ramp_iteration = config->solver->cfl_ramp_iteration;
 			if(counter > cfl_ramp_iteration){
-				auto cfl_ramp_exponent = config->get_qualified_as<double>("solver.cfl_ramp_exponent").value_or(1.1);
+				auto cfl_ramp_exponent = config->solver->cfl_ramp_exponent;
 				CFL = pow(CFL, cfl_ramp_exponent);
 				CFL = std::min(CFL, 1e6);
 			}
 		}
 
-		auto under_relaxation_ramp =  config->get_qualified_as<bool>("solver.under_relaxation_ramp").value_or(false);
+		auto under_relaxation_ramp =  config->solver->under_relaxation_ramp;
 		if(under_relaxation_ramp){
-			auto under_relaxation_ramp_iteration = config->get_qualified_as<int64_t>("solver.under_relaxation_ramp_iteration").value_or(20);
+			auto under_relaxation_ramp_iteration = config->solver->under_relaxation_ramp_iteration;
 			if(counter > under_relaxation_ramp_iteration){
-				auto under_relaxation_ramp_exponent = config->get_qualified_as<double>("solver.under_relaxation_ramp_exponent").value_or(1.1);
+				auto under_relaxation_ramp_exponent = config->solver->under_relaxation_ramp_exponent;
 				UNDER_RELAXATION = pow(UNDER_RELAXATION, under_relaxation_ramp_exponent);
 				UNDER_RELAXATION = std::min(UNDER_RELAXATION, 10.0);
 			}
@@ -389,10 +394,10 @@ void Solver<T>::calc_residual(){
 			}
 		}
 	}
-	auto rho_inf =  config->get_qualified_as<double>("freestream.rho_inf").value_or(1.0);
-	auto u_inf =  config->get_qualified_as<double>("freestream.u_inf").value_or(0.0);
-	auto v_inf =  config->get_qualified_as<double>("freestream.v_inf").value_or(0.0);
-	auto p_inf =  config->get_qualified_as<double>("freestream.p_inf").value_or(1.0/1.4);
+	auto rho_inf =  config->freestream->rho_inf;
+	auto u_inf =  config->freestream->u_inf;
+	auto v_inf =  config->freestream->v_inf;
+	auto p_inf =  config->freestream->p_inf;
 	
 	for(uint i=0; i<nic+2; i++){
 		rho[i][njc+1] = rho_inf;
@@ -445,7 +450,7 @@ void Solver<T>::calc_residual(){
 
 	
 
-	if(config->get_qualified_as<int64_t>("solver.order").value_or(1) == 1){
+	if(config->solver->order == 1){
 		first_order_xi(ni, nj, rho, rholft_xi, rhorht_xi);
 		first_order_xi(ni, nj, u, ulft_xi, urht_xi);
 		first_order_xi(ni, nj, v, vlft_xi, vrht_xi);
@@ -460,7 +465,7 @@ void Solver<T>::calc_residual(){
 	}
 
 
-	if(config->get_qualified_as<int64_t>("solver.order").value_or(1) == 1){
+	if(config->solver->order == 1){
 	first_order_eta(ni, nj, rho, rholft_eta, rhorht_eta);
 	first_order_eta(ni, nj, u, ulft_eta, urht_eta);
 	first_order_eta(ni, nj, v, vlft_eta, vrht_eta);
