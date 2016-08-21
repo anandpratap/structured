@@ -5,6 +5,7 @@
 #include "mesh.h"
 #include "linearsolver.h"
 #include "config.h"
+#include "io.h"
 
 template<class T>
 class Solver{
@@ -28,6 +29,7 @@ public:
 	std::string label;
 	std::shared_ptr<spdlog::logger> logger;
 	std::shared_ptr<spdlog::logger> logger_convergence;	
+	std::shared_ptr<IOManager> iomanager;
 #if defined(ENABLE_ARMA)
 	LinearSolverArma *linearsolver;
 #endif
@@ -125,8 +127,7 @@ void Solver<T>::initialize(){
 		}
 	}
 	if(config->io->restart){
-		std::string filename_out = label + ".out";
-		read_restart_file(mesh, filename_out);
+		iomanager->read_restart();
 	}
 }
 
@@ -201,7 +202,7 @@ Solver<T>::Solver(Mesh<T> *val_mesh, Config *val_config){
 	flux_xi = allocate_3d_array<adouble>(ni, njc, 4U);
 	flux_eta = allocate_3d_array<adouble>(nic, nj, 4U);
 
-
+	iomanager = std::make_shared<IOManager>(mesh, config);
 }
 template <class T>
 Solver<T>::~Solver(){
@@ -345,22 +346,19 @@ void Solver<T>::solve(){
 			}
 		}
 
+
 		
-		if(counter % 1 == 0){
+		
+		if(counter % config->io->stdout_frequency == 0){
 			float dt_main = timer_main.diff();
 			logger->info("Step: {:08d} Time: {:.2e} Wall Time: {:.2e} CFL: {:.2e} Density Norm: {:.2e}", counter, t, dt_main, CFL, l2norm[0]);
 			logger_convergence->info("{:08d} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e}", counter, t, dt_main, CFL, l2norm[0], l2norm[1], l2norm[2], l2norm[3]);
+		}
+		
+		if(counter % config->io->fileout_frequency == 0){
 			copy_to_solution();
-
-			std::string filename_tec = label + ".tec";
-			std::string filename_npy = label + ".npy";
-			std::string filename_out = label + ".out";
-			std::string filename_surface = label + ".surface";
-			write_solution(mesh, filename_tec);
-			write_solution_npy(mesh, filename_npy);
-			write_restart_file(mesh, filename_out);
-			write_surface_file(mesh, filename_surface);
-		}		
+			iomanager->write(counter);
+		}
 	}
 }
 
