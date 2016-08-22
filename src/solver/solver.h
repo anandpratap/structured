@@ -82,6 +82,7 @@ void Solver<T, Tad>::copy_from_solution(){
 	uint njc = mesh->njc;
 	uint nq = mesh->solution->nq;
 
+#pragma omp parallel for
 	for(uint i=0; i<mesh->nic; i++){
 		for(uint j=0; j<mesh->njc; j++){
 			for(uint k=0; k<mesh->solution->nq; k++){
@@ -97,6 +98,7 @@ void Solver<T, Tad>::copy_to_solution(){
 	uint njc = mesh->njc;
 	uint nq = mesh->solution->nq;
 
+#pragma omp parallel for
 	for(uint i=0; i<mesh->nic; i++){
 		for(uint j=0; j<mesh->njc; j++){
 			for(uint k=0; k<mesh->solution->nq; k++){
@@ -270,15 +272,19 @@ void Solver<T, Tad>::solve(){
 #endif
 		config->profiler->update_time_residual();
 		float dt_perfs = timer_residual.diff();
-		
+
+		T l2normq;
 		for(int j=0; j<nq; j++){
-			l2norm[j] = 0.0;
-			for(int i=0; i<nic*njc; i++){
-				l2norm[j] += rhs[i*nq+j]*rhs[i*nq+j];
+			l2normq = 0.0;
+#pragma omp parallel for reduction(+ : l2normq)
+			for(int i=0; i<nic*njc; ++i){
+				l2normq += rhs[i*nq+j]*rhs[i*nq+j];
 			}
-			l2norm[j] = sqrt(l2norm[j]);
+			l2norm[j] = sqrt(l2normq);
 		}
-		if(l2norm[0] < 1e-4){
+		
+		
+		if(l2norm[0] < config->solver->tolerance){
 			logger->info("Convergence reached!");
 			copy_to_solution();
 			iomanager->write(counter);
