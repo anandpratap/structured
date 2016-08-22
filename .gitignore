@@ -1,0 +1,17 @@
+*.pdf
+*.dat
+*.png
+*.npz
+*.npy
+*.tec
+*.out
+*.surface
+*.o
+*.so
+main
+main_eigen
+main_arma
+main_petsc
+*~
+*.pyc
+*.log
