@@ -46,6 +46,7 @@ public:
 	T **lhs;
 	T *dt;
 	T *q;
+	T *q_tmp;
 	Tad *a_q_ravel, *a_rhs_ravel;
 
 	Solver(Mesh<T> *val_mesh, Config *config);
@@ -143,6 +144,7 @@ Solver<T, Tad>::Solver(Mesh<T> *val_mesh, Config *val_config){
 	dt = allocate_1d_array<T>(nic*njc);
 	rhs = allocate_1d_array<T>(nic*njc*nq);
 	q = allocate_1d_array<T>(nic*njc*nq);
+	q_tmp = allocate_1d_array<T>(nic*njc*nq);
 	a_q_ravel = allocate_1d_array<Tad>(nic*njc*nq);
 	a_rhs_ravel = allocate_1d_array<Tad>(nic*njc*nq);
 
@@ -179,6 +181,7 @@ Solver<T, Tad>::~Solver(){
 	uint njc = mesh->njc;
 	uint nq = mesh->solution->nq;
 
+	release_1d_array(q_tmp, nic*njc*nq);
 	release_1d_array(q, nic*njc*nq);
 	release_1d_array(a_q_ravel, nic*njc*nq);
 	release_1d_array(a_rhs_ravel, nic*njc*nq);
@@ -231,13 +234,39 @@ void Solver<T, Tad>::solve(){
 		
 		trace_off();
 #else
-		equation->calc_residual(q, rhs);
+		if(config->solver->scheme == "forward_euler"){
+			equation->calc_residual(q, rhs);
+			for(uint i=0; i<nic; i++){
+				for(uint j=0; j<njc; j++){
+					for(uint k=0; k<nq; k++){
+						q[i*njc*nq+j*nq+k] = q[i*njc*nq+j*nq+k] + rhs[i*njc*nq+j*nq+k]*dt[i*njc+j]; 
+					}
+				}
+			}
+		}
+		else if(config->solver->scheme == "rk4_jameson"){
+			for(int i=0; i<nic*njc*nq; i++) q_tmp[i] = q[i];
+			
+			for(int order=0; order<4; order++){
+				equation->calc_residual(q_tmp, rhs);
+				for(uint i=0; i<nic; i++){
+					for(uint j=0; j<njc; j++){
+						for(uint k=0; k<nq; k++){
+							q_tmp[i*njc*nq+j*nq+k] = q[i*njc*nq+j*nq+k] + rhs[i*njc*nq+j*nq+k]*dt[i*njc+j]/(4.0 - order); 
+						}
+					}
+				}
+			}
+
+			for(int i=0; i<nic*njc*nq; i++) q[i] = q_tmp[i];
+		}
+		else{
+			logger->critical("scheme not defined.");
+		}
 #endif
 		config->profiler->update_time_residual();
 		float dt_perfs = timer_residual.diff();
-		logger->info("Residual time = {:03.2f}", dt_perfs);
-
-
+		
 		for(int j=0; j<nq; j++){
 			l2norm[j] = 0.0;
 			for(int i=0; i<nic*njc; i++){
@@ -286,13 +315,6 @@ void Solver<T, Tad>::solve(){
 		free(cind); cind=nullptr;
 		free(values); values=nullptr;
 #else
-		for(uint i=0; i<nic; i++){
-			for(uint j=0; j<njc; j++){
-				for(uint k=0; k<nq; k++){
-					q[i*njc*nq+j*nq+k] = q[i*njc*nq+j*nq+k] + rhs[i*njc*nq+j*nq+k]*dt[i*njc+j]; 
-				}
-			}
-		}
 #endif
 		
 

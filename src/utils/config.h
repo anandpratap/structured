@@ -52,12 +52,13 @@ class ConfigFreestream{
 class ConfigSolver{
  public:
 	int order, cfl_ramp_iteration, under_relaxation_ramp_iteration;
+	std::string scheme;
 	bool time_accurate, cfl_ramp, under_relaxation_ramp;
 	double cfl, under_relaxation, cfl_ramp_exponent, under_relaxation_ramp_exponent;
 	void set(std::shared_ptr<cpptoml::table> config){
 		order = config->get_qualified_as<int64_t>("solver.order").value_or(1);
 		time_accurate =  config->get_qualified_as<bool>("solver.time_accurate").value_or(false);
-			
+		scheme = config->get_qualified_as<std::string>("solver.scheme").value_or("forward_euler");
 
 		cfl = config->get_qualified_as<double>("solver.cfl").value_or(1.0);
 		cfl_ramp =  config->get_qualified_as<bool>("solver.cfl_ramp").value_or(false);
@@ -141,6 +142,7 @@ class Config{
 		logger->info("---------------");
 		logger->info("Solver configuration");
 		logger->info("order: {}", solver->order);
+		logger->info("scheme: {}", solver->scheme);
 		logger->info("time_accurate: {}", solver->time_accurate);
 
 		logger->info("cfl: {}", solver->cfl);
