@@ -34,6 +34,7 @@ public:
 	~Mesh();
 	void calc_metrics();
 	void simple_loader(std::string filename);
+	void plot3d_loader(std::string filename);
 };
 
 template<class T>
@@ -47,6 +48,32 @@ void Mesh<T>::simple_loader(std::string filename){
 	}
 	infile.close();
 }
+
+template<class T>
+void Mesh<T>::plot3d_loader(std::string filename){
+	std::ifstream infile(filename);
+	infile >> std::fixed >> std::setprecision(20);
+	int nblock, ni_, nj_;
+	infile >> nblock;
+	infile >> ni_ >> nj_;
+	assert(nblock == 1);
+	assert(ni == ni_);
+	assert(nj == nj_);
+
+	for(uint j=0; j<nj; j++){
+		for(uint i=0; i<ni; i++){  
+			infile >> xv[i][j];
+		}
+	}
+	
+	for(uint j=0; j<nj; j++){
+		for(uint i=0; i<ni; i++){  
+			infile >> yv[i][j];
+		}
+	}
+	infile.close();
+}
+
 template<class T>
 void Mesh<T>::calc_metrics(){
 	T ***reta = allocate_3d_array<T>(nic, nj, 2U);
@@ -101,8 +128,15 @@ Mesh<T>::Mesh(Config *val_config){
 	xv = allocate_2d_array<T>(ni, nj);
 	yv = allocate_2d_array<T>(ni, nj);
 
-	simple_loader(config->geometry->filename);
-	
+	if(config->geometry->format == "simple"){
+		simple_loader(config->geometry->filename);
+	}
+	else if(config->geometry->format == "p3d"){
+		plot3d_loader(config->geometry->filename);
+	}
+	else{
+		spdlog::get("console")->critical("file format not found!");
+	}
 	xc = allocate_2d_array<T>(nic, njc);
 	yc = allocate_2d_array<T>(nic, njc);
 

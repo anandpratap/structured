@@ -213,6 +213,7 @@ void Solver<T, Tad>::solve(){
 	initialize();
 	copy_from_solution();
 	logger->info("Welcome to structured!");
+	config->profiler->timer_main->reset();
 	while(1){
 		timer_residual.reset();
 		config->profiler->reset_time_residual();
@@ -283,7 +284,10 @@ void Solver<T, Tad>::solve(){
 			l2norm[j] = sqrt(l2normq);
 		}
 		
-		
+		if(counter > config->solver->iteration_max){
+			logger->info("Max iteration reached!");
+			break;
+		}
 		if(l2norm[0] < config->solver->tolerance){
 			logger->info("Convergence reached!");
 			copy_to_solution();

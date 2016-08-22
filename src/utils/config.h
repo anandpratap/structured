@@ -56,8 +56,11 @@ class ConfigSolver{
 	bool time_accurate, cfl_ramp, under_relaxation_ramp;
 	double cfl, under_relaxation, cfl_ramp_exponent, under_relaxation_ramp_exponent;
 	double tolerance;
+	int iteration_max;
 	
 	void set(std::shared_ptr<cpptoml::table> config){
+		iteration_max = config->get_qualified_as<int64_t>("solver.iteration_max").value_or(1);
+
 		order = config->get_qualified_as<int64_t>("solver.order").value_or(1);
 		time_accurate =  config->get_qualified_as<bool>("solver.time_accurate").value_or(false);
 		scheme = config->get_qualified_as<std::string>("solver.scheme").value_or("forward_euler");
@@ -96,8 +99,10 @@ class ConfigGeometry{
  public:
 	int ni, nj, tail;
 	std::string filename;
+	std::string format;
 	void set(std::shared_ptr<cpptoml::table> config){
 		filename = config->get_qualified_as<std::string>("geometry.filename").value_or("grid.unf2");
+		format = config->get_qualified_as<std::string>("geometry.format").value_or("grid.unf2");
 		ni= config->get_qualified_as<int64_t>("geometry.ni").value_or(0);
 		nj= config->get_qualified_as<int64_t>("geometry.nj").value_or(0);
 		tail= config->get_qualified_as<int64_t>("geometry.tail").value_or(0);
@@ -145,6 +150,7 @@ class Config{
 
 		logger->info("---------------");
 		logger->info("Solver configuration");
+		logger->info("iteration_max: {}", solver->iteration_max);
 		logger->info("order: {}", solver->order);
 		logger->info("scheme: {}", solver->scheme);
 		logger->info("time_accurate: {}", solver->time_accurate);
@@ -171,6 +177,7 @@ class Config{
 		logger->info("---------------");
 		logger->info("Geometry configuration");
 		logger->info("filename = {}", geometry->filename);
+		logger->info("format = {}", geometry->format);
 		logger->info("ni = {}", geometry->ni);
 		logger->info("nj = {}", geometry->nj);
 		logger->info("tail = {}", geometry->tail);
