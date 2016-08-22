@@ -20,10 +20,10 @@ LIB_PETSC = -L/home/anandps/local/petsc_3_7_3/lib -lpetsc -lgfortran
 make: arma eigen petsc
 
 eigen:
-	$(CXX) main.cpp -o main_eigen $(CFLAGS) $(INC) $(LIB) -DENABLE_EIGEN
+	$(CXX) main.cpp -o ../bin/main_eigen $(CFLAGS) $(INC) $(LIB) -DENABLE_EIGEN
 arma:
-	$(CXX) main.cpp -o main_arma $(CFLAGS) $(INC) $(LIB) -DENABLE_ARMA $(INC_ARMA) $(LIB_ARMA)
+	$(CXX) main.cpp -o ../bin/main_arma $(CFLAGS) $(INC) $(LIB) -DENABLE_ARMA $(INC_ARMA) $(LIB_ARMA)
 petsc:
-	$(MPICXX) main.cpp -o main_petsc $(CFLAGS) $(INC) $(LIB) -DENABLE_PETSC $(INC_PETSC) $(LIB_PETSC)
+	$(MPICXX) main.cpp -o ../bin/main_petsc $(CFLAGS) $(INC) $(LIB) -DENABLE_PETSC $(INC_PETSC) $(LIB_PETSC)
 clean:
 	rm main
