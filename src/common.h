@@ -11,7 +11,7 @@
 
 const double GAMMA = 1.4;
 typedef unsigned int uint;
-
+#define PRINT_CONFIG(x)	logger->info(#x": {}", x);
 
 
 

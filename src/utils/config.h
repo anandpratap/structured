@@ -109,6 +109,8 @@ class ConfigGeometry{
 	}
 };
 
+
+
 class Config{
  public:
 	int argc;
@@ -141,51 +143,43 @@ class Config{
 
 	void print(){
 		auto logger = spdlog::get("console");
-
+		logger->info("Compiled on {} at time {}", __DATE__, __TIME__);
 		logger->info("---------------");
-		logger->info("Freestream configuration");
-		logger->info("(rho, u, v, p) = ({}, {}, {}, {})", freestream->rho_inf, freestream->u_inf,
-					 freestream->v_inf, freestream->p_inf);
-		logger->info("---------------");
+		logger->info("Configurations");
+		PRINT_CONFIG(freestream->rho_inf);
+		PRINT_CONFIG(freestream->u_inf);
+		PRINT_CONFIG(freestream->v_inf);
+		PRINT_CONFIG(freestream->p_inf);
+		
+		PRINT_CONFIG(solver->iteration_max);
+		PRINT_CONFIG(solver->order);
+		PRINT_CONFIG(solver->scheme);
+		PRINT_CONFIG(solver->time_accurate);
+		PRINT_CONFIG(solver->tolerance);
 
-		logger->info("---------------");
-		logger->info("Solver configuration");
-		logger->info("iteration_max: {}", solver->iteration_max);
-		logger->info("order: {}", solver->order);
-		logger->info("scheme: {}", solver->scheme);
-		logger->info("time_accurate: {}", solver->time_accurate);
-		logger->info("tolerance: {}", solver->tolerance);
+		PRINT_CONFIG(solver->cfl);
+		PRINT_CONFIG(solver->cfl_ramp);
+		PRINT_CONFIG(solver->cfl_ramp_iteration);
+		PRINT_CONFIG(solver->cfl_ramp_exponent);
 
-		logger->info("cfl: {}", solver->cfl);
-		logger->info("cfl_ramp: {}", solver->cfl_ramp);
-		logger->info("cfl_ramp_iteration: {}", solver->cfl_ramp_iteration);
-		logger->info("cfl_ramp_exponent: {}", solver->cfl_ramp_exponent);
+		PRINT_CONFIG(solver->under_relaxation);
+		PRINT_CONFIG(solver->under_relaxation_ramp);
+		PRINT_CONFIG(solver->under_relaxation_ramp_iteration);
+		PRINT_CONFIG(solver->under_relaxation_ramp_exponent);
 
-		logger->info("under_relaxation: {}", solver->under_relaxation);
-		logger->info("under_relaxation_ramp: {}", solver->under_relaxation_ramp);
-		logger->info("under_relaxation_ramp_iteration: {}", solver->under_relaxation_ramp_iteration);
-		logger->info("under_relaxation_ramp_exponent: {}", solver->under_relaxation_ramp_exponent);
-
-		logger->info("---------------");
-
-
-		logger->info("---------------");
-		logger->info("IO configuration");
-		logger->info("label = {}", io->label);
-		logger->info("---------------");
-
-		logger->info("---------------");
-		logger->info("Geometry configuration");
-		logger->info("filename = {}", geometry->filename);
-		logger->info("format = {}", geometry->format);
-		logger->info("ni = {}", geometry->ni);
-		logger->info("nj = {}", geometry->nj);
-		logger->info("tail = {}", geometry->tail);
+		PRINT_CONFIG(io->restart);
+		PRINT_CONFIG(io->label);
+		PRINT_CONFIG(io->stdout_frequency);
+		PRINT_CONFIG(io->fileout_frequency);
+		
+		PRINT_CONFIG(geometry->filename);
+		PRINT_CONFIG(geometry->format);
+		PRINT_CONFIG(geometry->ni);
+		PRINT_CONFIG(geometry->nj);
+		PRINT_CONFIG(geometry->tail);
 
 		logger->info("---------------");
 
 	};
 };
-
-
 #endif
