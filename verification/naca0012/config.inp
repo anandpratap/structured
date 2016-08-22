@@ -12,7 +12,7 @@ p_inf = 0.7142857142857143
 
 [solver]
 order = 2
-cfl = 200.0
+cfl = 100.0
 time_accurate = false
 cfl_ramp = true
 cfl_ramp_iteration = 5
@@ -29,5 +29,5 @@ iend = -41
 [io]
 stdout_frequency = 1
 fileout_frequency = 5
-restart = true
+restart = false
 label = "base"
