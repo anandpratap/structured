@@ -21,7 +21,7 @@ typedef unsigned int uint;
 // #define ENABLE_ARMA
 // #define ENABLE_PETSC
 
-#if defined(ENABLE_EIGEN) || defined(ENABLE_ARMA) || defined(ENABLE_ARMA)
+#if defined(ENABLE_EIGEN) || defined(ENABLE_ARMA) || defined(ENABLE_PETSC)
 #define ENABLE_ADOLC
 #endif
 
