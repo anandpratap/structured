@@ -96,12 +96,13 @@ public:
 
 template <class T, class Tad>
 	void EulerEquation<T, Tad>::calc_residual(Tad *a_q_ravel, Tad *a_rhs_ravel){
-	//std::cout<<"calc_res"<<std::endl;
 	uint ni = mesh->ni;
 	uint nj = mesh->nj;
 	uint nic = mesh->nic;
 	uint njc = mesh->njc;
 	uint nq = mesh->solution->nq;
+
+#pragma omp parallel for
 	for(uint i=0; i<nic; i++){
 		for(uint j=0; j<njc; j++){
 			for(uint k=0; k<nq; k++){
@@ -111,14 +112,11 @@ template <class T, class Tad>
 	}
 	
 	Tad ***q = a_q;
-	
+
+#pragma omp parallel for
 	for(uint i=0; i<nic; i++){
 		for(uint j=0; j<njc; j++){
 			primvars<Tad>(q[i][j], &rho[i+1][j+1], &u[i+1][j+1], &v[i+1][j+1], &p[i+1][j+1]);
-			// std::cout<<rho[i][j]<<std::endl;
-			// std::cout<<u[i][j]<<std::endl;
-			// std::cout<<v[i][j]<<std::endl;
-			// std::cout<<p[i][j]<<std::endl;
 			for(uint k=0; k<nq; k++){
 				a_rhs[i][j][k] = 0.0;
 			}
@@ -128,7 +126,8 @@ template <class T, class Tad>
 	auto u_inf =  config->freestream->u_inf;
 	auto v_inf =  config->freestream->v_inf;
 	auto p_inf =  config->freestream->p_inf;
-	
+
+#pragma omp parallel for
 	for(uint i=0; i<nic+2; i++){
 		rho[i][njc+1] = rho_inf;
 		u[i][njc+1] = u_inf;
@@ -137,6 +136,7 @@ template <class T, class Tad>
 		
 	}
 
+#pragma omp parallel for
 	for(uint j=0; j<njc+2; j++){
 		rho[0][j] = rho_inf;
 		u[0][j] = u_inf;
@@ -152,9 +152,9 @@ template <class T, class Tad>
 	uint j1 = mesh->j1;
 	uint nb = mesh->nb;
 
-	Tad un, ds;
-
+#pragma omp parallel for
 	for(uint i=0; i<nb; i++){
+		Tad un, ds;
 		ds = mesh->normal_eta[j1-1+i][0][0]*mesh->normal_eta[j1-1+i][0][0] +
 			mesh->normal_eta[j1-1+i][0][1]*mesh->normal_eta[j1-1+i][0][1];
 
@@ -165,6 +165,7 @@ template <class T, class Tad>
 		v[j1+i][0] = v[j1+i][1] - 2*un*mesh->normal_eta[j1-1+i][0][1]/ds;
 	}
 
+#pragma omp parallel for
 	for(uint i=1; i < j1; i++){
 		rho[i][0] = rho[nic+1-i][1];
 		u[i][0] = u[nic+1-i][1];
@@ -196,33 +197,28 @@ template <class T, class Tad>
 
 
 	if(config->solver->order == 1){
-	first_order_eta(ni, nj, rho, rholft_eta, rhorht_eta);
-	first_order_eta(ni, nj, u, ulft_eta, urht_eta);
-	first_order_eta(ni, nj, v, vlft_eta, vrht_eta);
-	first_order_eta(ni, nj, p, plft_eta, prht_eta);
+		first_order_eta(ni, nj, rho, rholft_eta, rhorht_eta);
+		first_order_eta(ni, nj, u, ulft_eta, urht_eta);
+		first_order_eta(ni, nj, v, vlft_eta, vrht_eta);
+		first_order_eta(ni, nj, p, plft_eta, prht_eta);
 	}else{
-	second_order_eta(ni, nj, rho, rholft_eta, rhorht_eta);
-	second_order_eta(ni, nj, u, ulft_eta, urht_eta);
-	second_order_eta(ni, nj, v, vlft_eta, vrht_eta);
-	second_order_eta(ni, nj, p, plft_eta, prht_eta);
-
+		second_order_eta(ni, nj, rho, rholft_eta, rhorht_eta);
+		second_order_eta(ni, nj, u, ulft_eta, urht_eta);
+		second_order_eta(ni, nj, v, vlft_eta, vrht_eta);
+		second_order_eta(ni, nj, p, plft_eta, prht_eta);
 	}
 
-	
+#pragma omp parallel for
 	for(uint i=0; i< ni; i++){
 		for(uint j=0; j< njc; j++){
 			roeflux<Tad>(mesh->normal_chi[i][j][0], mesh->normal_chi[i][j][1],
-					   rholft_xi[i][j], ulft_xi[i][j], vlft_xi[i][j], plft_xi[i][j],
-					   rhorht_xi[i][j], urht_xi[i][j], vrht_xi[i][j], prht_xi[i][j],
-					   flux_xi[i][j]);
-			//std::cout<<flux_xi[i][j][0]<<" "<<rholft_xi[i][j]<<" "<<rhorht_xi[i][j]<<std::endl;
-			//std::cout<<flux_xi[i][j][1]<<" "<<ulft_xi[i][j]<<" "<<urht_xi[i][j]<<std::endl;
-			//std::cout<<flux_xi[i][j][2]<<" "<<vlft_xi[i][j]<<" "<<vrht_xi[i][j]<<std::endl;
-			//std::cout<<flux_xi[i][j][3]<<" "<<plft_xi[i][j]<<" "<<prht_xi[i][j]<<std::endl;
-
+						 rholft_xi[i][j], ulft_xi[i][j], vlft_xi[i][j], plft_xi[i][j],
+						 rhorht_xi[i][j], urht_xi[i][j], vrht_xi[i][j], prht_xi[i][j],
+						 flux_xi[i][j]);
 		}
 	}
 
+#pragma omp parallel for
 	for(uint i=0; i< nic; i++){
 		for(uint j=0; j< nj; j++){
 			roeflux<Tad>(mesh->normal_eta[i][j][0], mesh->normal_eta[i][j][1],
@@ -232,6 +228,7 @@ template <class T, class Tad>
 		}
 	}
 
+#pragma omp parallel for
 	for(uint i=0; i< nic; i++){
 		for(uint j=0; j< njc; j++){
 			for(uint k=0; k<mesh->solution->nq; k++){
@@ -241,6 +238,7 @@ template <class T, class Tad>
 		}
 	}
 
+#pragma omp parallel for
 	for(uint i=0; i< nic; i++){
 		for(uint j=0; j< njc; j++){
 			for(uint k=0; k<mesh->solution->nq; k++){
@@ -249,7 +247,7 @@ template <class T, class Tad>
 		}
 	}
 
-	
+#pragma omp parallel for
 	for(uint i=0; i<nic; i++){
 		for(uint j=0; j<njc; j++){
 			for(uint k=0; k<nq; k++){

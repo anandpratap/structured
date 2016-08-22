@@ -22,8 +22,8 @@ public:
 	Timer timer_residual;
 	Mesh<T> *mesh;
 	void solve();
-	double UNDER_RELAXATION;
-	double CFL;
+	T UNDER_RELAXATION;
+	T CFL;
 	Config *config;
 	std::string label;
 	std::shared_ptr<spdlog::logger> logger;
@@ -62,14 +62,15 @@ void Solver<T, Tad>::calc_dt(){
 	uint njc = mesh->njc;
 	uint nq = mesh->solution->nq;
 
+#pragma omp parallel for
 	for(uint i=0; i<mesh->nic; i++){
 		for(uint j=0; j<mesh->njc; j++){
-			double rho = q[i*njc*nq + j*nq + 0];
-			double u = q[i*njc*nq + j*nq + 1]/rho;
-			double v = q[i*njc*nq + j*nq + 2]/rho;
-			double rhoE = q[i*njc*nq + j*nq + 3];
-			double p = (rhoE - 0.5*rho*(u*u + v*v))*(GAMMA-1.0);
-			double lambda = sqrt(GAMMA*p/rho) + abs(u) + abs(v);
+			T rho = q[i*njc*nq + j*nq + 0];
+			T u = q[i*njc*nq + j*nq + 1]/rho;
+			T v = q[i*njc*nq + j*nq + 2]/rho;
+			T rhoE = q[i*njc*nq + j*nq + 3];
+			T p = (rhoE - 0.5*rho*(u*u + v*v))*(GAMMA-1.0);
+			T lambda = sqrt(GAMMA*p/rho) + abs(u) + abs(v);
 			dt[i*njc + j] = std::min(mesh->ds_eta[i][j], mesh->ds_chi[i][j])/lambda*CFL;
 		}
 	}
@@ -203,10 +204,10 @@ void Solver<T, Tad>::solve(){
 	uint nic = mesh->nic;
 	uint njc = mesh->njc;
 	uint nq = mesh->solution->nq;
-	double l2norm[nq] = {1e10};
+	T l2norm[nq] = {1e10};
 
 	uint counter = 0;
-	double t = 0.0;
+	T t = 0.0;
 	initialize();
 	copy_from_solution();
 	logger->info("Welcome to structured!");
@@ -236,6 +237,7 @@ void Solver<T, Tad>::solve(){
 #else
 		if(config->solver->scheme == "forward_euler"){
 			equation->calc_residual(q, rhs);
+#pragma omp parallel for
 			for(uint i=0; i<nic; i++){
 				for(uint j=0; j<njc; j++){
 					for(uint k=0; k<nq; k++){
@@ -245,10 +247,12 @@ void Solver<T, Tad>::solve(){
 			}
 		}
 		else if(config->solver->scheme == "rk4_jameson"){
+#pragma omp parallel for
 			for(int i=0; i<nic*njc*nq; i++) q_tmp[i] = q[i];
 			
 			for(int order=0; order<4; order++){
 				equation->calc_residual(q_tmp, rhs);
+#pragma omp parallel for
 				for(uint i=0; i<nic; i++){
 					for(uint j=0; j<njc; j++){
 						for(uint k=0; k<nq; k++){
@@ -257,7 +261,7 @@ void Solver<T, Tad>::solve(){
 					}
 				}
 			}
-
+#pragma omp parallel for
 			for(int i=0; i<nic*njc*nq; i++) q[i] = q_tmp[i];
 		}
 		else{
@@ -274,7 +278,7 @@ void Solver<T, Tad>::solve(){
 			}
 			l2norm[j] = sqrt(l2norm[j]);
 		}
-		if(l2norm[0] < 1e-8){
+		if(l2norm[0] < 1e-4){
 			logger->info("Convergence reached!");
 			copy_to_solution();
 			iomanager->write(counter);
@@ -292,7 +296,7 @@ void Solver<T, Tad>::solve(){
 
 		if(counter == 0)
 			linearsolver->preallocate(nnz);
-		double dt_local = 0;
+		T dt_local = 0;
 		for(uint i=0; i<nnz; i++){
 			dt_local = dt[rind[i]/nq];
 			values[i] = -values[i];

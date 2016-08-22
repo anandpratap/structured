@@ -59,12 +59,11 @@ template <class T, class Ti>
 template<class T, class Ti>
 void first_order_xi(Ti ni, Ti nj, T** q, T** ql, T** qr){
 	Ti njm = nj-1;
+#pragma omp parallel for
 	for(Ti i=0; i<ni; i++){
 		for(Ti j=0; j<njm; j++){
 			ql[i][j] = q[i][j+1];
 			qr[i][j] = q[i+1][j+1];
-			//std::cout<<i<<" "<<j<<" "<<ql[i][j]<<" "<<qr[i][j]<<std::endl;
-
 		}
 	}
 }
@@ -72,7 +71,8 @@ void first_order_xi(Ti ni, Ti nj, T** q, T** ql, T** qr){
 template<class T, class Ti>
 void first_order_eta(Ti ni, Ti nj, T** q, T** ql, T** qr){
 	Ti nim = ni-1;
-  	for(Ti i=0; i<nim; i++){
+#pragma omp parallel for
+	for(Ti i=0; i<nim; i++){
 		for(Ti j=0; j<nj; j++){
 			ql[i][j] = q[i+1][j];
 			qr[i][j] = q[i+1][j+1];
@@ -84,6 +84,8 @@ void first_order_eta(Ti ni, Ti nj, T** q, T** ql, T** qr){
 template<class T, class Ti>
 void second_order_xi(Ti ni, Ti nj, T **q, T **ql, T **qr){
 	Ti njm = nj-1;
+
+#pragma omp parallel for
 	for(Ti i=0; i<ni; i++){
 		for(Ti j=0; j<njm; j++){
 			ql[i][j] = q[i][j+1];
@@ -98,11 +100,14 @@ void second_order_xi(Ti ni, Ti nj, T **q, T **ql, T **qr){
 	static T **a1 = allocate_2d_array<T>(nim, njm);
 	static T **a2 = allocate_2d_array<T>(nim, njm);
 	static T **f3qt = allocate_2d_array<T>(nim, njm);
+#pragma omp parallel for
 	for(Ti i=0; i<ni; i++){
 		for(Ti j=0; j<njm; j++){
 			f2[i][j] = q[i+1][j+1] - q[i][j+1];
 		}
 	}
+
+#pragma omp parallel for
 	for(Ti i=0; i<nim; i++){
 		for(Ti j=0; j<njm; j++){
 			a1[i][j] = 3.0*f2[i+1][j]*f2[i][j];
@@ -110,6 +115,8 @@ void second_order_xi(Ti ni, Ti nj, T **q, T **ql, T **qr){
 			f3qt[i][j] = 0.25*(a1[i][j] + eps)/(a2[i][j] + eps);
 		}
 	}
+
+#pragma omp parallel for
 	for(Ti i=0; i<nim; i++){
 		for(Ti j=0; j<njm; j++){
 			ql[i+1][j] = ql[i+1][j] + f3qt[i][j]*(thm*f2[i][j] + thp*f2[i+1][j]);
@@ -121,6 +128,8 @@ void second_order_xi(Ti ni, Ti nj, T **q, T **ql, T **qr){
 template<class T, class Ti>
 void second_order_eta(Ti ni, Ti nj, T **q, T **ql, T **qr){
 	Ti nim = ni-1;
+
+#pragma omp parallel for
 	for(Ti i=0; i<nim; i++){
 		for(Ti j=0; j<nj; j++){
 			ql[i][j] = q[i+1][j];
@@ -136,11 +145,14 @@ void second_order_eta(Ti ni, Ti nj, T **q, T **ql, T **qr){
 	static T **a2 = allocate_2d_array<T>(nim, njm);
 	static T **f3qt = allocate_2d_array<T>(nim, njm);
 
+#pragma omp parallel for
 	for(Ti i=0; i<nim; i++){
 		for(Ti j=0; j<nj; j++){
 			f2[i][j] = q[i+1][j+1] - q[i+1][j];
 		}
 	}
+
+#pragma omp parallel for
 	for(Ti i=0; i<nim; i++){
 		for(Ti j=0; j<njm; j++){
 			a1[i][j] = 3.0*f2[i][j+1]*f2[i][j];
@@ -148,6 +160,8 @@ void second_order_eta(Ti ni, Ti nj, T **q, T **ql, T **qr){
 			f3qt[i][j] = 0.25*(a1[i][j] + eps)/(a2[i][j] + eps);
 		}
 	}
+	
+#pragma omp parallel for
 	for(Ti i=0; i<nim; i++){
 		for(Ti j=0; j<njm; j++){
 			ql[i][j+1] = ql[i][j+1] + f3qt[i][j]*(thm*f2[i][j] + thp*f2[i][j+1]);
