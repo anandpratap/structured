@@ -17,7 +17,11 @@ int main(int argc, char *argv[]){
 	Mesh<double> mc1 = Mesh<double>(&mc, 1, 1);
 	Mesh<double> mc2 = Mesh<double>(&mc1, 1, 1);
 
+#if defined(ENABLE_ADOLC)
 	Solver<double, adouble> s = Solver<double, adouble>(&mc, &config);
+#else
+	Solver<double, double> s = Solver<double, double>(&mc, &config);
+#endif
 	s.solve();
 
 	config.profiler->print();

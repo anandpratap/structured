@@ -13,8 +13,7 @@ const double GAMMA = 1.4;
 typedef unsigned int uint;
 
 
-#include "adolc/adolc.h"
-#include "adolc/sparse/sparsedrivers.h"
+
 
 
 
@@ -22,8 +21,8 @@ typedef unsigned int uint;
 // #define ENABLE_ARMA
 // #define ENABLE_PETSC
 
-#if defined(ENABLE_EIGEN) && defined(ENABLE_ARMA)
-#error "Cannot use both the linear algebra library at the same time."
+#if defined(ENABLE_EIGEN) || defined(ENABLE_ARMA) || defined(ENABLE_ARMA)
+#define ENABLE_ADOLC
 #endif
 
 #if defined(ENABLE_ARMA)
@@ -38,6 +37,11 @@ typedef unsigned int uint;
 #if defined(ENABLE_PETSC)
 #include "petsc.h"
 #include "petscksp.h"
+#endif
+
+#if defined(ENABLE_ADOLC)
+#include "adolc/adolc.h"
+#include "adolc/sparse/sparsedrivers.h"
 #endif
 
 #include <chrono>

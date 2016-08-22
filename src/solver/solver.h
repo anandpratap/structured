@@ -184,18 +184,17 @@ Solver<T, Tad>::~Solver(){
 	release_1d_array(a_rhs_ravel, nic*njc*nq);
 	release_1d_array(rhs, nic*njc*nq);
 	release_1d_array(dt, nic*njc);
+
+#if defined(ENABLE_ADOLC)
 	delete linearsolver;
+#endif
+	
 	delete equation;
 }
 
 
 template <class T, class Tad>
 void Solver<T, Tad>::solve(){
-#if defined(ENABLE_EIGEN)
-	Eigen::SparseLU<Eigen::SparseMatrix<double>> eigen_solver;
-	//Eigen::SuperLU<Eigen::SparseMatrix<double>> eigen_solver;
-#endif
-	
 	uint ni = mesh->ni;
 	uint nj = mesh->nj;
 	uint nic = mesh->nic;
@@ -211,7 +210,7 @@ void Solver<T, Tad>::solve(){
 	while(1){
 		timer_residual.reset();
 		config->profiler->reset_time_residual();
-
+#if defined(ENABLE_ADOLC)
 		trace_on(1);
 		for(uint i=0; i<nic; i++){
 			for(uint j=0; j<njc; j++){
@@ -231,6 +230,9 @@ void Solver<T, Tad>::solve(){
 		}
 		
 		trace_off();
+#else
+		equation->calc_residual(q, rhs);
+#endif
 		config->profiler->update_time_residual();
 		float dt_perfs = timer_residual.diff();
 		logger->info("Residual time = {:03.2f}", dt_perfs);
@@ -252,6 +254,8 @@ void Solver<T, Tad>::solve(){
 			break;
 		}
 
+		calc_dt();
+#if defined(ENABLE_ADOLC)
 		config->profiler->reset_time_jacobian();
 		sparse_jac(1,nic*njc*nq,nic*njc*nq,repeat,q,&nnz,&rind,&cind,&values,options);
 		config->profiler->update_time_jacobian();
@@ -259,7 +263,6 @@ void Solver<T, Tad>::solve(){
 
 		if(counter == 0)
 			linearsolver->preallocate(nnz);
-		calc_dt();
 		double dt_local = 0;
 		for(uint i=0; i<nnz; i++){
 			dt_local = dt[rind[i]/nq];
@@ -273,24 +276,27 @@ void Solver<T, Tad>::solve(){
 		linearsolver->set_rhs(rhs);
 		linearsolver->solve_and_update(q, UNDER_RELAXATION);
 		config->profiler->update_time_linearsolver();
-	//q[i][j][k] = q[i][j][k] + rhs[i][j][k]*dt;
+
+		//q[i][j][k] = q[i][j][k] + rhs[i][j][k]*dt;
 		
 		float dt_perf = timer_la.diff();
 		logger->info("Linear algebra time = {:03.2f}", dt_perf);
-
+		
 		free(rind); rind=nullptr;
 		free(cind); cind=nullptr;
 		free(values); values=nullptr;
+#else
+		for(uint i=0; i<nic; i++){
+			for(uint j=0; j<njc; j++){
+				for(uint k=0; k<nq; k++){
+					q[i*njc*nq+j*nq+k] = q[i*njc*nq+j*nq+k] + rhs[i*njc*nq+j*nq+k]*dt[i*njc+j]; 
+				}
+			}
+		}
+#endif
 		
 
-		/* for(uint i=0; i<nic; i++){ */
-		/* 	for(uint j=0; j<njc; j++){ */
-		/* 		for(uint k=0; k<nq; k++){ */
-		/* 			//q[i][j][k] = q[i][j][k] + rhs[i][j][k]*dt; */
-		/* 			q[i][j][k] = q[i][j][k] + arma_dq(i*njc*nq + j*nq + k, 0); */
-		/* 		} */
-		/* 	} */
-		/* } */
+		
 		t += 0;
 		counter += 1;
 
