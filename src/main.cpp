@@ -1,30 +1,26 @@
-#include "mesh.h"
-#include "solver.h"
-#include "solution.h"
+#include "common.h"
+#include "utils/mesh.h"
+#include "solver/solver.h"
+#include "solver/solution.h"
+#include "utils/config.h"
 
-int main(void){
-	Mesh<double> m = Mesh<double>();
-	std::cout<<m.ni<<std::endl;
+int main(int argc, char *argv[]){
+	spdlog::set_pattern("%v");
 
-	Mesh<double> mc = Mesh<double>(&m, 1, 1);
-	std::cout<<mc.ni<<std::endl;
+	auto logger = spdlog::stdout_logger_mt("console", true);
+	logger->set_level(spdlog::level::debug);
 
-
-	Mesh<double> mc1 = Mesh<double>(&mc, 1, 1);
-	std::cout<<mc1.ni<<std::endl;
-
-	Mesh<double> mc2 = Mesh<double>(&mc1, 1, 1);
-	std::cout<<mc2.ni<<std::endl;
-
-
-	//Mesh<double> m = Mesh<double>();
-	//std::cout<<m.ni<<std::endl;
-
-
-	Solver<double> s = Solver<double>(&m);
-	s.solve();
-	write_solution(&m, "base.tec");
+	Config config("config.inp", argc, argv);
 	
+	Mesh<double> m = Mesh<double>(&config);
+	Mesh<double> mc = Mesh<double>(&m, 1, 1);
+	Mesh<double> mc1 = Mesh<double>(&mc, 1, 1);
+	Mesh<double> mc2 = Mesh<double>(&mc1, 1, 1);
+
+	Solver<double, adouble> s = Solver<double, adouble>(&mc, &config);
+	s.solve();
+
+	config.profiler->print();
 	return 0;
 }
 

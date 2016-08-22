@@ -1,6 +1,7 @@
 #ifndef _CONFIG_H
 #define _CONFIG_H
 #include "common.h"
+
 class Profiler{
  public:
 	std::shared_ptr<Timer> timer_main;
@@ -108,7 +109,6 @@ class Config{
 	std::shared_ptr<ConfigGeometry> geometry;
 	std::shared_ptr<cpptoml::table> config;
 	std::shared_ptr<Profiler> profiler;
-
 	
 	Config(std::string filename, int val_argc, char *val_argv[]){
 		argc = val_argc;
@@ -126,6 +126,7 @@ class Config{
 		print();
 
 		profiler = std::make_shared<Profiler>();
+		
 	};
 
 	void print(){

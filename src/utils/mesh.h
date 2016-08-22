@@ -1,9 +1,7 @@
 #ifndef _MESH_H
 #define _MESH_H
-
 #include "common.h"
 #include "utils.h"
-#include "flux.h"
 #include "solution.h"
 #include "config.h"
 

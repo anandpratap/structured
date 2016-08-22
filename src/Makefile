@@ -2,7 +2,7 @@ CXX = g++
 MPICXX = mpicxx
 
 
-INC = -I/home/anandps/local/adolc_new/include  -I$(PWD) 
+INC = -I/home/anandps/local/adolc_new/include  -I$(PWD) -I$(PWD)/model -I$(PWD)/solver -I$(PWD)/linearsolver -I$(PWD)/utils
 LIB = -L/home/anandps/local/adolc_new/lib64 -ladolc
 
 

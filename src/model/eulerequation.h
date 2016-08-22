@@ -1,5 +1,6 @@
 #ifndef _EULEREQUATION_H
 #define _EULEREQUATION_H
+#include "flux.h"
 
 template<class T, class Tad>
 class EulerEquation{
