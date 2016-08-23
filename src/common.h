@@ -1,5 +1,14 @@
 #ifndef _COMMON_H
 #define _COMMON_H
+#if defined(__ICC)
+#pragma message "__ICC is defined."
+#elif defined(__GNUC__)
+#pragma message "__GNUC__ is defined."
+#elif defined(__IBMC__)
+#pragma message "__IBMC__ is defined."
+#endif
+
+
 #include <iostream>
 #include <fstream>
 #include <iomanip>
