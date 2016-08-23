@@ -3,16 +3,17 @@
 #define CONFIG_PETSC_TOL 1e-12
 #define CONFIG_PETSC_MAXITER 1000
 
+template <class T>
 class LinearSolverPetsc{
-	std::shared_ptr<Mesh<double>> mesh;
+	std::shared_ptr<Mesh<T>> mesh;
 	Vec dq, rhs;
 	Mat jac;
-	double *dq_array;
+	T *dq_array;
 	PC pc;
 	KSP ksp;
 
  public:
-	LinearSolverPetsc(std::shared_ptr<Mesh<double>> val_mesh, std::shared_ptr<Config> val_config){
+	LinearSolverPetsc(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config> val_config){
 		mesh = val_mesh;
 		uint nic = mesh->nic;
 		uint njc = mesh->njc;
@@ -53,7 +54,7 @@ class LinearSolverPetsc{
 
 	};
 	
-	void set_jac(int nnz, unsigned int *rind, unsigned int *cind, double *values){
+	void set_jac(int nnz, unsigned int *rind, unsigned int *cind, T *values){
 		PetscScalar value_tmp;
 		PetscErrorCode ierr;
 		int row_idx, col_idx;
@@ -67,7 +68,7 @@ class LinearSolverPetsc{
 		MatAssemblyEnd(jac, MAT_FINAL_ASSEMBLY);
 	};
 
-	void set_rhs(double *val_rhs){
+	void set_rhs(T *val_rhs){
 		uint nic = mesh->nic;
 		uint njc = mesh->njc;
 		uint nq = mesh->solution->nq;
@@ -80,7 +81,7 @@ class LinearSolverPetsc{
 		}
 	};
 
-	void solve_and_update(double *q, double UNDER_RELAXATION){
+	void solve_and_update(T *q, T under_relaxation){
 		uint nic = mesh->nic;
 		uint njc = mesh->njc;
 		uint nq = mesh->solution->nq;
@@ -88,7 +89,7 @@ class LinearSolverPetsc{
 		VecGetArray(dq, &dq_array);
 
 		for(int i=0; i<nic*njc*nq; i++){
-			q[i] = q[i] + dq_array[i]*UNDER_RELAXATION;
+			q[i] = q[i] + dq_array[i]*under_relaxation;
 		}
 	};   
 };

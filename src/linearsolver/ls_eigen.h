@@ -1,14 +1,15 @@
 #ifndef _EIGEN_H
 #define _EIGEN_H
 
+template <class T>
 class LinearSolverEigen{
-	std::shared_ptr<Mesh<double>> mesh;
+	std::shared_ptr<Mesh<T>> mesh;
 	Eigen::MatrixXd rhs, dq;
-	Eigen::SparseMatrix<double, Eigen::ColMajor> jac;
-	std::shared_ptr<Eigen::SparseLU<Eigen::SparseMatrix<double>>> solver;
+	Eigen::SparseMatrix<T, Eigen::ColMajor> jac;
+	std::shared_ptr<Eigen::SparseLU<Eigen::SparseMatrix<T>>> solver;
 	unsigned int c = 0;
  public:
-	LinearSolverEigen(std::shared_ptr<Mesh<double>> val_mesh, std::shared_ptr<Config> val_config){
+	LinearSolverEigen(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config> val_config){
 		mesh = val_mesh;
 
 		uint ni = mesh->ni;
@@ -19,9 +20,9 @@ class LinearSolverEigen{
 	
 		rhs = Eigen::MatrixXd(nic*njc*nq, 1);
 		dq = Eigen::MatrixXd(nic*njc*nq, 1);
-		jac = Eigen::SparseMatrix<double,Eigen::ColMajor>(nic*njc*nq, nic*njc*nq);
+		jac = Eigen::SparseMatrix<T,Eigen::ColMajor>(nic*njc*nq, nic*njc*nq);
 
-		solver = std::make_shared<Eigen::SparseLU<Eigen::SparseMatrix<double>>>();
+		solver = std::make_shared<Eigen::SparseLU<Eigen::SparseMatrix<T>>>();
 	};
 
 	void preallocate(int nnz){
@@ -34,15 +35,15 @@ class LinearSolverEigen{
 	~LinearSolverEigen(){
 	};
 
-	void set_jac(int nnz, unsigned int *rind, unsigned int *cind, double *values){
-		double value_tmp;
+	void set_jac(int nnz, unsigned int *rind, unsigned int *cind, T *values){
+		T value_tmp;
 		for(uint i=0; i<nnz; i++){
 			value_tmp = values[i];
 			jac.coeffRef(rind[i],cind[i]) = value_tmp;
 		}
 	};
 
-	void set_rhs(double *val_rhs){
+	void set_rhs(T *val_rhs){
 		uint nic = mesh->nic;
 		uint njc = mesh->njc;
 		uint nq = mesh->solution->nq;
@@ -52,7 +53,7 @@ class LinearSolverEigen{
 		}
 	};
 
-	void solve_and_update(double *q, double UNDER_RELAXATION){
+	void solve_and_update(T *q, T under_relaxation){
 		uint nic = mesh->nic;
 		uint njc = mesh->njc;
 		uint nq = mesh->solution->nq;
@@ -64,7 +65,7 @@ class LinearSolverEigen{
 		solver->factorize(jac);
 		dq = solver->solve(rhs);
 		for(int i=0; i<nic*njc*nq; i++){
-			q[i] = q[i] + dq(i,0)*UNDER_RELAXATION;
+			q[i] = q[i] + dq(i,0)*under_relaxation;
 		}
 	};
 

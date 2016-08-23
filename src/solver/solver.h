@@ -33,13 +33,13 @@ public:
 	std::shared_ptr<EulerEquation<T, Tad>> equation;
 
 #if defined(ENABLE_ARMA)
-	std::shared_ptr<LinearSolverArma> linearsolver;
+	std::shared_ptr<LinearSolverArma<T>> linearsolver;
 #endif
 #if defined(ENABLE_EIGEN)
-	std::shared_ptr<LinearSolverEigen> linearsolver;
+	std::shared_ptr<LinearSolverEigen<T>> linearsolver;
 #endif
 #if defined(ENABLE_PETSC)
-	std::shared_ptr<LinearSolverPetsc> linearsolver;
+	std::shared_ptr<LinearSolverPetsc<T>> linearsolver;
 #endif
 	
 	T *rhs;
@@ -152,15 +152,15 @@ Solver<T, Tad>::Solver(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config
 	a_rhs_ravel = allocate_1d_array<Tad>(nic*njc*nq);
 
 #if defined(ENABLE_ARMA)
-	linearsolver = std::make_shared<LinearSolverArma>(mesh, config);
+	linearsolver = std::make_shared<LinearSolverArma<T>>(mesh, config);
 #endif
 
 #if defined(ENABLE_EIGEN)
-	linearsolver = std::make_shared<LinearSolverEigen>(mesh, config);
+	linearsolver = std::make_shared<LinearSolverEigen<T>>(mesh, config);
 #endif
 
 #if defined(ENABLE_PETSC)
-	linearsolver = std::make_shared<LinearSolverPetsc>(mesh, config);
+	linearsolver = std::make_shared<LinearSolverPetsc<T>>(mesh, config);
 #endif
 
 
