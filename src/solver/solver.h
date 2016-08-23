@@ -129,6 +129,15 @@ void Solver<T, Tad>::initialize(){
 	if(config->io->restart){
 		iomanager->read_restart();
 	}
+	uint nq = mesh->solution->nq;
+	for(uint i=0; i<nic; i++){
+		for(uint j=0; j<njc; j++){
+			for(uint k=0; k<nq; k++){
+				q_tmp[i*njc*nq + j*nq + k] = mesh->solution->q[i][j][k];
+			}
+		}
+	}
+	
 }
 
 template <class T, class Tad>
@@ -246,9 +255,7 @@ void Solver<T, Tad>::solve(){
 			}
 		}
 		else if(config->solver->scheme == "rk4_jameson"){
-#pragma omp parallel for
-			for(int i=0; i<nt; i++) q_tmp[i] = q[i];
-			
+
 			for(int order=0; order<4; order++){
 				equation->calc_residual(q_tmp, rhs);
 #pragma omp parallel for
@@ -262,7 +269,9 @@ void Solver<T, Tad>::solve(){
 			}
 #pragma omp parallel for
 			for(int i=0; i<nt; i++) q[i] = q_tmp[i];
+
 		}
+		
 		else{
 			logger->critical("scheme not defined.");
 		}
