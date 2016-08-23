@@ -5,12 +5,13 @@
 #include "mesh.h"
 #include "config.h"
 
+template<class T>
 class IOManager{
 public:
 	std::shared_ptr<Config> config;
-	std::shared_ptr<Mesh<double>> mesh;
-	double *xc_array, *yc_array, *q_array;
-	IOManager(std::shared_ptr<Mesh<double>> val_mesh, std::shared_ptr<Config> val_config){
+	std::shared_ptr<Mesh<T>> mesh;
+	T *xc_array, *yc_array, *q_array;
+	IOManager(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config> val_config){
 		config = val_config;
 		mesh = val_mesh;
 
@@ -19,9 +20,9 @@ public:
 		uint njc = mesh->njc;
 		uint nq = mesh->solution->nq;
 		
-		xc_array = new double[nic*njc];
-		yc_array = new double[nic*njc];
-		q_array = new double[nic*njc*nq];
+		xc_array = new T[nic*njc];
+		yc_array = new T[nic*njc];
+		q_array = new T[nic*njc*nq];
 	};
 
 	~IOManager(){
@@ -42,9 +43,9 @@ public:
 		std::string filename = config->io->label + ".tec";
 		uint nic = mesh->nic;
 		uint njc = mesh->njc;
-		double***q = mesh->solution->q;
-		double**xc = mesh->xc;
-		double**yc = mesh->yc;
+		T ***q = mesh->solution->q;
+		T **xc = mesh->xc;
+		T **yc = mesh->yc;
 		
 		std::ofstream outfile;
 		outfile.open(filename);
@@ -68,9 +69,9 @@ public:
 		std::string filename = config->io->label + ".npz";
 		uint nic = mesh->nic;
 		uint njc = mesh->njc;
-		double***q = mesh->solution->q;
-		double**xc = mesh->xc;
-		double**yc = mesh->yc;
+		T ***q = mesh->solution->q;
+		T **xc = mesh->xc;
+		T **yc = mesh->yc;
 		const unsigned int shape[] = {nic, njc};
 		const unsigned int shapeq[] = {nic, njc, 4};
 		
@@ -98,13 +99,13 @@ public:
 		uint nic = mesh->nic;
 		uint njc = mesh->njc;
 		uint nq = mesh->solution->nq;
-		double ***q = mesh->solution->q;
-		double **xc = mesh->xc;
-		double **yc = mesh->yc;
+		T ***q = mesh->solution->q;
+		T **xc = mesh->xc;
+		T **yc = mesh->yc;
 		std::ofstream outfile(filename,std::ofstream::binary);
 		for(int i=0; i<nic; i++){
 			for(int j=0; j<njc; j++){
-				outfile.write(reinterpret_cast<const char*>(q[i][j]), sizeof(double)*nq);
+				outfile.write(reinterpret_cast<const char*>(q[i][j]), sizeof(T)*nq);
 			}
 		}
 		outfile.close();
@@ -116,20 +117,20 @@ public:
 		uint nic = mesh->nic;
 		uint njc = mesh->njc;
 		uint nq = mesh->solution->nq;
-		double***q = mesh->solution->q;
-		double**xc = mesh->xc;
-		double**yc = mesh->yc;
+		T ***q = mesh->solution->q;
+		T **xc = mesh->xc;
+		T **yc = mesh->yc;
 		std::ifstream infile(filename,std::ofstream::binary);
 
 		infile.seekg (0,infile.end);
 		long size = infile.tellg();
-		long size_expected = nic*njc*nq*sizeof(double);
+		long size_expected = nic*njc*nq*sizeof(T);
 		infile.seekg (0);
 		assert(size == size_expected);
 		
 		for(int i=0; i<nic; i++){
 			for(int j=0; j<njc; j++){
-				infile.read(reinterpret_cast<char*>(q[i][j]), sizeof(double)*nq);
+				infile.read(reinterpret_cast<char*>(q[i][j]), sizeof(T)*nq);
 			}
 		}
 		infile.close();
@@ -140,19 +141,19 @@ public:
 		uint nic = mesh->nic;
 		uint njc = mesh->njc;
 		uint nq = mesh->solution->nq;
-		double***q = mesh->solution->q;
-		double**xc = mesh->xc;
-		double**yc = mesh->yc;
-		double p_inf = 1/1.4;
-		double rho_inf = 1.0;
-		double u_inf = 0.5;
+		T ***q = mesh->solution->q;
+		T **xc = mesh->xc;
+		T **yc = mesh->yc;
+		T p_inf = 1/1.4;
+		T rho_inf = 1.0;
+		T u_inf = 0.5;
 		int j1 = mesh->j1-1;
-		double rho, u, v, p, x, cp;
+		T rho, u, v, p, x, cp;
 		std::ofstream outfile;
 		outfile.open(filename);
 		
 		for(uint i=j1; i<j1+mesh->nb; i++){
-			primvars<double>(q[i][0], &rho, &u, &v, &p);
+			primvars<T>(q[i][0], &rho, &u, &v, &p);
 			x = xc[i][0];
 			cp = (p - p_inf)/(0.5*rho_inf*u_inf*u_inf);
 			outfile<<x<<" "<<cp<<std::endl;

@@ -28,7 +28,7 @@ public:
 	std::string label;
 	std::shared_ptr<spdlog::logger> logger;
 	std::shared_ptr<spdlog::logger> logger_convergence;	
-	std::shared_ptr<IOManager> iomanager;
+	std::shared_ptr<IOManager<T>> iomanager;
 
 	std::shared_ptr<EulerEquation<T, Tad>> equation;
 
@@ -174,7 +174,7 @@ Solver<T, Tad>::Solver(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config
 
 
 	equation = std::make_shared<EulerEquation<T, Tad>>(mesh, config);
-	iomanager = std::make_shared<IOManager>(mesh, config);
+	iomanager = std::make_shared<IOManager<T>>(mesh, config);
 }
 template <class T, class Tad>
 Solver<T, Tad>::~Solver(){
