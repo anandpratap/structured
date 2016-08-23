@@ -17,6 +17,7 @@
 #include "thirdparty/cpptoml.h"
 #include "thirdparty/cnpy.h"
 #include "thirdparty/spdlog/spdlog.h"
+#include "thirdparty/cmdline.h"
 
 const float GAMMA = 1.4;
 typedef unsigned int uint;

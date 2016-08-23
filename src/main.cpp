@@ -11,12 +11,17 @@ int main(int argc, char *argv[]){
 	typedef double qtype;
 #endif
 
+	cmdline::parser parser;
 	spdlog::set_pattern("%v");
+	parser.add<std::string>("config", 'c', "configuration file name", false, "config.inp");
+	parser.add("help", '\0', "help");
+	parser.parse(argc, argv);
+	if(parser.exist("help")){std::cout << parser.usage(); exit(0);}
 
 	auto logger = spdlog::stdout_logger_mt("console", true);
 	logger->set_level(spdlog::level::debug);
 
-	auto config = std::make_shared<Config<qtype>>("config.inp", argc, argv);
+	auto config = std::make_shared<Config<qtype>>(parser.get<std::string>("config"), argc, argv);
 	auto m = std::make_shared<Mesh<qtype>>(config);
 
 #if defined(ENABLE_ADOLC)
