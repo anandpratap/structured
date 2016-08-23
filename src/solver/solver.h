@@ -41,7 +41,8 @@ public:
 #if defined(ENABLE_PETSC)
 	std::shared_ptr<LinearSolverPetsc<T>> linearsolver;
 #endif
-	
+
+	uint nt;
 	T *rhs;
 	T **lhs;
 	T *dt;
@@ -142,14 +143,14 @@ Solver<T, Tad>::Solver(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config
 	uint nic = mesh->nic;
 	uint njc = mesh->njc;
 	uint nq = mesh->solution->nq;
- 
+	nt = nic*njc*nq;
 	
 	dt = allocate_1d_array<T>(nic*njc);
-	rhs = allocate_1d_array<T>(nic*njc*nq);
-	q = allocate_1d_array<T>(nic*njc*nq);
-	q_tmp = allocate_1d_array<T>(nic*njc*nq);
-	a_q_ravel = allocate_1d_array<Tad>(nic*njc*nq);
-	a_rhs_ravel = allocate_1d_array<Tad>(nic*njc*nq);
+	rhs = allocate_1d_array<T>(nt);
+	q = allocate_1d_array<T>(nt);
+	q_tmp = allocate_1d_array<T>(nt);
+	a_q_ravel = allocate_1d_array<Tad>(nt);
+	a_rhs_ravel = allocate_1d_array<Tad>(nt);
 
 #if defined(ENABLE_ARMA)
 	linearsolver = std::make_shared<LinearSolverArma<T>>(mesh, config);
@@ -184,11 +185,11 @@ Solver<T, Tad>::~Solver(){
 	uint njc = mesh->njc;
 	uint nq = mesh->solution->nq;
 
-	release_1d_array(q_tmp, nic*njc*nq);
-	release_1d_array(q, nic*njc*nq);
-	release_1d_array(a_q_ravel, nic*njc*nq);
-	release_1d_array(a_rhs_ravel, nic*njc*nq);
-	release_1d_array(rhs, nic*njc*nq);
+	release_1d_array(q_tmp, nt);
+	release_1d_array(q, nt);
+	release_1d_array(a_q_ravel, nt);
+	release_1d_array(a_rhs_ravel, nt);
+	release_1d_array(rhs, nt);
 	release_1d_array(dt, nic*njc);
 }
 
@@ -246,7 +247,7 @@ void Solver<T, Tad>::solve(){
 		}
 		else if(config->solver->scheme == "rk4_jameson"){
 #pragma omp parallel for
-			for(int i=0; i<nic*njc*nq; i++) q_tmp[i] = q[i];
+			for(int i=0; i<nt; i++) q_tmp[i] = q[i];
 			
 			for(int order=0; order<4; order++){
 				equation->calc_residual(q_tmp, rhs);
@@ -260,7 +261,7 @@ void Solver<T, Tad>::solve(){
 				}
 			}
 #pragma omp parallel for
-			for(int i=0; i<nic*njc*nq; i++) q[i] = q_tmp[i];
+			for(int i=0; i<nt; i++) q[i] = q_tmp[i];
 		}
 		else{
 			logger->critical("scheme not defined.");
@@ -293,7 +294,7 @@ void Solver<T, Tad>::solve(){
 		}
 #if defined(ENABLE_ADOLC)
 		config->profiler->reset_time_jacobian();
-		sparse_jac(1,nic*njc*nq,nic*njc*nq,repeat,q,&nnz,&rind,&cind,&values,options);
+		sparse_jac(1,nt,nt,repeat,q,&nnz,&rind,&cind,&values,options);
 		config->profiler->update_time_jacobian();
 		logger->debug("NNZ = {}", nnz);
 
