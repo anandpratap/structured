@@ -1,6 +1,6 @@
 CXX = g++
 MPICXX = mpicxx
-CFLAGS = --std=c++11 -O3 -fopenmp
+CFLAGS = --std=c++14 -O3 -fopenmp
 
 INC = -I$(PWD) -I$(PWD)/model -I$(PWD)/solver -I$(PWD)/linearsolver -I$(PWD)/utils
 INC += -I$(PWD)/thirdparty

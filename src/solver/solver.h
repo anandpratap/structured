@@ -20,26 +20,26 @@ public:
 	Timer timer_la;
 	Timer timer_main;
 	Timer timer_residual;
-	Mesh<T> *mesh;
+	std::shared_ptr<Mesh<T>> mesh;
 	void solve();
 	T UNDER_RELAXATION;
 	T CFL;
-	Config *config;
+	std::shared_ptr<Config> config;
 	std::string label;
 	std::shared_ptr<spdlog::logger> logger;
 	std::shared_ptr<spdlog::logger> logger_convergence;	
 	std::shared_ptr<IOManager> iomanager;
 
-	EulerEquation<T, Tad> *equation;
+	std::shared_ptr<EulerEquation<T, Tad>> equation;
 
 #if defined(ENABLE_ARMA)
-	LinearSolverArma *linearsolver;
+	std::shared_ptr<LinearSolverArma> linearsolver;
 #endif
 #if defined(ENABLE_EIGEN)
-	LinearSolverEigen *linearsolver;
+	std::shared_ptr<LinearSolverEigen> linearsolver;
 #endif
 #if defined(ENABLE_PETSC)
-	LinearSolverPetsc *linearsolver;
+	std::shared_ptr<LinearSolverPetsc> linearsolver;
 #endif
 	
 	T *rhs;
@@ -48,8 +48,8 @@ public:
 	T *q;
 	T *q_tmp;
 	Tad *a_q_ravel, *a_rhs_ravel;
-
-	Solver(Mesh<T> *val_mesh, Config *config);
+	
+	Solver(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config> config);
 	~Solver();
 	void copy_from_solution();
 	void copy_to_solution();
@@ -131,7 +131,7 @@ void Solver<T, Tad>::initialize(){
 }
 
 template <class T, class Tad>
-Solver<T, Tad>::Solver(Mesh<T> *val_mesh, Config *val_config){
+Solver<T, Tad>::Solver(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config> val_config){
 	config = val_config;
 	timer_la = Timer();
 	timer_main = Timer();
@@ -152,15 +152,15 @@ Solver<T, Tad>::Solver(Mesh<T> *val_mesh, Config *val_config){
 	a_rhs_ravel = allocate_1d_array<Tad>(nic*njc*nq);
 
 #if defined(ENABLE_ARMA)
-	linearsolver = new LinearSolverArma(mesh, config);
+	linearsolver = std::make_shared<LinearSolverArma>(mesh, config);
 #endif
 
 #if defined(ENABLE_EIGEN)
-	linearsolver = new LinearSolverEigen(mesh, config);
+	linearsolver = std::make_shared<LinearSolverEigen>(mesh, config);
 #endif
 
 #if defined(ENABLE_PETSC)
-	linearsolver = new LinearSolverPetsc(mesh, config);
+	linearsolver = std::make_shared<LinearSolverPetsc>(mesh, config);
 #endif
 
 
@@ -173,7 +173,7 @@ Solver<T, Tad>::Solver(Mesh<T> *val_mesh, Config *val_config){
 	label = config->io->label;
 
 
-	equation = new EulerEquation<T, Tad>(mesh, config);
+	equation = std::make_shared<EulerEquation<T, Tad>>(mesh, config);
 	iomanager = std::make_shared<IOManager>(mesh, config);
 }
 template <class T, class Tad>
@@ -190,12 +190,6 @@ Solver<T, Tad>::~Solver(){
 	release_1d_array(a_rhs_ravel, nic*njc*nq);
 	release_1d_array(rhs, nic*njc*nq);
 	release_1d_array(dt, nic*njc);
-
-#if defined(ENABLE_ADOLC)
-	delete linearsolver;
-#endif
-	
-	delete equation;
 }
 
 

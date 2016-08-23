@@ -7,10 +7,10 @@
 
 class IOManager{
 public:
-	Config *config;
-	Mesh<double> *mesh;
+	std::shared_ptr<Config> config;
+	std::shared_ptr<Mesh<double>> mesh;
 	double *xc_array, *yc_array, *q_array;
-	IOManager(Mesh<double> *val_mesh, Config *val_config){
+	IOManager(std::shared_ptr<Mesh<double>> val_mesh, std::shared_ptr<Config> val_config){
 		config = val_config;
 		mesh = val_mesh;
 

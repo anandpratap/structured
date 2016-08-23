@@ -10,21 +10,17 @@ int main(int argc, char *argv[]){
 	auto logger = spdlog::stdout_logger_mt("console", true);
 	logger->set_level(spdlog::level::debug);
 
-	Config config("config.inp", argc, argv);
+	auto config = std::make_shared<Config>("config.inp", argc, argv);
+	auto m = std::make_shared<Mesh<double>>(config);
+	auto mc = std::make_shared<Mesh<double>>(m, 1, 1);
 	
-	Mesh<double> m = Mesh<double>(&config);
-	Mesh<double> mc = Mesh<double>(&m, 1, 1);
-	Mesh<double> mc1 = Mesh<double>(&mc, 1, 1);
-	Mesh<double> mc2 = Mesh<double>(&mc1, 1, 1);
-
 #if defined(ENABLE_ADOLC)
-	Solver<double, adouble> s = Solver<double, adouble>(&mc, &config);
+	auto s = std::make_shared<Solver<double, adouble>>(m, config);
 #else
-	Solver<double, double> s = Solver<double, double>(&mc, &config);
+	auto s = std::make_shared<Solver<double, double>>(m, config);
 #endif
-	s.solve();
-
-	config.profiler->print();
+	s->solve();
+	config->profiler->print();
 	return 0;
 }
 

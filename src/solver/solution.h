@@ -16,13 +16,13 @@ class Solution{
 	T ***q;
 	T ***q_aux;
 public:
-	Solution(const Mesh<T>* mesh);
-	Solution(const Mesh<T>* mesh, const Mesh<T>* old_mesh, const uint nskipi=0, const uint nskipj=0, const uint refine=0);
+	Solution(auto mesh);
+	//	Solution(std::shared_ptr<Mesh<T>> mesh, std::shared_ptr<Mesh<T>> old_mesh, const uint nskipi=0, const uint nskipj=0, const uint refine=0);
 	~Solution();
 };
 
 template<class T>
-Solution<T>::Solution(const Mesh<T>* mesh){
+Solution<T>::Solution(auto mesh){
 	nq = 4;
 	naux = 10;
 	nic = mesh->nic;
@@ -42,11 +42,11 @@ Solution<T>::Solution(const Mesh<T>* mesh){
 }
 
 
-template<class T>
-Solution<T>::Solution(const Mesh<T>* mesh, const Mesh<T>* old_mesh, const uint nskipi, const uint nskipj, const uint refine): Solution<T>(mesh){
-	std::cout<<nq<<std::endl;
+//template<class T>
+//Solution<T>::Solution(std::shared_ptr<Mesh<T>> mesh, std::shared_ptr<Mesh<T>> old_mesh, const uint nskipi, const uint nskipj, const uint refine): Solution<T>(mesh){
+//	std::cout<<nq<<std::endl;
 	// interpolate
-}
+//}
 
 
 template<class T>

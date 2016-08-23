@@ -3,10 +3,10 @@
 
 class LinearSolverArma{
  public:
-	Mesh<double> *mesh;
+	std::shared_ptr<Mesh<double>> mesh;
 	arma::mat rhs, dq;
 	arma::sp_mat jac;
-	LinearSolverArma(Mesh<double> *val_mesh, Config *val_config){
+	LinearSolverArma(std::shared_ptr<Mesh<double>> val_mesh, std::shared_ptr<Config> val_config){
 		mesh = val_mesh;
 
 		uint ni = mesh->ni;

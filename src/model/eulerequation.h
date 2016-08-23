@@ -12,10 +12,11 @@ public:
 	Tad **rhorht_eta, **urht_eta, **vrht_eta, **prht_eta;
 	Tad ***flux_xi, ***flux_eta;
 	Tad ***a_q, ***a_rhs;
-	Mesh<T> *mesh;
-	Config *config;
+
+	std::shared_ptr<Mesh<T>> mesh;
+	std::shared_ptr<Config> config;
 	void calc_residual(Tad *a_q_ravel, Tad *a_rhs_ravel);
-	EulerEquation(Mesh<T> *val_mesh, Config *val_config){
+	EulerEquation(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config> val_config){
 		mesh = val_mesh;
 		config = val_config;
 

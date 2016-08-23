@@ -4,7 +4,7 @@
 #define CONFIG_PETSC_MAXITER 1000
 
 class LinearSolverPetsc{
-	Mesh<double> *mesh;
+	std::shared_ptr<Mesh<double>> mesh;
 	Vec dq, rhs;
 	Mat jac;
 	double *dq_array;
@@ -12,7 +12,7 @@ class LinearSolverPetsc{
 	KSP ksp;
 
  public:
-	LinearSolverPetsc(Mesh<double> *val_mesh, Config *val_config){
+	LinearSolverPetsc(std::shared_ptr<Mesh<double>> val_mesh, std::shared_ptr<Config> val_config){
 		mesh = val_mesh;
 		uint nic = mesh->nic;
 		uint njc = mesh->njc;

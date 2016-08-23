@@ -10,8 +10,8 @@ class Solution;
 
 template <class T>
 class Mesh{
-public:
-	Config *config;
+ public:
+	std::shared_ptr<Config> config;
 	uint ni, nj;
 	uint nic, njc;
 	uint j1, nb;
@@ -26,11 +26,11 @@ public:
 
 	T **volume;
 
-	Solution<T> *solution;
+	std::shared_ptr<Solution<T>> solution;
 	
 public:
-	Mesh(Config *config);
-	Mesh(const Mesh<T>* mesh, const uint nskipi=0, const uint nskipj=0, const uint refine=0);
+	Mesh(std::shared_ptr<Config> config);
+	Mesh(std::shared_ptr<Mesh<T>> mesh, const uint nskipi=0, const uint nskipj=0, const uint refine=0);
 	~Mesh();
 	void calc_metrics();
 	void simple_loader(std::string filename);
@@ -116,7 +116,7 @@ void Mesh<T>::calc_metrics(){
 };
 
 template<class T>
-Mesh<T>::Mesh(Config *val_config){
+Mesh<T>::Mesh(std::shared_ptr<Config> val_config){
 	config = val_config;
 	ni = config->geometry->ni;
 	nj = config->geometry->nj;
@@ -148,13 +148,13 @@ Mesh<T>::Mesh(Config *val_config){
 	ds_eta = allocate_2d_array<T>(nic, njc);
 	ds_chi = allocate_2d_array<T>(nic, njc);
 
-	solution = new Solution<T>(this);
-	this->calc_metrics();
+	solution = std::make_shared<Solution<T>>(this);
+	calc_metrics();
 };
 
 
 template<class T>
-Mesh<T>::Mesh(const Mesh<T>* mesh, const uint nskipi, const uint nskipj, const uint refine){
+Mesh<T>::Mesh(std::shared_ptr<Mesh<T>> mesh, const uint nskipi, const uint nskipj, const uint refine){
 	config = mesh->config;
 	if(!refine){
 		ni = std::ceil((float)mesh->ni/(nskipi+1U));
@@ -224,9 +224,8 @@ Mesh<T>::Mesh(const Mesh<T>* mesh, const uint nskipi, const uint nskipj, const u
 	ds_eta = allocate_2d_array<T>(nic, njc);
 	ds_chi = allocate_2d_array<T>(nic, njc);
 
-	solution = new Solution<T>(this);
-	//solution = new Solution<T>(this, mesh, nskipi, nskipj, refine);
-	this->calc_metrics();
+	solution = std::make_shared<Solution<T>>(this);
+	calc_metrics();
 };
 
 template<class T>
@@ -244,7 +243,6 @@ Mesh<T>::~Mesh(){
 	release_3d_array(normal_eta, ni-1, nj, 2U);
 	release_3d_array(normal_chi, ni, nj-1, 2U);
 	
-	delete solution;
 }
 
 

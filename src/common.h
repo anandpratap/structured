@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iomanip>
 #include <cmath>
+#include <memory>
 #include "thirdparty/cpptoml.h"
 #include "thirdparty/cnpy.h"
 #include "thirdparty/spdlog/spdlog.h"

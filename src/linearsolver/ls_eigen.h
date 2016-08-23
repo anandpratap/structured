@@ -2,13 +2,13 @@
 #define _EIGEN_H
 
 class LinearSolverEigen{
-	Mesh<double> *mesh;
+	std::shared_ptr<Mesh<double>> mesh;
 	Eigen::MatrixXd rhs, dq;
 	Eigen::SparseMatrix<double, Eigen::ColMajor> jac;
-	Eigen::SparseLU<Eigen::SparseMatrix<double>> *solver;
+	std::shared_ptr<Eigen::SparseLU<Eigen::SparseMatrix<double>>> solver;
 	unsigned int c = 0;
  public:
-	LinearSolverEigen(Mesh<double> *val_mesh, Config *val_config){
+	LinearSolverEigen(std::shared_ptr<Mesh<double>> val_mesh, std::shared_ptr<Config> val_config){
 		mesh = val_mesh;
 
 		uint ni = mesh->ni;
@@ -21,7 +21,7 @@ class LinearSolverEigen{
 		dq = Eigen::MatrixXd(nic*njc*nq, 1);
 		jac = Eigen::SparseMatrix<double,Eigen::ColMajor>(nic*njc*nq, nic*njc*nq);
 
-		solver = new Eigen::SparseLU<Eigen::SparseMatrix<double>>();
+		solver = std::make_shared<Eigen::SparseLU<Eigen::SparseMatrix<double>>>();
 	};
 
 	void preallocate(int nnz){
@@ -32,7 +32,6 @@ class LinearSolverEigen{
 	};
 
 	~LinearSolverEigen(){
-		delete solver;
 	};
 
 	void set_jac(int nnz, unsigned int *rind, unsigned int *cind, double *values){
