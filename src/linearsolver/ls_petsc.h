@@ -13,11 +13,11 @@ class LinearSolverPetsc{
 	KSP ksp;
 
  public:
-	LinearSolverPetsc(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config> val_config){
+	LinearSolverPetsc(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config<T>> val_config){
 		mesh = val_mesh;
-		uint nic = mesh->nic;
-		uint njc = mesh->njc;
-		uint nq = mesh->solution->nq;
+		const auto nic = mesh->nic;
+		const auto njc = mesh->njc;
+		const auto nq = mesh->solution->nq;
 		int nvar = nic*njc*nq;
 		PetscInitialize(&val_config->argc, &val_config->argv, NULL, NULL);
 
@@ -41,9 +41,9 @@ class LinearSolverPetsc{
 	};
 
 	~LinearSolverPetsc(){
-		uint nic = mesh->nic;
-		uint njc = mesh->njc;
-		uint nq = mesh->solution->nq;
+		const auto nic = mesh->nic;
+		const auto njc = mesh->njc;
+		const auto nq = mesh->solution->nq;
 		VecDestroy(&rhs);
 		VecDestroy(&dq);
 		MatDestroy(&jac);
@@ -69,9 +69,9 @@ class LinearSolverPetsc{
 	};
 
 	void set_rhs(T *val_rhs){
-		uint nic = mesh->nic;
-		uint njc = mesh->njc;
-		uint nq = mesh->solution->nq;
+		const auto nic = mesh->nic;
+		const auto njc = mesh->njc;
+		const auto nq = mesh->solution->nq;
 		PetscScalar value_tmp;
 		PetscErrorCode ierr;
 
@@ -82,9 +82,9 @@ class LinearSolverPetsc{
 	};
 
 	void solve_and_update(T *q, T under_relaxation){
-		uint nic = mesh->nic;
-		uint njc = mesh->njc;
-		uint nq = mesh->solution->nq;
+		const auto nic = mesh->nic;
+		const auto njc = mesh->njc;
+		const auto nq = mesh->solution->nq;
 		KSPSolve(ksp, rhs, dq);
 		VecGetArray(dq, &dq_array);
 

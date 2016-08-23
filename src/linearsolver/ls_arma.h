@@ -6,14 +6,14 @@ class LinearSolverArma{
 	std::shared_ptr<Mesh<T>> mesh;
 	arma::Mat<T> rhs, dq;
 	arma::SpMat<T> jac;
-	LinearSolverArma(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config> val_config){
+	LinearSolverArma(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config<T>> val_config){
 		mesh = val_mesh;
 
-		uint ni = mesh->ni;
-		uint nj = mesh->nj;
-		uint nic = mesh->nic;
-		uint njc = mesh->njc;
-		uint nq = mesh->solution->nq;
+		const auto ni = mesh->ni;
+		const auto nj = mesh->nj;
+		const auto nic = mesh->nic;
+		const auto njc = mesh->njc;
+		const auto nq = mesh->solution->nq;
 
 		rhs = arma::Mat<T>(nic*njc*nq, 1);
 		dq = arma::Mat<T>(nic*njc*nq, 1);
@@ -29,9 +29,9 @@ class LinearSolverArma{
 	};
 
 	void set_rhs(T *val_rhs){
-		uint nic = mesh->nic;
-		uint njc = mesh->njc;
-		uint nq = mesh->solution->nq;
+		const auto nic = mesh->nic;
+		const auto njc = mesh->njc;
+		const auto nq = mesh->solution->nq;
 
 		for(uint i=0; i<nic*njc*nq; i++){
 			rhs(i, 0) = val_rhs[i];
@@ -39,9 +39,9 @@ class LinearSolverArma{
 	};
 
 	void solve_and_update(T *q, T under_relaxation){
-		uint nic = mesh->nic;
-		uint njc = mesh->njc;
-		uint nq = mesh->solution->nq;
+		const auto nic = mesh->nic;
+		const auto njc = mesh->njc;
+		const auto nq = mesh->solution->nq;
 
 		dq = arma::spsolve(jac, rhs, "superlu");
 		for(int i=0; i<nic*njc*nq; i++){

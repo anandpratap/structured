@@ -16,9 +16,9 @@ public:
 		mesh = val_mesh;
 
 		// required for npz
-		uint nic = mesh->nic;
-		uint njc = mesh->njc;
-		uint nq = mesh->solution->nq;
+		const auto nic = mesh->nic;
+		const auto njc = mesh->njc;
+		const auto nq = mesh->solution->nq;
 		
 		xc_array = new T[nic*njc];
 		yc_array = new T[nic*njc];
@@ -32,7 +32,7 @@ public:
 		
 	}
 
-	void write(uint iteration){
+	void write(const uint iteration){
 		write_tecplot();
 		write_npz();
 		write_restart();
@@ -41,8 +41,8 @@ public:
 	
 	void write_tecplot(){
 		std::string filename = config->io->label + ".tec";
-		uint nic = mesh->nic;
-		uint njc = mesh->njc;
+		const auto nic = mesh->nic;
+		const auto njc = mesh->njc;
 		T ***q = mesh->solution->q;
 		T **xc = mesh->xc;
 		T **yc = mesh->yc;
@@ -67,8 +67,8 @@ public:
 	
 	void write_npz(){
 		std::string filename = config->io->label + ".npz";
-		uint nic = mesh->nic;
-		uint njc = mesh->njc;
+		const auto nic = mesh->nic;
+		const auto njc = mesh->njc;
 		T ***q = mesh->solution->q;
 		T **xc = mesh->xc;
 		T **yc = mesh->yc;
@@ -96,9 +96,9 @@ public:
 
 	void write_restart(){
 		std::string filename = config->io->label + ".out";
-		uint nic = mesh->nic;
-		uint njc = mesh->njc;
-		uint nq = mesh->solution->nq;
+		const auto nic = mesh->nic;
+		const auto njc = mesh->njc;
+		const auto nq = mesh->solution->nq;
 		T ***q = mesh->solution->q;
 		T **xc = mesh->xc;
 		T **yc = mesh->yc;
@@ -114,9 +114,9 @@ public:
 
 	void read_restart(){
 		std::string filename = config->io->label + ".out";
-		uint nic = mesh->nic;
-		uint njc = mesh->njc;
-		uint nq = mesh->solution->nq;
+		const auto nic = mesh->nic;
+		const auto njc = mesh->njc;
+		const auto nq = mesh->solution->nq;
 		T ***q = mesh->solution->q;
 		T **xc = mesh->xc;
 		T **yc = mesh->yc;
@@ -138,9 +138,9 @@ public:
 	}
 	void write_surface(){
 		std::string filename = config->io->label + ".surface";
-		uint nic = mesh->nic;
-		uint njc = mesh->njc;
-		uint nq = mesh->solution->nq;
+		const auto nic = mesh->nic;
+		const auto njc = mesh->njc;
+		const auto nq = mesh->solution->nq;
 		T ***q = mesh->solution->q;
 		T **xc = mesh->xc;
 		T **yc = mesh->yc;

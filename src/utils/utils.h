@@ -2,7 +2,7 @@
 #define _UTILS_H
 
 template <class T, class Ti>
-T*** allocate_3d_array(Ti nx, Ti ny, Ti nz){
+T*** allocate_3d_array(const Ti nx, const Ti ny, const Ti nz){
     T*** A = new T**[nx];
     for(Ti i(0); i < nx; ++i){
 			A[i] = new T*[ny];
@@ -16,7 +16,7 @@ T*** allocate_3d_array(Ti nx, Ti ny, Ti nz){
     return A;
 }
 template <class T, class Ti>
-void release_3d_array(T*** A, Ti nx, Ti ny, Ti nz){
+void release_3d_array(T*** A, const Ti nx, const Ti ny, const Ti nz){
     for (Ti i = 0; i < nx; ++i){
 			for (Ti j = 0; j < ny; ++j){
 				delete[] A[i][j];
@@ -27,7 +27,7 @@ void release_3d_array(T*** A, Ti nx, Ti ny, Ti nz){
 }
 
 template <class T, class Ti>
-T** allocate_2d_array(Ti nx, Ti ny){
+T** allocate_2d_array(const Ti nx, const Ti ny){
     T** A = new T*[nx];
     for(Ti i(0); i < nx; ++i){
 		A[i] = new T[ny];
@@ -36,7 +36,7 @@ T** allocate_2d_array(Ti nx, Ti ny){
 }
 
 template <class T, class Ti>
-void release_2d_array(T** A, Ti nx, Ti ny){
+void release_2d_array(T** A, const Ti nx, const Ti ny){
     for (Ti i = 0; i < nx; ++i){
 		delete[] A[i];
 	}
@@ -45,20 +45,20 @@ void release_2d_array(T** A, Ti nx, Ti ny){
 
 
 template <class T, class Ti>
-T* allocate_1d_array(Ti nx){
+T* allocate_1d_array(const Ti nx){
     T *A = new T[nx];
     return A;
 }
 
 template <class T, class Ti>
-	void release_1d_array(T* A, Ti nx){
+	void release_1d_array(T* A, const Ti nx){
     delete[] A;
 }
 
 
 template<class T, class Ti>
-void first_order_xi(Ti ni, Ti nj, T** q, T** ql, T** qr){
-	Ti njm = nj-1;
+void first_order_xi(const Ti ni, const Ti nj, T **q, T** ql, T** qr){
+	const auto njm = nj-1;
 #pragma omp parallel for
 	for(Ti i=0; i<ni; i++){
 		for(Ti j=0; j<njm; j++){
@@ -69,8 +69,8 @@ void first_order_xi(Ti ni, Ti nj, T** q, T** ql, T** qr){
 }
 
 template<class T, class Ti>
-void first_order_eta(Ti ni, Ti nj, T** q, T** ql, T** qr){
-	Ti nim = ni-1;
+void first_order_eta(const Ti ni, const Ti nj, T **q, T** ql, T** qr){
+	const auto nim = ni-1;
 #pragma omp parallel for
 	for(Ti i=0; i<nim; i++){
 		for(Ti j=0; j<nj; j++){
@@ -82,9 +82,8 @@ void first_order_eta(Ti ni, Ti nj, T** q, T** ql, T** qr){
 
 
 template<class T, class Ti>
-void second_order_xi(Ti ni, Ti nj, T **q, T **ql, T **qr){
-	Ti njm = nj-1;
-
+void second_order_xi(const Ti ni, const Ti nj, T **q, T **ql, T **qr){
+	const auto njm = nj-1;
 #pragma omp parallel for
 	for(Ti i=0; i<ni; i++){
 		for(Ti j=0; j<njm; j++){
@@ -92,10 +91,10 @@ void second_order_xi(Ti ni, Ti nj, T **q, T **ql, T **qr){
 			qr[i][j] = q[i+1][j+1];
 		}
 	}
-	Ti nim = ni-1;
-	T thm = 2.0/3.0;
-	T thp = 4.0/3.0;
-	T eps = pow(10.0/nim, 3);
+	const auto nim = ni-1;
+	constexpr auto thm = 2.0/3.0;
+	constexpr auto thp = 4.0/3.0;
+	const auto eps = pow(10.0/nim, 3);
 	static T **f2 = allocate_2d_array<T>(ni, njm);
 	static T **a1 = allocate_2d_array<T>(nim, njm);
 	static T **a2 = allocate_2d_array<T>(nim, njm);
@@ -126,8 +125,8 @@ void second_order_xi(Ti ni, Ti nj, T **q, T **ql, T **qr){
 }
 
 template<class T, class Ti>
-void second_order_eta(Ti ni, Ti nj, T **q, T **ql, T **qr){
-	Ti nim = ni-1;
+void second_order_eta(const Ti ni, const Ti nj, T **q, T **ql, T **qr){
+	const Ti nim = ni-1;
 
 #pragma omp parallel for
 	for(Ti i=0; i<nim; i++){
@@ -136,10 +135,10 @@ void second_order_eta(Ti ni, Ti nj, T **q, T **ql, T **qr){
 			qr[i][j] = q[i+1][j+1];
 		}
 	}
-	Ti njm = nj-1;
-	T thm = 2.0/3.0;
-	T thp = 4.0/3.0;
-	T eps = pow(10.0/njm, 3);
+	const auto njm = nj-1;
+	constexpr auto thm = 2.0/3.0;
+	constexpr auto thp = 4.0/3.0;
+	const auto eps = pow(10.0/njm, 3);
 	static T **f2 = allocate_2d_array<T>(nim, nj);
 	static T **a1 = allocate_2d_array<T>(nim, njm);
 	static T **a2 = allocate_2d_array<T>(nim, njm);
@@ -174,9 +173,9 @@ void second_order_eta(Ti ni, Ti nj, T **q, T **ql, T **qr){
 
 template<class T>
 void primvars(const T Q[4], T *rho, T *u, T *v, T *p){
-  T tmp_rho = Q[0];
-  T tmp_u = Q[1]/tmp_rho;
-  T tmp_v = Q[2]/tmp_rho;
+  const T tmp_rho = Q[0];
+  const T tmp_u = Q[1]/tmp_rho;
+  const T tmp_v = Q[2]/tmp_rho;
   *rho = Q[0];
   *u = Q[1]/Q[0];
   *v = Q[2]/Q[0];

@@ -20,11 +20,11 @@ public:
 		mesh = val_mesh;
 		config = val_config;
 
-		uint nic = mesh->nic;
-		uint njc = mesh->njc;
-		uint nq = mesh->solution->nq;
-		uint ni = nic + 1;
-		uint nj = njc + 1;
+		const auto nic = mesh->nic;
+		const auto njc = mesh->njc;
+		const auto nq = mesh->solution->nq;
+		const auto ni = nic + 1;
+		const auto nj = njc + 1;
 		
 		rho = allocate_2d_array<Tad>(nic+2, njc+2);
 		u = allocate_2d_array<Tad>(nic+2, njc+2);
@@ -58,11 +58,11 @@ public:
 	};
 
 	~EulerEquation(){
-		uint nic = mesh->nic;
-		uint njc = mesh->njc;
-		uint nq = mesh->solution->nq;
-		uint ni = nic + 1;
-		uint nj = njc + 1;
+		const auto nic = mesh->nic;
+		const auto njc = mesh->njc;
+		const auto nq = mesh->solution->nq;
+		const auto ni = nic + 1;
+		const auto nj = njc + 1;
 		release_2d_array(rho, nic+2, njc+2);
 		release_2d_array(u, nic+2, njc+2);
 		release_2d_array(v, nic+2, njc+2);
@@ -97,11 +97,11 @@ public:
 
 template <class T, class Tad>
 	void EulerEquation<T, Tad>::calc_residual(Tad *a_q_ravel, Tad *a_rhs_ravel){
-	uint ni = mesh->ni;
-	uint nj = mesh->nj;
-	uint nic = mesh->nic;
-	uint njc = mesh->njc;
-	uint nq = mesh->solution->nq;
+	const auto ni = mesh->ni;
+	const auto nj = mesh->nj;
+	const auto nic = mesh->nic;
+	const auto njc = mesh->njc;
+	const auto nq = mesh->solution->nq;
 
 #pragma omp parallel for
 	for(uint i=0; i<nic; i++){
@@ -151,8 +151,8 @@ template <class T, class Tad>
 	}
 
 
-	uint j1 = mesh->j1;
-	uint nb = mesh->nb;
+	const auto j1 = mesh->j1;
+	const auto nb = mesh->nb;
 
 #pragma omp parallel for
 	for(uint i=0; i<nb; i++){

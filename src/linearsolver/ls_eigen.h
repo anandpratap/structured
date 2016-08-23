@@ -7,16 +7,16 @@ class LinearSolverEigen{
 	Eigen::MatrixXd rhs, dq;
 	Eigen::SparseMatrix<T, Eigen::ColMajor> jac;
 	std::shared_ptr<Eigen::SparseLU<Eigen::SparseMatrix<T>>> solver;
-	unsigned int c = 0;
+	uint c = 0;
  public:
-	LinearSolverEigen(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config> val_config){
+	LinearSolverEigen(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config<T>> val_config){
 		mesh = val_mesh;
 
-		uint ni = mesh->ni;
-		uint nj = mesh->nj;
-		uint nic = mesh->nic;
-		uint njc = mesh->njc;
-		uint nq = mesh->solution->nq;
+		const auto ni = mesh->ni;
+		const auto nj = mesh->nj;
+		const auto nic = mesh->nic;
+		const auto njc = mesh->njc;
+		const auto nq = mesh->solution->nq;
 	
 		rhs = Eigen::MatrixXd(nic*njc*nq, 1);
 		dq = Eigen::MatrixXd(nic*njc*nq, 1);
@@ -26,9 +26,9 @@ class LinearSolverEigen{
 	};
 
 	void preallocate(int nnz){
-		uint nic = mesh->nic;
-		uint njc = mesh->njc;
-		uint nq = mesh->solution->nq;
+		const auto nic = mesh->nic;
+		const auto njc = mesh->njc;
+		const auto nq = mesh->solution->nq;
 		jac.reserve(Eigen::VectorXi::Constant(nic*njc*nq,36));
 	};
 
@@ -44,9 +44,9 @@ class LinearSolverEigen{
 	};
 
 	void set_rhs(T *val_rhs){
-		uint nic = mesh->nic;
-		uint njc = mesh->njc;
-		uint nq = mesh->solution->nq;
+		const auto nic = mesh->nic;
+		const auto njc = mesh->njc;
+		const auto nq = mesh->solution->nq;
 
 		for(uint i=0; i<nic*njc*nq; i++){
 			rhs(i, 0) = val_rhs[i];
@@ -54,9 +54,9 @@ class LinearSolverEigen{
 	};
 
 	void solve_and_update(T *q, T under_relaxation){
-		uint nic = mesh->nic;
-		uint njc = mesh->njc;
-		uint nq = mesh->solution->nq;
+		const auto nic = mesh->nic;
+		const auto njc = mesh->njc;
+		const auto nq = mesh->solution->nq;
 		jac.makeCompressed();
 		if(c == 0){
 			solver->analyzePattern(jac);
