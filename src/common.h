@@ -1,6 +1,5 @@
 #ifndef _COMMON_H
 #define _COMMON_H
-
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -10,7 +9,7 @@
 #include "thirdparty/cnpy.h"
 #include "thirdparty/spdlog/spdlog.h"
 
-const double GAMMA = 1.4;
+const float GAMMA = 1.4;
 typedef unsigned int uint;
 #define PRINT_CONFIG(x)	logger->info(#x": {}", x);
 
@@ -61,4 +60,5 @@ public:
 private:
     std::chrono::high_resolution_clock::time_point m_timestamp;
 };
+
 #endif

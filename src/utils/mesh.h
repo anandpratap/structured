@@ -11,7 +11,7 @@ class Solution;
 template <class T>
 class Mesh{
  public:
-	std::shared_ptr<Config> config;
+	std::shared_ptr<Config<T>> config;
 	uint ni, nj;
 	uint nic, njc;
 	uint j1, nb;
@@ -29,7 +29,7 @@ class Mesh{
 	std::shared_ptr<Solution<T>> solution;
 	
 public:
-	Mesh(std::shared_ptr<Config> config);
+	Mesh(std::shared_ptr<Config<T>> config);
 	Mesh(std::shared_ptr<Mesh<T>> mesh, const uint nskipi=0, const uint nskipj=0, const uint refine=0);
 	~Mesh();
 	void calc_metrics();
@@ -116,7 +116,7 @@ void Mesh<T>::calc_metrics(){
 };
 
 template<class T>
-Mesh<T>::Mesh(std::shared_ptr<Config> val_config){
+Mesh<T>::Mesh(std::shared_ptr<Config<T>> val_config){
 	config = val_config;
 	ni = config->geometry->ni;
 	nj = config->geometry->nj;

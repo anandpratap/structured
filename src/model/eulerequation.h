@@ -14,9 +14,9 @@ public:
 	Tad ***a_q, ***a_rhs;
 
 	std::shared_ptr<Mesh<T>> mesh;
-	std::shared_ptr<Config> config;
+	std::shared_ptr<Config<T>> config;
 	void calc_residual(Tad *a_q_ravel, Tad *a_rhs_ravel);
-	EulerEquation(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config> val_config){
+	EulerEquation(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config<T>> val_config){
 		mesh = val_mesh;
 		config = val_config;
 
@@ -117,6 +117,7 @@ template <class T, class Tad>
 #pragma omp parallel for
 	for(uint i=0; i<nic; i++){
 		for(uint j=0; j<njc; j++){
+			//spdlog::get("console")->info("{} {}", i, j);
 			primvars<Tad>(q[i][j], &rho[i+1][j+1], &u[i+1][j+1], &v[i+1][j+1], &p[i+1][j+1]);
 			for(uint k=0; k<nq; k++){
 				a_rhs[i][j][k] = 0.0;

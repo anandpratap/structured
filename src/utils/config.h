@@ -38,9 +38,10 @@ class Profiler{
 	}
 };
 
+template<class T>
 class ConfigFreestream{
  public:
-	double rho_inf, u_inf, v_inf, p_inf;
+	T rho_inf, u_inf, v_inf, p_inf;
 	void set(std::shared_ptr<cpptoml::table> config){
 		rho_inf =  config->get_qualified_as<double>("freestream.rho_inf").value_or(1.0);
 		u_inf =  config->get_qualified_as<double>("freestream.u_inf").value_or(0.0);
@@ -48,14 +49,14 @@ class ConfigFreestream{
 		p_inf =  config->get_qualified_as<double>("freestream.p_inf").value_or(1.0/1.4);
 	};
 };
-
+template<class T>
 class ConfigSolver{
  public:
 	int order, cfl_ramp_iteration, under_relaxation_ramp_iteration;
 	std::string scheme;
 	bool time_accurate, cfl_ramp, under_relaxation_ramp;
-	double cfl, under_relaxation, cfl_ramp_exponent, under_relaxation_ramp_exponent;
-	double tolerance;
+	T cfl, under_relaxation, cfl_ramp_exponent, under_relaxation_ramp_exponent;
+	T tolerance;
 	int iteration_max;
 	
 	void set(std::shared_ptr<cpptoml::table> config){
@@ -80,7 +81,7 @@ class ConfigSolver{
 		
 	};
 };
-
+template<class T>
 class ConfigIO{
  public:
 	int stdout_frequency, fileout_frequency;
@@ -94,7 +95,7 @@ class ConfigIO{
 	};
 };
 
-
+template<class T>
 class ConfigGeometry{
  public:
 	int ni, nj, tail;
@@ -110,25 +111,25 @@ class ConfigGeometry{
 };
 
 
-
+template<class T>
 class Config{
  public:
 	int argc;
 	char **argv;
-	std::shared_ptr<ConfigFreestream> freestream;
-	std::shared_ptr<ConfigSolver> solver;
-	std::shared_ptr<ConfigIO> io;
-	std::shared_ptr<ConfigGeometry> geometry;
+	std::shared_ptr<ConfigFreestream<T>> freestream;
+	std::shared_ptr<ConfigSolver<T>> solver;
+	std::shared_ptr<ConfigIO<T>> io;
+	std::shared_ptr<ConfigGeometry<T>> geometry;
 	std::shared_ptr<cpptoml::table> config;
 	std::shared_ptr<Profiler> profiler;
 	
 	Config(std::string filename, int val_argc, char *val_argv[]){
 		argc = val_argc;
 		argv = val_argv;
-		freestream = std::make_shared<ConfigFreestream>();
-		solver = std::make_shared<ConfigSolver>();
-		io = std::make_shared<ConfigIO>();
-		geometry = std::make_shared<ConfigGeometry>();
+		freestream = std::make_shared<ConfigFreestream<T>>();
+		solver = std::make_shared<ConfigSolver<T>>();
+		io = std::make_shared<ConfigIO<T>>();
+		geometry = std::make_shared<ConfigGeometry<T>>();
 		
 		config = cpptoml::parse_file(filename);
 		freestream->set(config);

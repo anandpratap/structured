@@ -24,7 +24,7 @@ public:
 	void solve();
 	T UNDER_RELAXATION;
 	T CFL;
-	std::shared_ptr<Config> config;
+	std::shared_ptr<Config<T>> config;
 	std::string label;
 	std::shared_ptr<spdlog::logger> logger;
 	std::shared_ptr<spdlog::logger> logger_convergence;	
@@ -49,7 +49,7 @@ public:
 	T *q_tmp;
 	Tad *a_q_ravel, *a_rhs_ravel;
 	
-	Solver(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config> config);
+	Solver(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config<T>> config);
 	~Solver();
 	void copy_from_solution();
 	void copy_to_solution();
@@ -70,7 +70,7 @@ void Solver<T, Tad>::calc_dt(){
 			T v = q[i*njc*nq + j*nq + 2]/rho;
 			T rhoE = q[i*njc*nq + j*nq + 3];
 			T p = (rhoE - 0.5*rho*(u*u + v*v))*(GAMMA-1.0);
-			T lambda = sqrt(GAMMA*p/rho) + abs(u) + abs(v);
+			T lambda = std::sqrt(GAMMA*p/rho) + std::abs(u) + std::abs(v);
 			dt[i*njc + j] = std::min(mesh->ds_eta[i][j], mesh->ds_chi[i][j])/lambda*CFL;
 		}
 	}
@@ -131,7 +131,7 @@ void Solver<T, Tad>::initialize(){
 }
 
 template <class T, class Tad>
-Solver<T, Tad>::Solver(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config> val_config){
+Solver<T, Tad>::Solver(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config<T>> val_config){
 	config = val_config;
 	timer_la = Timer();
 	timer_main = Timer();
@@ -209,6 +209,7 @@ void Solver<T, Tad>::solve(){
 	logger->info("Welcome to structured!");
 	config->profiler->timer_main->reset();
 	while(1){
+		calc_dt();
 		timer_residual.reset();
 		config->profiler->reset_time_residual();
 #if defined(ENABLE_ADOLC)
@@ -290,8 +291,6 @@ void Solver<T, Tad>::solve(){
 			logger->info("Final:: Step: {:08d} Time: {:.2e} Wall Time: {:.2e} CFL: {:.2e} Density Norm: {:.2e}", counter, t, dt_main, CFL, l2norm[0]);
 			break;
 		}
-
-		calc_dt();
 #if defined(ENABLE_ADOLC)
 		config->profiler->reset_time_jacobian();
 		sparse_jac(1,nic*njc*nq,nic*njc*nq,repeat,q,&nnz,&rind,&cind,&values,options);
@@ -336,7 +335,7 @@ void Solver<T, Tad>::solve(){
 			if(counter > cfl_ramp_iteration){
 				auto cfl_ramp_exponent = config->solver->cfl_ramp_exponent;
 				CFL = pow(CFL, cfl_ramp_exponent);
-				CFL = std::min(CFL, 1e6);
+				CFL = std::min(CFL, static_cast<T>(1e6));
 			}
 		}
 
@@ -346,7 +345,7 @@ void Solver<T, Tad>::solve(){
 			if(counter > under_relaxation_ramp_iteration){
 				auto under_relaxation_ramp_exponent = config->solver->under_relaxation_ramp_exponent;
 				UNDER_RELAXATION = pow(UNDER_RELAXATION, under_relaxation_ramp_exponent);
-				UNDER_RELAXATION = std::min(UNDER_RELAXATION, 10.0);
+				UNDER_RELAXATION = std::min(UNDER_RELAXATION, static_cast<T>(10.0));
 			}
 		}
 

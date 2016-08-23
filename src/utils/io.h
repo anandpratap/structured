@@ -8,10 +8,10 @@
 template<class T>
 class IOManager{
 public:
-	std::shared_ptr<Config> config;
+	std::shared_ptr<Config<T>> config;
 	std::shared_ptr<Mesh<T>> mesh;
 	T *xc_array, *yc_array, *q_array;
-	IOManager(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config> val_config){
+	IOManager(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config<T>> val_config){
 		config = val_config;
 		mesh = val_mesh;
 
