@@ -1,6 +1,6 @@
 CXX = g++
 MPICXX = mpicxx
-CFLAGS = -std=c++14 -O0 -lpthread -g
+CFLAGS = -std=c++14 -O3 -lpthread -DNDEBUG #-msse2 -ffast-math -ftree-vectorize -fopt-info-vec-missed
 
 INC = -I$(PWD) -I$(PWD)/model -I$(PWD)/solver -I$(PWD)/linearsolver -I$(PWD)/utils
 INC += -I$(PWD)/thirdparty

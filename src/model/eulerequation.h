@@ -73,27 +73,23 @@ template <class T, class Tad>
 	const auto nq = mesh->solution->nq;
 
 #pragma omp parallel for
-	for(uint i=0; i<nic; i++){
-		for(uint j=0; j<njc; j++){
-			for(uint k=0; k<nq; k++){
-				a_q.set(a_q_ravel[i*njc*nq + j*nq + k], i, j, k);
-			}
-		}
+	for(uint i=0; i<nic*njc*nq; i++){
+		a_q(i) = a_q_ravel[i];
 	}
 
 #pragma omp parallel for
 	for(uint i=0; i<nic; i++){
 		for(uint j=0; j<njc; j++){
 			//spdlog::get("console")->info("{} {}", i, j);
-			T tmp_rho = a_q(i, j, 0);
-			T tmp_u = a_q(i, j, 1)/tmp_rho;
-			T tmp_v = a_q(i, j, 2)/tmp_rho;
-			T tmp_p = (a_q(i, j, 3) - 0.5*tmp_rho*(tmp_u*tmp_u + tmp_v*tmp_v))*(GAMMA-1);
+			Tad tmp_rho = a_q(i, j, 0);
+			Tad tmp_u = a_q(i, j, 1)/tmp_rho;
+			Tad tmp_v = a_q(i, j, 2)/tmp_rho;
+			Tad tmp_p = (a_q(i, j, 3) - 0.5*tmp_rho*(tmp_u*tmp_u + tmp_v*tmp_v))*(GAMMA-1);
 		
-			rho.set(tmp_rho, i+1, j+1);
-			u.set(tmp_u, i+1, j+1);
-			v.set(tmp_v, i+1, j+1);
-			p.set(tmp_p, i+1, j+1);
+			rho(i+1, j+1) = tmp_rho;
+			u(i+1, j+1) = tmp_u;
+			v(i+1, j+1) = tmp_v;
+			p(i+1, j+1) = tmp_p;
 			
 			
 			//	primvars<Tad>(&a_q_tmp, &rho(i+1, j+1), &u(i+1, j+1), &v(i+1, j+1), &p(i+1, j+1));
@@ -101,7 +97,7 @@ template <class T, class Tad>
 
 
 			for(uint k=0; k<nq; k++){
-				a_rhs.set(0.0, i, j, k);
+				a_rhs(i, j, k) = 0.0;
 			}
 		}
 	}
@@ -201,7 +197,7 @@ template <class T, class Tad>
 						 tmp_flux);
 			
 			for(uint k=0; k<4; k++){
-				flux_xi.set(tmp_flux[k], i, j, k);
+				flux_xi(i, j, k) = tmp_flux[k];
 			}
 		}
 	}
@@ -214,7 +210,7 @@ template <class T, class Tad>
 						 rhorht_eta(i, j), urht_eta(i, j), vrht_eta(i, j), prht_eta(i, j),
 						 tmp_flux);
 			for(uint k=0; k<4; k++){
-				flux_eta.set(tmp_flux[k], i, j, k);
+				flux_eta(i, j, k) = tmp_flux[k];
 			}
 		}
 	}
@@ -228,8 +224,8 @@ template <class T, class Tad>
 				//spdlog::get("console")->info("{}", flux_eta.get_size());
 				//spdlog::get("console")->info("{}", flux_eta(i,j+1,k));
 				//spdlog::get("console")->info("{}", flux_eta(i,j,k));
-				a_rhs.increment( - flux_eta(i, j+1, k) + flux_eta(i, j, k), i, j, k);
-				a_rhs.increment( -flux_xi(i+1, j, k) + flux_xi(i, j, k), i, j, k);
+				a_rhs(i, j, k) += - flux_eta(i, j+1, k) + flux_eta(i, j, k);
+				a_rhs(i, j, k) += -flux_xi(i+1, j, k) + flux_xi(i, j, k);
 			}
 		}
 	}
@@ -238,21 +234,15 @@ template <class T, class Tad>
 	for(uint i=0; i< nic; i++){
 		for(uint j=0; j< njc; j++){
 			for(uint k=0; k<mesh->solution->nq; k++){
-				a_rhs.set(a_rhs(i, j, k) / mesh->volume[i][j], i, j, k);
+				a_rhs(i,j,k) /=  mesh->volume[i][j];
 			}
 		}
 	}
 
 #pragma omp parallel for
-	for(uint i=0; i<nic; i++){
-		for(uint j=0; j<njc; j++){
-			for(uint k=0; k<nq; k++){
-				a_rhs_ravel[i*njc*nq + j*nq + k] = a_rhs(i, j, k);
-			}
-		}
+	for(uint i=0; i<nic*njc*nq; i++){
+		a_rhs_ravel[i] = a_rhs(i);
 	}
-	
-	
 };
 
 #endif

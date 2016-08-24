@@ -95,10 +95,10 @@ void second_order_xi(const Ti ni, const Ti nj, Array2D<T>& q, Array2D<T>& ql, Ar
 	constexpr auto thm = 2.0/3.0;
 	constexpr auto thp = 4.0/3.0;
 	const auto eps = pow(10.0/nim, 3);
-	auto f2 = Array2D<T>(ni, njm);
-	auto a1 = Array2D<T>(nim, njm);
-	auto a2 = Array2D<T>(nim, njm);
-	auto f3qt = Array2D<T>(nim, njm);
+	static auto f2 = Array2D<T>(ni, njm);
+	static auto a1 = Array2D<T>(nim, njm);
+	static auto a2 = Array2D<T>(nim, njm);
+	static auto f3qt = Array2D<T>(nim, njm);
 #pragma omp parallel for
 	for(Ti i=0; i<ni; i++){
 		for(Ti j=0; j<njm; j++){
@@ -139,10 +139,10 @@ void second_order_eta(const Ti ni, const Ti nj, Array2D<T>& q, Array2D<T>& ql, A
 	constexpr auto thm = 2.0/3.0;
 	constexpr auto thp = 4.0/3.0;
 	const auto eps = pow(10.0/njm, 3);
-	auto f2 = Array2D<T>(nim, nj);
-	auto a1 = Array2D<T>(nim, njm);
-	auto a2 = Array2D<T>(nim, njm);
-	auto f3qt = Array2D<T>(nim, njm);
+	static auto f2 = Array2D<T>(nim, nj);
+	static auto a1 = Array2D<T>(nim, njm);
+	static auto a2 = Array2D<T>(nim, njm);
+	static auto f3qt = Array2D<T>(nim, njm);
 
 #pragma omp parallel for
 	for(Ti i=0; i<nim; i++){

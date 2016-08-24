@@ -22,19 +22,19 @@ public:
 		data[i*nj*nk + j*nk + k] = value;
 	}
 	
-	T operator()(uint i, uint j, uint k){
+	inline T &operator()(uint i, uint j, uint k){
 		//		spdlog::get("console")->info("{} {} {}", i, j, k);
-		assert(i>=0 && i<ni);
-		assert(j>=0 && j<nj);
-		assert(k>=0 && k<nk);
-		if(data != nullptr){
+		//		assert(i>=0 && i<ni);
+		//assert(j>=0 && j<nj);
+		//assert(k>=0 && k<nk);
+		//if(data != nullptr){
 			return data[i*nj*nk + j*nk + k];
-		}
+			//	}
 	};
 	//const T operator()(uint i, uint j, uint k) const {return data[i*nj*nk + j*nk + k];};
 	
-	T& operator()(uint i){return data[i];};
-	const T operator()(uint i) const {return data[i];};
+	inline T& operator()(uint i){return data[i];};
+	//const T operator()(uint i) const {return data[i];};
 	
 	uint get_size(){return ni*nj*nk;};
 
@@ -61,12 +61,12 @@ public:
 		ni = val_ni; nj = val_nj;
 		data  = new T[ni*nj]();
 	};
-	T& operator()(uint i, uint j){
-		assert(i>=0 && i<ni);
-		assert(j>=0 && j<nj);
-		if( data != nullptr){
+	inline T &operator()(uint i, uint j){
+		//	assert(i>=0 && i<ni);
+		//assert(j>=0 && j<nj);
+		//if( data != nullptr){
 			return data[i*nj + j];
-		}
+			//}
 	};
 	//const T operator()(uint i, uint j) const {return data[i*nj + j];};
 	void increment(T value, uint i, uint j){
@@ -77,9 +77,9 @@ public:
 		data[i*nj + j] = value;
 	}
 
-	T& operator()(uint i){return data[i];};
-	const T operator()(uint i) const {return data[i];};
-	
+	//	T &operator()(uint i){return data[i];};
+	//const T operator()(uint i) const {return data[i];};
+	inline T& operator()(uint i){return data[i];};
 	uint get_size(){return ni*nj;};
 	void print(){
 		for(uint i=0U; i<get_size(); i++){
@@ -102,11 +102,11 @@ public:
 		ni = val_ni;
 		data  = new T[ni]();
 	};
-	T operator()(uint i){
-		assert(i>=0 && i<ni);
-		if( data != nullptr){
+	inline T &operator()(uint i){
+		//assert(i>=0 && i<ni);
+		//if( data != nullptr){
 			return data[i];
-		}
+			//}
 	};
 	//const T operator()(uint i) const {return data[i];};
 
