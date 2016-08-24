@@ -70,17 +70,11 @@ template <class T, class Tad>
 	const auto nic = mesh->nic;
 	const auto njc = mesh->njc;
 	const auto nq = mesh->solution->nq;
-	
-#pragma omp parallel for
-	for(uint i=0; i<nic; i++){
-		for(uint j=0; j<njc; j++){
-			//spdlog::get("console")->info("{} {}", i, j);
-			primvars<Tad>(&a_q[i][j][0], &rho[i+1][j+1], &u[i+1][j+1], &v[i+1][j+1], &p[i+1][j+1]);
-			for(uint k=0; k<nq; k++){
-				a_rhs[i][j][k] = 0.0;
-			}
-		}
-	}
+
+
+	primvars<Tad>(a_q, rho, u, v, p, 1U, 1U);
+	a_rhs.fill(0.0);
+
 	auto rho_inf =  config->freestream->rho_inf;
 	auto u_inf =  config->freestream->u_inf;
 	auto v_inf =  config->freestream->v_inf;

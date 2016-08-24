@@ -8,6 +8,30 @@
 #include "io.h"
 #include "eulerequation.h"
 
+template<class T>
+void set_rarray(int size, T* __restrict__ dest, T* __restrict__ src){
+#pragma omp parallel for
+	for(auto i=0; i<size; i++){
+		dest[i] = src[i];
+	}
+}
+
+template<class T>
+void update_forward_euler(int size, T* __restrict__ q, T* __restrict__ rhs, T* __restrict__ dt){
+#pragma omp parallel for
+	for(auto i=0; i<size; i++){
+		q[i] = q[i] + rhs[i]*dt[i];
+	}
+}
+
+template<class T, class To>
+	void update_rk4(int size, T* __restrict__ q_i, T* __restrict__ q, T* __restrict__ rhs, T* __restrict__ dt, To order){
+#pragma omp parallel for
+	for(auto i=0; i<size; i++){
+		q_i[i] = q[i] + rhs[i]*dt[i]/(4.0 - order);
+	}
+}
+
 template<class T, class Tad>
 class Solver{
 public:
@@ -45,7 +69,7 @@ public:
 	uint nt;
 	Array3D<T> rhs;
 	T **lhs;
-	Array2D<T> dt;
+	Array3D<T> dt;
 	Array3D<T> q;
 	Array3D<T> q_tmp;
 	Array3D<Tad> a_q, a_rhs;
@@ -72,7 +96,8 @@ void Solver<T, Tad>::calc_dt(){
 			T rhoE = q[i][j][3];
 			T p = (rhoE - 0.5*rho*(u*u + v*v))*(GAMMA-1.0);
 			T lambda = std::sqrt(GAMMA*p/rho) + std::abs(u) + std::abs(v);
-			dt[i][j] = std::min(mesh->ds_eta[i][j], mesh->ds_chi[i][j])/lambda*CFL;
+			for(int k=0; k<nq; k++)
+				dt[i][j][k] = std::min(mesh->ds_eta[i][j], mesh->ds_chi[i][j])/lambda*CFL;
 		}
 	}
 
@@ -83,14 +108,7 @@ void Solver<T, Tad>::copy_from_solution(){
 	uint njc = mesh->njc;
 	uint nq = mesh->solution->nq;
 
-#pragma omp parallel for
-	for(uint i=0; i<mesh->nic; i++){
-		for(uint j=0; j<mesh->njc; j++){
-			for(uint k=0; k<mesh->solution->nq; k++){
-				q[i][j][k] = mesh->solution->q[i][j][k];
-			}
-		}
-	}
+	set_rarray(q.size(), q.data(), mesh->solution->q.data());
 }
 
 template <class T, class Tad>
@@ -98,15 +116,7 @@ void Solver<T, Tad>::copy_to_solution(){
 	uint nic = mesh->nic;
 	uint njc = mesh->njc;
 	uint nq = mesh->solution->nq;
-
-#pragma omp parallel for
-	for(uint i=0; i<mesh->nic; i++){
-		for(uint j=0; j<mesh->njc; j++){
-			for(uint k=0; k<mesh->solution->nq; k++){
-				mesh->solution->q[i][j][k] = q[i][j][k];
-			}
-		}
-	}
+	set_rarray(q.size(), mesh->solution->q.data(), q.data());
 }
 
 template <class T, class Tad>
@@ -154,7 +164,7 @@ Solver<T, Tad>::Solver(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config
 	uint nq = mesh->solution->nq;
 	nt = nic*njc*nq;
 	
-	dt = Array2D<T>(nic, njc);
+	dt = Array3D<T>(nic, njc, nq);
 	rhs = Array3D<T>(nic, njc, nq);
 	q = Array3D<T>(nic, njc, nq);
 	q_tmp = Array3D<T>(nic, njc, nq);
@@ -245,37 +255,16 @@ void Solver<T, Tad>::solve(){
 #else
 		if(config->solver->scheme == "forward_euler"){
 			equation->calc_residual(q, rhs);
-#pragma omp parallel for
-			for(uint i=0; i<nic; i++){
-				for(uint j=0; j<njc; j++){
-					for(uint k=0; k<nq; k++){
-						q[i][j][k] = q[i][j][k] + rhs[i][j][k]*dt[i][j]; 
-					}
-				}
-			}
+			update_forward_euler(q.size(), q.data(), rhs.data(), dt.data());
 		}
 		else if(config->solver->scheme == "rk4_jameson"){
 
 			for(int order=0; order<4; order++){
 				equation->calc_residual(q_tmp, rhs);
-#pragma omp parallel for
-				for(uint i=0; i<nic; i++){
-					for(uint j=0; j<njc; j++){
-						for(uint k=0; k<nq; k++){
-							q_tmp[i][j][k] = q[i][j][k] + rhs[i][j][k]*dt[i][j]/(4.0 - order); 
-						}
-					}
-				}
+				update_rk4(q.size(), q_tmp.data(), q.data(), rhs.data(), dt.data(), order);
 			}
-			
-#pragma omp parallel for
-			for(uint i=0; i<nic; i++){
-				for(uint j=0; j<njc; j++){
-					for(uint k=0; k<nq; k++){
-						q[i][j][k] = q_tmp[i][j][k];
-					}
-				}
-			}
+
+			set_rarray(q.size(), q.data(), q_tmp.data());
 			
 		}
 		

@@ -8,6 +8,7 @@
 template<class T>
 class IOManager{
 public:
+	Array2D<T> rho, u, v, p;
 	std::shared_ptr<Config<T>> config;
 	std::shared_ptr<Mesh<T>> mesh;
 	IOManager(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config<T>> val_config){
@@ -18,7 +19,11 @@ public:
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
-		
+
+		rho = Array2D<T>(nic, njc);
+		u = Array2D<T>(nic, njc);
+		v = Array2D<T>(nic, njc);
+		p = Array2D<T>(nic, njc);
 	};
 
 	~IOManager(){
@@ -130,14 +135,13 @@ public:
 		T rho_inf = 1.0;
 		T u_inf = 0.5;
 		int j1 = mesh->j1-1;
-		T rho, u, v, p, x, cp;
+		T x, cp;
 		std::ofstream outfile;
 		outfile.open(filename);
-		
+		primvars<T>(q, rho, u, v, p);
 		for(uint i=j1; i<j1+mesh->nb; i++){
-			primvars<T>(&q[i][0][0], &rho, &u, &v, &p);
 			x = xc[i][0];
-			cp = (p - p_inf)/(0.5*rho_inf*u_inf*u_inf);
+			cp = (p[i][0] - p_inf)/(0.5*rho_inf*u_inf*u_inf);
 			outfile<<x<<" "<<cp<<std::endl;
 		}
 		outfile.close();
