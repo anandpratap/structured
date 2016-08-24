@@ -8,7 +8,7 @@
 #pragma message "__IBMC__ is defined."
 #endif
 
-
+#include <omp.h>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -18,9 +18,20 @@
 #include "thirdparty/cnpy.h"
 #include "thirdparty/spdlog/spdlog.h"
 #include "thirdparty/cmdline.h"
+#include "thirdparty/rarray"
+template<class T>
+using Array3D = rarray<T, 3>;
+
+template<class T>
+using Array2D = rarray<T, 2>;
+
+template<class T>
+using Array1D = rarray<T, 1>;
+
+
 
 constexpr float GAMMA = 1.4;
-typedef unsigned int uint;
+using uint = unsigned int;
 #define PRINT_CONFIG(x)	logger->info(#x": {}", x);
 
 

@@ -43,12 +43,12 @@ public:
 #endif
 
 	uint nt;
-	T *rhs;
+	Array3D<T> rhs;
 	T **lhs;
-	T *dt;
-	T *q;
-	T *q_tmp;
-	Tad *a_q_ravel, *a_rhs_ravel;
+	Array2D<T> dt;
+	Array3D<T> q;
+	Array3D<T> q_tmp;
+	Array3D<Tad> a_q, a_rhs;
 	
 	Solver(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config<T>> config);
 	~Solver();
@@ -66,13 +66,13 @@ void Solver<T, Tad>::calc_dt(){
 #pragma omp parallel for
 	for(uint i=0; i<mesh->nic; i++){
 		for(uint j=0; j<mesh->njc; j++){
-			T rho = q[i*njc*nq + j*nq + 0];
-			T u = q[i*njc*nq + j*nq + 1]/rho;
-			T v = q[i*njc*nq + j*nq + 2]/rho;
-			T rhoE = q[i*njc*nq + j*nq + 3];
+			T rho = q[i][j][0];
+			T u = q[i][j][1]/rho;
+			T v = q[i][j][2]/rho;
+			T rhoE = q[i][j][3];
 			T p = (rhoE - 0.5*rho*(u*u + v*v))*(GAMMA-1.0);
 			T lambda = std::sqrt(GAMMA*p/rho) + std::abs(u) + std::abs(v);
-			dt[i*njc + j] = std::min(mesh->ds_eta[i][j], mesh->ds_chi[i][j])/lambda*CFL;
+			dt[i][j] = std::min(mesh->ds_eta[i][j], mesh->ds_chi[i][j])/lambda*CFL;
 		}
 	}
 
@@ -87,7 +87,7 @@ void Solver<T, Tad>::copy_from_solution(){
 	for(uint i=0; i<mesh->nic; i++){
 		for(uint j=0; j<mesh->njc; j++){
 			for(uint k=0; k<mesh->solution->nq; k++){
-				q[i*njc*nq + j*nq + k] = mesh->solution->q[i][j][k];
+				q[i][j][k] = mesh->solution->q[i][j][k];
 			}
 		}
 	}
@@ -103,7 +103,7 @@ void Solver<T, Tad>::copy_to_solution(){
 	for(uint i=0; i<mesh->nic; i++){
 		for(uint j=0; j<mesh->njc; j++){
 			for(uint k=0; k<mesh->solution->nq; k++){
-				mesh->solution->q[i][j][k] = q[i*njc*nq + j*nq + k];
+				mesh->solution->q[i][j][k] = q[i][j][k];
 			}
 		}
 	}
@@ -133,7 +133,7 @@ void Solver<T, Tad>::initialize(){
 	for(uint i=0; i<nic; i++){
 		for(uint j=0; j<njc; j++){
 			for(uint k=0; k<nq; k++){
-				q_tmp[i*njc*nq + j*nq + k] = mesh->solution->q[i][j][k];
+				q_tmp[i][j][k] = mesh->solution->q[i][j][k];
 			}
 		}
 	}
@@ -154,12 +154,12 @@ Solver<T, Tad>::Solver(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config
 	uint nq = mesh->solution->nq;
 	nt = nic*njc*nq;
 	
-	dt = allocate_1d_array<T>(nic*njc);
-	rhs = allocate_1d_array<T>(nt);
-	q = allocate_1d_array<T>(nt);
-	q_tmp = allocate_1d_array<T>(nt);
-	a_q_ravel = allocate_1d_array<Tad>(nt);
-	a_rhs_ravel = allocate_1d_array<Tad>(nt);
+	dt = Array2D<T>(nic, njc);
+	rhs = Array3D<T>(nic, njc, nq);
+	q = Array3D<T>(nic, njc, nq);
+	q_tmp = Array3D<T>(nic, njc, nq);
+	a_q = Array3D<Tad>(nic, njc, nq);
+	a_rhs = Array3D<Tad>(nic, njc, nq);
 
 #if defined(ENABLE_ARMA)
 	linearsolver = std::make_shared<LinearSolverArma<T>>(mesh, config);
@@ -193,13 +193,7 @@ Solver<T, Tad>::~Solver(){
 	uint nic = mesh->nic;
 	uint njc = mesh->njc;
 	uint nq = mesh->solution->nq;
-
-	release_1d_array(q_tmp, nt);
-	release_1d_array(q, nt);
-	release_1d_array(a_q_ravel, nt);
-	release_1d_array(a_rhs_ravel, nt);
-	release_1d_array(rhs, nt);
-	release_1d_array(dt, nic*njc);
+	
 }
 
 
@@ -217,26 +211,32 @@ void Solver<T, Tad>::solve(){
 	initialize();
 	copy_from_solution();
 	logger->info("Welcome to structured!");
+
+
 	config->profiler->timer_main->reset();
+
 	while(1){
 		calc_dt();
 		timer_residual.reset();
 		config->profiler->reset_time_residual();
+
 #if defined(ENABLE_ADOLC)
+
+		
 		trace_on(1);
 		for(uint i=0; i<nic; i++){
 			for(uint j=0; j<njc; j++){
 				for(uint k=0; k<nq; k++){
-					a_q_ravel[i*njc*nq + j*nq + k] <<= q[i*njc*nq + j*nq + k];
+					a_q[i][j][k] <<= q[i][j][k];
 				}
 			}
 		}
-		equation->calc_residual(a_q_ravel, a_rhs_ravel);
+		equation->calc_residual(a_q, a_rhs);
 		
 		for(uint i=0; i<nic; i++){
 			for(uint j=0; j<njc; j++){
 				for(uint k=0; k<nq; k++){
-					a_rhs_ravel[i*njc*nq + j*nq + k] >>= rhs[i*njc*nq + j*nq + k];
+					a_rhs[i][j][k] >>= rhs[i][j][k];
 				}
 			}
 		}
@@ -249,7 +249,7 @@ void Solver<T, Tad>::solve(){
 			for(uint i=0; i<nic; i++){
 				for(uint j=0; j<njc; j++){
 					for(uint k=0; k<nq; k++){
-						q[i*njc*nq+j*nq+k] = q[i*njc*nq+j*nq+k] + rhs[i*njc*nq+j*nq+k]*dt[i*njc+j]; 
+						q[i][j][k] = q[i][j][k] + rhs[i][j][k]*dt[i][j]; 
 					}
 				}
 			}
@@ -262,31 +262,40 @@ void Solver<T, Tad>::solve(){
 				for(uint i=0; i<nic; i++){
 					for(uint j=0; j<njc; j++){
 						for(uint k=0; k<nq; k++){
-							q_tmp[i*njc*nq+j*nq+k] = q[i*njc*nq+j*nq+k] + rhs[i*njc*nq+j*nq+k]*dt[i*njc+j]/(4.0 - order); 
+							q_tmp[i][j][k] = q[i][j][k] + rhs[i][j][k]*dt[i][j]/(4.0 - order); 
 						}
 					}
 				}
 			}
+			
 #pragma omp parallel for
-			for(int i=0; i<nt; i++) q[i] = q_tmp[i];
-
+			for(uint i=0; i<nic; i++){
+				for(uint j=0; j<njc; j++){
+					for(uint k=0; k<nq; k++){
+						q[i][j][k] = q_tmp[i][j][k];
+					}
+				}
+			}
+			
 		}
 		
 		else{
 			logger->critical("scheme not defined.");
 		}
+	
 #endif
 		config->profiler->update_time_residual();
 		float dt_perfs = timer_residual.diff();
 
 		T l2normq;
-		for(int j=0; j<nq; j++){
+		for(uint k=0; k<nq; k++){
 			l2normq = 0.0;
-#pragma omp parallel for reduction(+ : l2normq)
-			for(int i=0; i<nic*njc; ++i){
-				l2normq += rhs[i*nq+j]*rhs[i*nq+j];
+			for(uint i=0; i<nic; i++){
+				for(uint j=0; j<njc; j++){
+					l2normq += rhs[i][j][k]*rhs[i][j][k];
+				}
 			}
-			l2norm[j] = sqrt(l2normq);
+			l2norm[k] = sqrt(l2normq);
 		}
 		
 		if(counter > config->solver->iteration_max){
@@ -303,15 +312,16 @@ void Solver<T, Tad>::solve(){
 		}
 #if defined(ENABLE_ADOLC)
 		config->profiler->reset_time_jacobian();
-		sparse_jac(1,nt,nt,repeat,q,&nnz,&rind,&cind,&values,options);
+		T *q_ptr = q.data();
+		sparse_jac(1,nt,nt,repeat,q_ptr,&nnz,&rind,&cind,&values,options);
 		config->profiler->update_time_jacobian();
 		logger->debug("NNZ = {}", nnz);
-
+		
 		if(counter == 0)
 			linearsolver->preallocate(nnz);
 		T dt_local = 0;
 		for(uint i=0; i<nnz; i++){
-			dt_local = dt[rind[i]/nq];
+			dt_local = dt[rind[i]/nq/njc][(rind[i]/nq)%njc];
 			values[i] = -values[i];
 			//			std::cout<<dt_local<<std::endl;
 			if(rind[i] == cind[i]){values[i] += 1.0/dt_local;}
@@ -319,8 +329,8 @@ void Solver<T, Tad>::solve(){
 		timer_la.reset();
 		config->profiler->reset_time_linearsolver();
 		linearsolver->set_jac(nnz, rind, cind, values);
-		linearsolver->set_rhs(rhs);
-		linearsolver->solve_and_update(q, UNDER_RELAXATION);
+		linearsolver->set_rhs(rhs.data());
+		linearsolver->solve_and_update(q.data(), UNDER_RELAXATION);
 		config->profiler->update_time_linearsolver();
 
 		//q[i][j][k] = q[i][j][k] + rhs[i][j][k]*dt;
@@ -334,7 +344,7 @@ void Solver<T, Tad>::solve(){
 #else
 #endif
 		
-
+	
 		
 		t += 0;
 		counter += 1;

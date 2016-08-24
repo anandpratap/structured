@@ -1,6 +1,6 @@
 CXX = g++
 MPICXX = mpicxx
-CFLAGS = -std=c++14 -O3 -fopenmp
+CFLAGS = -std=c++14 -O3 -fopenmp  -fstrict-aliasing  -ftree-vectorizer-verbose=1 -S
 
 INC = -I$(PWD) -I$(PWD)/model -I$(PWD)/solver -I$(PWD)/linearsolver -I$(PWD)/utils
 INC += -I$(PWD)/thirdparty

@@ -15,16 +15,16 @@ class Mesh{
 	uint ni, nj;
 	uint nic, njc;
 	uint j1, nb;
-	T **xv, **yv;
-	T **xc, **yc;
+	Array2D<T> xv, yv;
+	Array2D<T> xc, yc;
 
-	T ***normal_eta;
-	T ***normal_chi;
+	Array3D<T> normal_eta;
+	Array3D<T> normal_chi;
 
-	T **ds_eta;
-	T **ds_chi;
+	Array2D<T> ds_eta;
+	Array2D<T> ds_chi;
 
-	T **volume;
+	Array2D<T> volume;
 
 	std::shared_ptr<Solution<T>> solution;
 	
@@ -76,8 +76,8 @@ void Mesh<T>::plot3d_loader(std::string filename){
 
 template<class T>
 void Mesh<T>::calc_metrics(){
-	T ***reta = allocate_3d_array<T>(nic, nj, 2U);
-	T ***rchi = allocate_3d_array<T>(ni, njc, 2U);
+	auto reta = Array3D<T>(nic, nj, 2U);
+	auto rchi = Array3D<T>(ni, njc, 2U);
 
 	for(uint i=0; i<nic; i++){
 		for(uint j=0; j<nj; j++){
@@ -110,9 +110,6 @@ void Mesh<T>::calc_metrics(){
 		}
 	}
 
-	release_3d_array<T>(reta, nic, nj, 2U);
-	release_3d_array<T>(rchi, ni, njc, 2U);
-	
 };
 
 template<class T>
@@ -125,8 +122,8 @@ Mesh<T>::Mesh(std::shared_ptr<Config<T>> val_config){
 	nic = ni - 1;
 	njc = nj - 1;
 	
-	xv = allocate_2d_array<T>(ni, nj);
-	yv = allocate_2d_array<T>(ni, nj);
+	xv = Array2D<T>(ni, nj);
+	yv = Array2D<T>(ni, nj);
 
 	if(config->geometry->format == "simple"){
 		simple_loader(config->geometry->filename);
@@ -137,16 +134,16 @@ Mesh<T>::Mesh(std::shared_ptr<Config<T>> val_config){
 	else{
 		spdlog::get("console")->critical("file format not found!");
 	}
-	xc = allocate_2d_array<T>(nic, njc);
-	yc = allocate_2d_array<T>(nic, njc);
+	xc = Array2D<T>(nic, njc);
+	yc = Array2D<T>(nic, njc);
 
-	volume = allocate_2d_array<T>(nic, njc);
+	volume = Array2D<T>(nic, njc);
 
-	normal_eta = allocate_3d_array<T>(ni-1, nj, 2U);
-	normal_chi = allocate_3d_array<T>(ni, nj-1, 2U);
+	normal_eta = Array3D<T>(ni-1, nj, 2U);
+	normal_chi = Array3D<T>(ni, nj-1, 2U);
 
-	ds_eta = allocate_2d_array<T>(nic, njc);
-	ds_chi = allocate_2d_array<T>(nic, njc);
+	ds_eta = Array2D<T>(nic, njc);
+	ds_chi = Array2D<T>(nic, njc);
 
 	solution = std::make_shared<Solution<T>>(this);
 	calc_metrics();
@@ -175,8 +172,8 @@ Mesh<T>::Mesh(std::shared_ptr<Mesh<T>> mesh, const uint nskipi, const uint nskip
 	nic = ni - 1;
 	njc = nj - 1;
 	
-	xv = allocate_2d_array<T>(ni, nj);
-	yv = allocate_2d_array<T>(ni, nj);
+	xv = Array2D<T>(ni, nj);
+	yv = Array2D<T>(ni, nj);
 
 	
 	for(uint i=0; i<ni; i++){
@@ -213,16 +210,16 @@ Mesh<T>::Mesh(std::shared_ptr<Mesh<T>> mesh, const uint nskipi, const uint nskip
 		}
 
 	}
-	xc = allocate_2d_array<T>(nic, njc);
-	yc = allocate_2d_array<T>(nic, njc);
+	xc = Array2D<T>(nic, njc);
+	yc = Array2D<T>(nic, njc);
 
-	volume = allocate_2d_array<T>(nic, njc);
+	volume = Array2D<T>(nic, njc);
 
-	normal_eta = allocate_3d_array<T>(ni-1, nj, 2U);
-	normal_chi = allocate_3d_array<T>(ni, nj-1, 2U);
+	normal_eta = Array3D<T>(ni-1, nj, 2U);
+	normal_chi = Array3D<T>(ni, nj-1, 2U);
 
-	ds_eta = allocate_2d_array<T>(nic, njc);
-	ds_chi = allocate_2d_array<T>(nic, njc);
+	ds_eta = Array2D<T>(nic, njc);
+	ds_chi = Array2D<T>(nic, njc);
 
 	solution = std::make_shared<Solution<T>>(this);
 	calc_metrics();
@@ -230,18 +227,6 @@ Mesh<T>::Mesh(std::shared_ptr<Mesh<T>> mesh, const uint nskipi, const uint nskip
 
 template<class T>
 Mesh<T>::~Mesh(){
-	release_2d_array(xv, ni, nj);
-	release_2d_array(yv, ni, nj);
-
-	release_2d_array(xc, nic, njc);
-	release_2d_array(yc, nic, njc);
-	release_2d_array(volume, nic, njc);
-	release_2d_array(ds_eta, nic, njc);
-	release_2d_array(ds_chi, nic, njc);
-		
-	
-	release_3d_array(normal_eta, ni-1, nj, 2U);
-	release_3d_array(normal_chi, ni, nj-1, 2U);
 	
 }
 

@@ -5,17 +5,16 @@
 template<class T, class Tad>
 class EulerEquation{
 public:
-	Tad **rho, **u, **v, **p;
-	Tad **rholft_xi, **ulft_xi, **vlft_xi, **plft_xi;
-	Tad **rhorht_xi, **urht_xi, **vrht_xi, **prht_xi;
-	Tad **rholft_eta, **ulft_eta, **vlft_eta, **plft_eta;
-	Tad **rhorht_eta, **urht_eta, **vrht_eta, **prht_eta;
-	Tad ***flux_xi, ***flux_eta;
-	Tad ***a_q, ***a_rhs;
+	Array2D<Tad> rho, u, v, p;
+	Array2D<Tad> rholft_xi, ulft_xi, vlft_xi, plft_xi;
+	Array2D<Tad> rhorht_xi, urht_xi, vrht_xi, prht_xi;
+	Array2D<Tad> rholft_eta, ulft_eta, vlft_eta, plft_eta;
+	Array2D<Tad> rhorht_eta, urht_eta, vrht_eta, prht_eta;
+	Array3D<Tad> flux_xi, flux_eta;
 
 	std::shared_ptr<Mesh<T>> mesh;
 	std::shared_ptr<Config<T>> config;
-	void calc_residual(Tad *a_q_ravel, Tad *a_rhs_ravel);
+	void calc_residual(Array3D<Tad>& a_q, Array3D<Tad>& a_rhs);
 	EulerEquation(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config<T>> val_config){
 		mesh = val_mesh;
 		config = val_config;
@@ -26,35 +25,33 @@ public:
 		const auto ni = nic + 1;
 		const auto nj = njc + 1;
 		
-		rho = allocate_2d_array<Tad>(nic+2, njc+2);
-		u = allocate_2d_array<Tad>(nic+2, njc+2);
-		v = allocate_2d_array<Tad>(nic+2, njc+2);
-		p = allocate_2d_array<Tad>(nic+2, njc+2);
-		rholft_xi = allocate_2d_array<Tad>(ni, njc);
-		ulft_xi = allocate_2d_array<Tad>(ni, njc);
-		vlft_xi = allocate_2d_array<Tad>(ni, njc);
-		plft_xi = allocate_2d_array<Tad>(ni, njc);
+		rho = Array2D<Tad>(nic+2, njc+2);
+		u = Array2D<Tad>(nic+2, njc+2);
+		v = Array2D<Tad>(nic+2, njc+2);
+		p = Array2D<Tad>(nic+2, njc+2);
+		rholft_xi = Array2D<Tad>(ni, njc);
+		ulft_xi = Array2D<Tad>(ni, njc);
+		vlft_xi = Array2D<Tad>(ni, njc);
+		plft_xi = Array2D<Tad>(ni, njc);
 		
-		rhorht_xi = allocate_2d_array<Tad>(ni, njc);
-		urht_xi = allocate_2d_array<Tad>(ni, njc);
-		vrht_xi = allocate_2d_array<Tad>(ni, njc);
-		prht_xi = allocate_2d_array<Tad>(ni, njc);
+		rhorht_xi = Array2D<Tad>(ni, njc);
+		urht_xi = Array2D<Tad>(ni, njc);
+		vrht_xi = Array2D<Tad>(ni, njc);
+		prht_xi = Array2D<Tad>(ni, njc);
 		
-		rholft_eta = allocate_2d_array<Tad>(nic, nj);
-		ulft_eta = allocate_2d_array<Tad>(nic, nj);
-		vlft_eta = allocate_2d_array<Tad>(nic, nj);
-		plft_eta = allocate_2d_array<Tad>(nic, nj);
+		rholft_eta = Array2D<Tad>(nic, nj);
+		ulft_eta = Array2D<Tad>(nic, nj);
+		vlft_eta = Array2D<Tad>(nic, nj);
+		plft_eta = Array2D<Tad>(nic, nj);
 		
-		rhorht_eta = allocate_2d_array<Tad>(nic, nj);
-		urht_eta = allocate_2d_array<Tad>(nic, nj);
-		vrht_eta = allocate_2d_array<Tad>(nic, nj);
-		prht_eta = allocate_2d_array<Tad>(nic, nj);
+		rhorht_eta = Array2D<Tad>(nic, nj);
+		urht_eta = Array2D<Tad>(nic, nj);
+		vrht_eta = Array2D<Tad>(nic, nj);
+		prht_eta = Array2D<Tad>(nic, nj);
 		
-		flux_xi = allocate_3d_array<Tad>(ni, njc, 4U);
-		flux_eta = allocate_3d_array<Tad>(nic, nj, 4U);
+		flux_xi = Array3D<Tad>(ni, njc, 4U);
+		flux_eta = Array3D<Tad>(nic, nj, 4U);
 		
-		a_q = allocate_3d_array<Tad>(mesh->nic, mesh->njc, mesh->solution->nq);
-		a_rhs = allocate_3d_array<Tad>(mesh->nic, mesh->njc, mesh->solution->nq);
 	};
 
 	~EulerEquation(){
@@ -63,62 +60,22 @@ public:
 		const auto nq = mesh->solution->nq;
 		const auto ni = nic + 1;
 		const auto nj = njc + 1;
-		release_2d_array(rho, nic+2, njc+2);
-		release_2d_array(u, nic+2, njc+2);
-		release_2d_array(v, nic+2, njc+2);
-		release_2d_array(p, nic+2, njc+2);
-
-		release_2d_array(rholft_xi, ni, njc);
-		release_2d_array(ulft_xi, ni, njc);
-		release_2d_array(vlft_xi, ni, njc);
-		release_2d_array(plft_xi, ni, njc);
-
-		release_2d_array(rhorht_xi, ni, njc);
-		release_2d_array(urht_xi, ni, njc);
-		release_2d_array(vrht_xi, ni, njc);
-		release_2d_array(prht_xi, ni, njc);
-
-		release_2d_array(rholft_eta, nic, nj);
-		release_2d_array(ulft_eta, nic, nj);
-		release_2d_array(vlft_eta, nic, nj);
-		release_2d_array(plft_eta, nic, nj);
-
-		release_2d_array(rhorht_eta, nic, nj);
-		release_2d_array(urht_eta, nic, nj);
-		release_2d_array(vrht_eta, nic, nj);
-		release_2d_array(prht_eta, nic, nj);
-
-		release_3d_array(flux_xi, ni, njc, 4U);
-		release_3d_array(flux_eta, nic, nj, 4U);
-		release_3d_array(a_q, mesh->nic, mesh->njc, mesh->solution->nq);
-		release_3d_array(a_rhs, mesh->nic, mesh->njc, mesh->solution->nq);
 	};
 };
 
 template <class T, class Tad>
-	void EulerEquation<T, Tad>::calc_residual(Tad *a_q_ravel, Tad *a_rhs_ravel){
+	void EulerEquation<T, Tad>::calc_residual(Array3D<Tad>& a_q, Array3D<Tad>& a_rhs){
 	const auto ni = mesh->ni;
 	const auto nj = mesh->nj;
 	const auto nic = mesh->nic;
 	const auto njc = mesh->njc;
 	const auto nq = mesh->solution->nq;
-
-#pragma omp parallel for
-	for(uint i=0; i<nic; i++){
-		for(uint j=0; j<njc; j++){
-			for(uint k=0; k<nq; k++){
-				a_q[i][j][k] = a_q_ravel[i*njc*nq + j*nq + k];
-			}
-		}
-	}
 	
-	Tad ***q = a_q;
-
 #pragma omp parallel for
 	for(uint i=0; i<nic; i++){
 		for(uint j=0; j<njc; j++){
 			//spdlog::get("console")->info("{} {}", i, j);
-			primvars<Tad>(q[i][j], &rho[i+1][j+1], &u[i+1][j+1], &v[i+1][j+1], &p[i+1][j+1]);
+			primvars<Tad>(&a_q[i][j][0], &rho[i+1][j+1], &u[i+1][j+1], &v[i+1][j+1], &p[i+1][j+1]);
 			for(uint k=0; k<nq; k++){
 				a_rhs[i][j][k] = 0.0;
 			}
@@ -213,20 +170,20 @@ template <class T, class Tad>
 #pragma omp parallel for
 	for(uint i=0; i< ni; i++){
 		for(uint j=0; j< njc; j++){
-			roeflux<Tad>(mesh->normal_chi[i][j][0], mesh->normal_chi[i][j][1],
+			roeflux<T,Tad>(mesh->normal_chi[i][j][0], mesh->normal_chi[i][j][1],
 						 rholft_xi[i][j], ulft_xi[i][j], vlft_xi[i][j], plft_xi[i][j],
 						 rhorht_xi[i][j], urht_xi[i][j], vrht_xi[i][j], prht_xi[i][j],
-						 flux_xi[i][j]);
+						   &flux_xi[i][j][0]);
 		}
 	}
 
 #pragma omp parallel for
 	for(uint i=0; i< nic; i++){
 		for(uint j=0; j< nj; j++){
-			roeflux<Tad>(mesh->normal_eta[i][j][0], mesh->normal_eta[i][j][1],
+			roeflux<T,Tad>(mesh->normal_eta[i][j][0], mesh->normal_eta[i][j][1],
 					   rholft_eta[i][j], ulft_eta[i][j], vlft_eta[i][j], plft_eta[i][j],
 					   rhorht_eta[i][j], urht_eta[i][j], vrht_eta[i][j], prht_eta[i][j],
-					   flux_eta[i][j]);
+						   &flux_eta[i][j][0]);
 		}
 	}
 
@@ -249,16 +206,6 @@ template <class T, class Tad>
 		}
 	}
 
-#pragma omp parallel for
-	for(uint i=0; i<nic; i++){
-		for(uint j=0; j<njc; j++){
-			for(uint k=0; k<nq; k++){
-				a_rhs_ravel[i*njc*nq + j*nq + k] = a_rhs[i][j][k];
-			}
-		}
-	}
-	
-	
 };
 
 #endif
