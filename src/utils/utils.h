@@ -56,118 +56,83 @@ template <class T, class Ti>
 }
 
 
-template<class T, class Ti>
-void first_order_xi(const Ti ni, const Ti nj, T **q, T** ql, T** qr){
+template<class Tad, class Ti>
+void first_order_xi(const Ti ni, const Ti nj, Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>& q, Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>&  ql, Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>&  qr){
 	const auto njm = nj-1;
 #pragma omp parallel for
 	for(Ti i=0; i<ni; i++){
 		for(Ti j=0; j<njm; j++){
-			ql[i][j] = q[i][j+1];
-			qr[i][j] = q[i+1][j+1];
+			ql(i, j) = q(i, j+1);
+			qr(i, j) = q(i+1, j+1);
 		}
 	}
 }
 
-template<class T, class Ti>
-void first_order_eta(const Ti ni, const Ti nj, T **q, T** ql, T** qr){
+template<class Tad, class Ti>
+void first_order_eta(const Ti ni, const Ti nj, Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>& q, Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>&  ql, Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>&  qr){
 	const auto nim = ni-1;
 #pragma omp parallel for
 	for(Ti i=0; i<nim; i++){
 		for(Ti j=0; j<nj; j++){
-			ql[i][j] = q[i+1][j];
-			qr[i][j] = q[i+1][j+1];
+			ql(i, j) = q(i+1, j);
+			qr(i, j) = q(i+1, j+1);
 		}
 	}
 }
 
 
-template<class T, class Ti>
-void second_order_xi(const Ti ni, const Ti nj, T **q, T **ql, T **qr){
+template<class Tad, class Ti>
+void second_order_xi(const Ti ni, const Ti nj, Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>& q, Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>& ql, Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>& qr){
 	const auto njm = nj-1;
-#pragma omp parallel for
-	for(Ti i=0; i<ni; i++){
-		for(Ti j=0; j<njm; j++){
-			ql[i][j] = q[i][j+1];
-			qr[i][j] = q[i+1][j+1];
-		}
-	}
+
+	ql.block(0, 0, ni, njm) = q.block(0, 1, ni, njm);
+	qr.block(0, 0, ni, njm) = q.block(1, 1, ni, njm);
 	const auto nim = ni-1;
 	constexpr auto thm = 2.0/3.0;
 	constexpr auto thp = 4.0/3.0;
 	const auto eps = pow(10.0/nim, 3);
-	static T **f2 = allocate_2d_array<T>(ni, njm);
-	static T **a1 = allocate_2d_array<T>(nim, njm);
-	static T **a2 = allocate_2d_array<T>(nim, njm);
-	static T **f3qt = allocate_2d_array<T>(nim, njm);
-#pragma omp parallel for
-	for(Ti i=0; i<ni; i++){
-		for(Ti j=0; j<njm; j++){
-			f2[i][j] = q[i+1][j+1] - q[i][j+1];
-		}
-	}
+	static Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic> f2  = Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>(ni, njm);
+	static Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic> a1 = Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>(nim, njm);
+	static Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic> a2 = Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>(nim, njm);
+	static Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic> f3qt = Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>(nim, njm);
 
-#pragma omp parallel for
-	for(Ti i=0; i<nim; i++){
-		for(Ti j=0; j<njm; j++){
-			a1[i][j] = 3.0*f2[i+1][j]*f2[i][j];
-			a2[i][j] = 2*(f2[i+1][j] - f2[i][j])*(f2[i+1][j] - f2[i][j]) + a1[i][j];
-			f3qt[i][j] = 0.25*(a1[i][j] + eps)/(a2[i][j] + eps);
-		}
-	}
+	f2.block(0, 0, ni, njm) = q.block(1, 1, ni, njm) - q.block(0, 1, ni, njm);
+	a1.block(0, 0, nim, njm) = 3.0*f2.block(1, 0, nim, njm)*(f2.block(0,0,nim,njm));
+	a2.block(0, 0, nim, njm) = 2.0*(f2.block(1, 0, nim, njm) - f2.block(0, 0, nim, njm))*(f2.block(1, 0, nim, njm) - f2.block(0, 0, nim, njm)) + a1.block(0, 0, nim, njm);
 
-#pragma omp parallel for
-	for(Ti i=0; i<nim; i++){
-		for(Ti j=0; j<njm; j++){
-			ql[i+1][j] = ql[i+1][j] + f3qt[i][j]*(thm*f2[i][j] + thp*f2[i+1][j]);
-			qr[i][j] = qr[i][j] - f3qt[i][j]*(thp*f2[i][j] + thm*f2[i+1][j]);
-		}
-	}
+	f3qt = 0.25*(a1 + eps)/(a2 + eps);
+
+
+	ql.block(1, 0, nim, njm) += f3qt*(thm*f2.block(0,0,nim,njm) + thp*f2.block(1,0,nim,njm));
+	qr.block(0, 0, nim, njm) -= f3qt*(thp*f2.block(0,0,nim,njm) + thm*f2.block(1,0,nim,njm));
 }
 
-template<class T, class Ti>
-void second_order_eta(const Ti ni, const Ti nj, T **q, T **ql, T **qr){
+template<class Tad, class Ti>
+void second_order_eta(const Ti ni, const Ti nj, Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>& q, Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>& ql, Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>& qr){
 	const Ti nim = ni-1;
 
-#pragma omp parallel for
-	for(Ti i=0; i<nim; i++){
-		for(Ti j=0; j<nj; j++){
-			ql[i][j] = q[i+1][j];
-			qr[i][j] = q[i+1][j+1];
-		}
-	}
+	ql.block(0, 0, nim, nj) = q.block(1, 0, nim, nj);
+	qr.block(0, 0, nim, nj) = q.block(1, 1, nim, nj);
 	const auto njm = nj-1;
 	constexpr auto thm = 2.0/3.0;
 	constexpr auto thp = 4.0/3.0;
 	const auto eps = pow(10.0/njm, 3);
-	static T **f2 = allocate_2d_array<T>(nim, nj);
-	static T **a1 = allocate_2d_array<T>(nim, njm);
-	static T **a2 = allocate_2d_array<T>(nim, njm);
-	static T **f3qt = allocate_2d_array<T>(nim, njm);
+	static Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic> f2  = Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>(nim, nj);
+	static Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic> a1 = Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>(nim, njm);
+	static Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic> a2 = Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>(nim, njm);
+	static Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic> f3qt = Eigen::Array<Tad, Eigen::Dynamic, Eigen::Dynamic>(nim, njm);
 
-#pragma omp parallel for
-	for(Ti i=0; i<nim; i++){
-		for(Ti j=0; j<nj; j++){
-			f2[i][j] = q[i+1][j+1] - q[i+1][j];
-		}
-	}
 
-#pragma omp parallel for
-	for(Ti i=0; i<nim; i++){
-		for(Ti j=0; j<njm; j++){
-			a1[i][j] = 3.0*f2[i][j+1]*f2[i][j];
-			a2[i][j] = 2*(f2[i][j+1] - f2[i][j])*(f2[i][j+1] - f2[i][j]) + a1[i][j];
-			f3qt[i][j] = 0.25*(a1[i][j] + eps)/(a2[i][j] + eps);
-		}
-	}
-	
-#pragma omp parallel for
-	for(Ti i=0; i<nim; i++){
-		for(Ti j=0; j<njm; j++){
-			ql[i][j+1] = ql[i][j+1] + f3qt[i][j]*(thm*f2[i][j] + thp*f2[i][j+1]);
-			qr[i][j] = qr[i][j] - f3qt[i][j]*(thp*f2[i][j] + thm*f2[i][j+1]);
-		}
-	}
+	f2.block(0, 0, nim, nj) = q.block(1, 1, nim, nj) - q.block(1, 0, nim, nj);
 
+	a1.block(0, 0, nim, njm) = 3.0*f2.block(0, 1, nim, njm)*(f2.block(0,0,nim,njm));
+	a2.block(0, 0, nim, njm) = 2.0*(f2.block(0, 1, nim, njm) - f2.block(0, 0, nim, njm))*(f2.block(0, 1, nim, njm) - f2.block(0, 0, nim, njm)) + a1.block(0, 0, nim, njm);
+	f3qt = 0.25*(a1 + eps)/(a2 + eps);
+
+
+
+	ql.block(0, 1, nim, njm) += f3qt*(thm*f2.block(0,0,nim,njm) + thp*f2.block(0,1,nim,njm));
+	qr.block(0, 0, nim, njm) -= f3qt*(thp*f2.block(0,0,nim,njm) + thm*f2.block(0,1,nim,njm));
 }
 
 

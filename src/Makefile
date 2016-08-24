@@ -1,6 +1,6 @@
 CXX = g++
 MPICXX = mpicxx
-CFLAGS = -std=c++14 -O3 -fopenmp
+CFLAGS = -std=c++14 -O3 -fopenmp -fpermissive
 
 INC = -I$(PWD) -I$(PWD)/model -I$(PWD)/solver -I$(PWD)/linearsolver -I$(PWD)/utils
 INC += -I$(PWD)/thirdparty
@@ -8,6 +8,9 @@ LIB = -L$(PWD)/thirdparty -lcnpy -lz
 
 INC_ADOLC = -I/home/anandps/local/adolc_new/include
 LIB_ADOLC = -L/home/anandps/local/adolc_new/lib64 -ladolc
+
+INC += $(INC_ADOLC)
+LIB += $(LIB_ADOLC)
 
 INC_ARMA = -I/home/anandps/local/armadillo/usr/include -I/home/anandps/local/superlu/usr/local/include
 LIB_ARMA = -L/home/anandps/local/armadillo/usr/lib -larmadillo -L/home/anandps/local/superlu/usr/local/lib/ -lsuperlu -llapack -lblas -lgfortran

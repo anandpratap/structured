@@ -39,10 +39,15 @@ typedef unsigned int uint;
 #include <armadillo>
 #endif
 
-#if defined(ENABLE_EIGEN)
+//#if defined(ENABLE_EIGEN)
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
-#endif
+#include "adolc/adolc.h"
+#include "adolc/sparse/sparsedrivers.h"
+#include <adolc/adtl.h>
+#include <Eigen/AdolcForward>
+
+//#endif
 
 #if defined(ENABLE_PETSC)
 #include "petsc.h"
