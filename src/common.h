@@ -18,7 +18,7 @@
 #include "thirdparty/cnpy.h"
 #include "thirdparty/spdlog/spdlog.h"
 #include "thirdparty/cmdline.h"
-
+#include "utils/array.h"
 constexpr float GAMMA = 1.4;
 typedef unsigned int uint;
 #define PRINT_CONFIG(x)	logger->info(#x": {}", x);

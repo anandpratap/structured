@@ -183,7 +183,7 @@ Solver<T, Tad>::Solver(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config
 	label = config->io->label;
 
 
-	equation = std::make_shared<EulerEquation<T, Tad>>(mesh, config);
+	equation = std::make_shared<EulerEquation<T, Tad>>(mesh, config, mesh->ni, mesh->nj);
 	iomanager = std::make_shared<IOManager<T>>(mesh, config);
 }
 template <class T, class Tad>
