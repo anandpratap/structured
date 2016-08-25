@@ -310,7 +310,10 @@ void Solver<T, Tad>::solve(){
 			linearsolver->preallocate(nnz);
 		T dt_local = 0;
 		for(uint i=0; i<nnz; i++){
-			dt_local = dt[rind[i]/nq/njc][(rind[i]/nq)%njc];
+			const auto k_idx = rind[i]%nq;
+			const auto j_idx = ((rind[i]-k_idx)/nq)%njc;
+			const auto i_idx = (rind[i] - k_idx - j_idx*nq)/njc/nq;
+			dt_local = dt[i_idx][j_idx][k_idx];
 			values[i] = -values[i];
 			//			std::cout<<dt_local<<std::endl;
 			if(rind[i] == cind[i]){values[i] += 1.0/dt_local;}

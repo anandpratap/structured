@@ -1,7 +1,22 @@
 #ifndef _CONFIG_H
 #define _CONFIG_H
 #include "common.h"
-
+class Boundary{
+ public:
+	std::string name;
+	std::string type;
+	std::string face;
+	uint start, end;
+	
+	Boundary(std::string val_name, std::string val_type, std::string val_face, uint val_start, uint val_end){
+		name = val_name;
+		type = val_type;
+		face = val_face;
+		start = val_start;
+		end = val_end;
+		spdlog::get("console")->info("type: {} face: {}", type, face);
+	}
+};
 class Profiler{
  public:
 	std::shared_ptr<Timer> timer_main;
@@ -101,13 +116,29 @@ class ConfigGeometry{
 	int ni, nj, tail;
 	std::string filename;
 	std::string format;
+	std::vector<Boundary*> boundary;
 	void set(std::shared_ptr<cpptoml::table> config){
 		filename = config->get_qualified_as<std::string>("geometry.filename").value_or("grid.unf2");
 		format = config->get_qualified_as<std::string>("geometry.format").value_or("grid.unf2");
 		ni= config->get_qualified_as<int64_t>("geometry.ni").value_or(0);
 		nj= config->get_qualified_as<int64_t>("geometry.nj").value_or(0);
 		tail= config->get_qualified_as<int64_t>("geometry.tail").value_or(0);
+		
+		auto bcs = config->get_table_array("boundary");
+		for (const auto& bc : *bcs){
+			std::string name = bc->get_qualified_as<std::string>("name").value_or("boundary");
+			std::string type = bc->get_qualified_as<std::string>("type").value_or("");
+			std::string face = bc->get_qualified_as<std::string>("face").value_or("");
+			int start = bc->get_qualified_as<int64_t>("start").value_or(0);
+			int end = bc->get_qualified_as<int64_t>("end").value_or(0);
+			boundary.push_back(new Boundary(name, type, face, (uint)start, (uint)end)); 
+		}
 	}
+	~ConfigGeometry(){
+		for(auto&& bc : boundary)
+			delete bc;
+	}
+	
 };
 
 
