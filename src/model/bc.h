@@ -176,7 +176,10 @@ public:
 				u[i][jend] = u[nic+1-i][1];
 				v[i][jend] = v[nic+1-i][1];
 				p[i][jend] = p[nic+1-i][1];
-				
+			}	
+
+#pragma omp parallel for
+			for(uint i=start; i<=end; i++){
 				rho[nic+1-i][jend] = rho[i][1];
 				u[nic+1-i][jend] = u[i][1];
 				v[nic+1-i][jend] = v[i][1];

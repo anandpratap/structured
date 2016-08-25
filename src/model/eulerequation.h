@@ -114,26 +114,14 @@ public:
 };
 template <class T, class Tad>
 void EulerEquation<T, Tad>::calc_convective_residual(Array3D<Tad>& a_rhs){
-#pragma omp parallel for
-	for(uint i=0; i< ni; i++){
-		for(uint j=0; j< njc; j++){
-			convective_flux->evaluate(mesh->normal_chi[i][j][0], mesh->normal_chi[i][j][1],
-									  rholft_xi[i][j], ulft_xi[i][j], vlft_xi[i][j], plft_xi[i][j],
-									  rhorht_xi[i][j], urht_xi[i][j], vrht_xi[i][j], prht_xi[i][j],
-									  &flux_xi[i][j][0]);
-		}
-	}
-	
-#pragma omp parallel for
-	for(uint i=0; i< nic; i++){
-		for(uint j=0; j< nj; j++){
-			convective_flux->evaluate(mesh->normal_eta[i][j][0], mesh->normal_eta[i][j][1],
-									  rholft_eta[i][j], ulft_eta[i][j], vlft_eta[i][j], plft_eta[i][j],
-									  rhorht_eta[i][j], urht_eta[i][j], vrht_eta[i][j], prht_eta[i][j],
-									  &flux_eta[i][j][0]);
-		}
-	}
-	
+	convective_flux->evaluate(mesh->normal_chi,
+							  rholft_xi, ulft_xi, vlft_xi, plft_xi,
+							  rhorht_xi, urht_xi, vrht_xi, prht_xi,
+							  flux_xi);
+	convective_flux->evaluate(mesh->normal_eta,
+							  rholft_eta, ulft_eta, vlft_eta, plft_eta,
+							  rhorht_eta, urht_eta, vrht_eta, prht_eta,
+							  flux_eta);
 #pragma omp parallel for
 	for(uint i=0; i< nic; i++){
 		for(uint j=0; j< njc; j++){
