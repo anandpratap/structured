@@ -36,7 +36,6 @@ class RoeFlux: public ConvectiveFlux<T, Tad>{
 				const Tad vrht = vrht_a[i][j];
 				const Tad prht = prht_a[i][j];
 
-				
 				const Tad rlfti = 1/rlft;
 				const Tad rulft = rlft*ulft;
 				const Tad rvlft = rlft*vlft;
@@ -106,6 +105,85 @@ class RoeFlux: public ConvectiveFlux<T, Tad>{
 				f_a[i][j][1] = aj*(rulft*uulft + rurht*uurht + r1*plar - aq2);
 				f_a[i][j][2] = aj*(rvlft*uulft + rvrht*uurht + r2*plar - aq3);
 				f_a[i][j][3] = aj*(eplft*uulft + eprht*uurht - aq4);
+			}
+		}
+	};
+};
+
+
+template<class T, class Tad>
+class AUSMFlux: public ConvectiveFlux<T, Tad>{
+ public:
+	void evaluate(Array3D<T>& normal,
+				  Array2D<Tad>& rlft_a, Array2D<Tad>& ulft_a, Array2D<Tad>& vlft_a, Array2D<Tad>& plft_a,
+				  Array2D<Tad>& rrht_a, Array2D<Tad>& urht_a, Array2D<Tad>& vrht_a, Array2D<Tad>& prht_a,
+				  Array3D<Tad>& f_a){
+		constexpr auto gm1 = GAMMA - 1.0;
+		constexpr auto ogm1 = 1/gm1;
+		auto ni = normal.extent(0);
+		auto nj = normal.extent(1);
+
+#pragma omp parallel for		
+		for(int i=0; i<ni; i++){
+			for(int j=0; j<nj; j++){
+				const T nx = normal[i][j][0];
+				const T ny = normal[i][j][1];
+				const Tad rlft = rlft_a[i][j];
+				const Tad ulft = ulft_a[i][j];
+				const Tad vlft = vlft_a[i][j];
+				const Tad plft = plft_a[i][j];
+
+				const Tad rrht = rrht_a[i][j];
+				const Tad urht = urht_a[i][j];
+				const Tad vrht = vrht_a[i][j];
+				const Tad prht = prht_a[i][j];
+				
+				const T ds = std::sqrt(nx*nx + ny*ny);
+				const Tad ulft_normal = (ulft*nx + vlft*ny)/ds;
+				const Tad urht_normal = (urht*nx + vrht*ny)/ds;
+
+				const Tad alft = std::sqrt(GAMMA*plft/rlft);
+				const Tad arht = std::sqrt(GAMMA*prht/rrht);
+
+				const Tad machlft = ulft_normal/alft;
+				const Tad machrht = urht_normal/arht;
+				
+
+				const Tad rlfti = 1/rlft;
+				const Tad uvl = 0.5f*(ulft*ulft + vlft*vlft);
+				const Tad elft = plft*ogm1 + rlft*uvl;
+				const Tad hlft = (elft + plft)*rlfti;
+		
+				
+				const Tad rrhti = 1/rrht;
+				const Tad uvr = 0.5f*(urht*urht + vrht*vrht);
+				const Tad erht = prht*ogm1 + rrht*uvr;
+				const Tad hrht = (erht + prht)*rrhti;
+				
+				auto mach_p = [](Tad M){return fabs(M) <= 1.0 ? 0.25*(M+1.0)*(M+1.0): 0.5*(M + fabs(M));};
+				auto mach_m = [](Tad M){return fabs(M) <= 1.0 ? -0.25*(M-1.0)*(M-1.0): 0.5*(M - fabs(M));};
+
+				const Tad mach_half = mach_p(machlft) + mach_m(machrht);
+
+				auto pres_p = [](Tad M, Tad p){return fabs(M) <= 1.0 ? 0.25*p*(M+1.0)*(M+1.0)*(2.0-M): 0.5*p*(M+fabs(M))/M;};
+				auto pres_m = [](Tad M, Tad p){return fabs(M) <= 1.0 ? 0.25*p*(M-1.0)*(M-1.0)*(2.0+M): 0.5*p*(M-fabs(M))/M;};
+				const Tad p_half = pres_p(machlft, plft) + pres_m(machrht, prht);
+
+				if(mach_half >= 0.0){
+					f_a[i][j][0] = rlft*alft*mach_half*ds;
+					f_a[i][j][1] = rlft*alft*ulft*mach_half*ds + p_half*nx;
+					f_a[i][j][2] = rlft*alft*vlft*mach_half*ds + p_half*ny;
+					f_a[i][j][3] = rlft*alft*hlft*mach_half*ds;
+				}
+				else{
+					f_a[i][j][0] = rrht*arht*mach_half*ds;
+					f_a[i][j][1] = rrht*arht*urht*mach_half*ds + p_half*nx;
+					f_a[i][j][2] = rrht*arht*vrht*mach_half*ds + p_half*ny;
+					f_a[i][j][3] = rrht*arht*hrht*mach_half*ds;
+				}
+
+
+				
 			}
 		}
 	};

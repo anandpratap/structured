@@ -75,7 +75,12 @@ public:
 			
 		}
 
-		convective_flux = std::make_unique<RoeFlux<T, Tad>>();
+		if(config->solver->flux == "roe")
+			convective_flux = std::make_unique<RoeFlux<T, Tad>>();
+		else if(config->solver->flux == "ausm")
+			convective_flux = std::make_unique<AUSMFlux<T, Tad>>();
+		else
+			spdlog::get("console")->critical("Flux not found.");
 		
 		for(const auto& bc : config->geometry->boundary){
 			auto name = bc->name;

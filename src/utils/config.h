@@ -68,7 +68,7 @@ template<class T>
 class ConfigSolver{
  public:
 	int order, cfl_ramp_iteration, under_relaxation_ramp_iteration;
-	std::string scheme;
+	std::string scheme, flux;
 	bool time_accurate, cfl_ramp, under_relaxation_ramp;
 	T cfl, under_relaxation, cfl_ramp_exponent, under_relaxation_ramp_exponent;
 	T tolerance;
@@ -80,6 +80,8 @@ class ConfigSolver{
 		order = config->get_qualified_as<int64_t>("solver.order").value_or(1);
 		time_accurate =  config->get_qualified_as<bool>("solver.time_accurate").value_or(false);
 		scheme = config->get_qualified_as<std::string>("solver.scheme").value_or("forward_euler");
+
+		flux = config->get_qualified_as<std::string>("solver.flux").value_or("ausm");
 
 		tolerance = config->get_qualified_as<double>("solver.tolerance").value_or(1e10);
 
@@ -186,6 +188,7 @@ class Config{
 		PRINT_CONFIG(solver->iteration_max);
 		PRINT_CONFIG(solver->order);
 		PRINT_CONFIG(solver->scheme);
+		PRINT_CONFIG(solver->flux);
 		PRINT_CONFIG(solver->time_accurate);
 		PRINT_CONFIG(solver->tolerance);
 
