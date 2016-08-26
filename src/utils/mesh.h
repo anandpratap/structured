@@ -25,14 +25,20 @@ class Mesh{
 	Array2D<T> ds_chi;
 
 	Array2D<T> volume;
-
+	Array2D<T> xi_x, xi_y, eta_x, eta_y;
+	Array2D<T> x_xi, y_xi, x_eta, y_eta;
+	
 	std::shared_ptr<Solution<T>> solution;
 	
 public:
 	Mesh(std::shared_ptr<Config<T>> config);
+
 	Mesh(std::shared_ptr<Mesh<T>> mesh, const uint nskipi=0, const uint nskipj=0, const uint refine=0);
 	~Mesh();
+
 	void calc_metrics();
+	template<class Tad>
+	void calc_gradient(Array2D<Tad>& q, Array3D<Tad> &grad_q);
 	void simple_loader(std::string filename);
 	void plot3d_loader(std::string filename);
 };
@@ -110,7 +116,142 @@ void Mesh<T>::calc_metrics(){
 		}
 	}
 
+	for(uint i=1; i<nic-1; i++){
+		for(uint j=1; j<njc-1; j++){
+			x_xi[i][j] = (xc[i][j+1] - xc[i][j-1])/2.0; 
+			y_xi[i][j] = (yc[i][j+1] - yc[i][j-1])/2.0;
+
+			x_eta[i][j] = (xc[i+1][j] - xc[i-1][j])/2.0;
+			y_eta[i][j] = (yc[i+1][j] - yc[i-1][j])/2.0;
+		}
+	}
+	
+	for(uint i=1; i<nic-1; i++){
+		uint j = 0;
+		x_xi[i][j] = (xc[i][j+1] - xc[i][j]);
+		y_xi[i][j] = (yc[i][j+1] - yc[i][j]);
+		x_eta[i][j] = (xc[i+1][j] - xc[i-1][j])/2.0;
+		y_eta[i][j] = (yc[i+1][j] - yc[i-1][j])/2.0;
+		
+		j = njc-1;
+		x_xi[i][j] = (xc[i][j] - xc[i][j-1]);
+		y_xi[i][j] = (yc[i][j] - yc[i][j-1]);
+		x_eta[i][j] = (xc[i+1][j] - xc[i-1][j])/2.0;
+		y_eta[i][j] = (yc[i+1][j] - yc[i-1][j])/2.0;
+	}
+
+	for(uint j=1; j<njc-1; j++){
+		uint i = 0;
+		x_xi[i][j] = (xc[i][j+1] - xc[i][j-1])/2.0; 
+		y_xi[i][j] = (yc[i][j+1] - yc[i][j-1])/2.0;
+		x_eta[i][j] = (xc[i+1][j] - xc[i][j]);
+		y_eta[i][j] = (yc[i+1][j] - yc[i][j]);
+
+		i = nic-1;
+		x_xi[i][j] = (xc[i][j+1] - xc[i][j-1])/2.0; 
+		y_xi[i][j] = (yc[i][j+1] - yc[i][j-1])/2.0;
+		x_eta[i][j] = (xc[i][j] - xc[i-1][j]);
+		y_eta[i][j] = (yc[i][j] - yc[i-1][j]);
+	}
+
+	{
+		uint i=0; uint j=0;
+		x_xi[i][j] = (xc[i][j+1] - xc[i][j]);
+		y_xi[i][j] = (yc[i][j+1] - yc[i][j]);
+		x_eta[i][j] = (xc[i+1][j] - xc[i][j]);
+		y_eta[i][j] = (yc[i+1][j] - yc[i][j]);
+
+		i=nic-1; j=0;
+		x_xi[i][j] = (xc[i][j+1] - xc[i][j]);
+		y_xi[i][j] = (yc[i][j+1] - yc[i][j]);
+		x_eta[i][j] = (xc[i][j] - xc[i-1][j]);
+		y_eta[i][j] = (yc[i][j] - yc[i-1][j]);
+
+		i=nic-1; j=njc-1;
+		x_xi[i][j] = (xc[i][j] - xc[i][j-1]);
+		y_xi[i][j] = (yc[i][j] - yc[i][j-1]);
+		x_eta[i][j] = (xc[i][j] - xc[i-1][j]);
+		y_eta[i][j] = (yc[i][j] - yc[i-1][j]);
+
+		i=0; j=njc-1;
+		x_xi[i][j] = (xc[i][j] - xc[i][j-1]);
+		y_xi[i][j] = (yc[i][j] - yc[i][j-1]);
+		x_eta[i][j] = (xc[i+1][j] - xc[i][j]);
+		y_eta[i][j] = (yc[i+1][j] - yc[i][j]);
+	}
+	for(int i=0; i<nic; i++){
+		for(int j=0; j<njc; j++){
+			T ijac = 1.0/(x_xi[i][j]*y_eta[i][j] - x_eta[i][j]*y_xi[i][j]); 
+			xi_x[i][j] = y_eta[i][j]*ijac;
+			eta_x[i][j] = -y_xi[i][j]*ijac;
+			xi_y[i][j] = -x_eta[i][j]*ijac;
+			eta_y[i][j] = x_xi[i][j]*ijac;
+		}
+	}
 };
+
+template<class T>
+template<class Tad>
+void Mesh<T>::calc_gradient(Array2D<Tad>& q, Array3D<Tad> &grad_q){
+	Tad q_xi, q_eta;
+	for(uint i=1; i<nic-1; i++){
+		for(uint j=1; j<njc-1; j++){
+			q_xi = (q[i][j+1] - q[i][j-1])/2.0; 
+			q_eta = (q[i+1][j] - q[i-1][j])/2.0;
+			grad_q[i][j][0] = xi_x[i][j]*q_xi + eta_x[i][j]*q_eta;
+			grad_q[i][j][1] = xi_y[i][j]*q_xi + eta_y[i][j]*q_eta;
+		}
+	}
+	
+	for(uint i=1; i<nic-1; i++){
+		uint j = 0;
+		q_xi = (q[i][j+1] - q[i][j]);
+		q_eta = (q[i+1][j] - q[i-1][j])/2.0;
+		grad_q[i][j][0] = xi_x[i][j]*q_xi + eta_x[i][j]*q_eta;
+		grad_q[i][j][1] = xi_y[i][j]*q_xi + eta_y[i][j]*q_eta;
+		j = njc-1;
+		q_xi = (q[i][j] - q[i][j-1]);
+		q_eta = (q[i+1][j] - q[i-1][j])/2.0;
+		grad_q[i][j][0] = xi_x[i][j]*q_xi + eta_x[i][j]*q_eta;
+		grad_q[i][j][1] = xi_y[i][j]*q_xi + eta_y[i][j]*q_eta;
+	}
+
+	for(uint j=1; j<njc-1; j++){
+		uint i = 0;
+		q_xi = (q[i][j+1] - q[i][j-1])/2.0; 
+		q_eta = (q[i+1][j] - q[i][j]);
+		grad_q[i][j][0] = xi_x[i][j]*q_xi + eta_x[i][j]*q_eta;
+		grad_q[i][j][1] = xi_y[i][j]*q_xi + eta_y[i][j]*q_eta;
+		i = nic-1;
+		q_xi = (q[i][j+1] - q[i][j-1])/2.0; 
+		q_eta = (q[i][j] - q[i-1][j]);
+		grad_q[i][j][0] = xi_x[i][j]*q_xi + eta_x[i][j]*q_eta;
+		grad_q[i][j][1] = xi_y[i][j]*q_xi + eta_y[i][j]*q_eta;
+	}
+
+	{
+		uint i=0; uint j=0;
+		q_xi = (q[i][j+1] - q[i][j]);
+		q_eta = (q[i+1][j] - q[i][j]);
+		grad_q[i][j][0] = xi_x[i][j]*q_xi + eta_x[i][j]*q_eta;
+		grad_q[i][j][1] = xi_y[i][j]*q_xi + eta_y[i][j]*q_eta;
+		i=nic-1; j=0;
+		q_xi = (q[i][j+1] - q[i][j]);
+		q_eta = (q[i][j] - q[i-1][j]);
+		grad_q[i][j][0] = xi_x[i][j]*q_xi + eta_x[i][j]*q_eta;
+		grad_q[i][j][1] = xi_y[i][j]*q_xi + eta_y[i][j]*q_eta;
+		i=nic-1; j=njc-1;
+		q_xi = (q[i][j] - q[i][j-1]);
+		q_eta = (q[i][j] - q[i-1][j]);
+		grad_q[i][j][0] = xi_x[i][j]*q_xi + eta_x[i][j]*q_eta;
+		grad_q[i][j][1] = xi_y[i][j]*q_xi + eta_y[i][j]*q_eta;
+		i=0; j=njc-1;
+		q_xi = (q[i][j] - q[i][j-1]);
+		q_eta = (q[i+1][j] - q[i][j]);
+		grad_q[i][j][0] = xi_x[i][j]*q_xi + eta_x[i][j]*q_eta;
+		grad_q[i][j][1] = xi_y[i][j]*q_xi + eta_y[i][j]*q_eta;
+	}
+}
 
 template<class T>
 Mesh<T>::Mesh(std::shared_ptr<Config<T>> val_config){
@@ -145,6 +286,19 @@ Mesh<T>::Mesh(std::shared_ptr<Config<T>> val_config){
 	ds_eta = Array2D<T>(nic, njc);
 	ds_chi = Array2D<T>(nic, njc);
 
+	xi_x = Array2D<T>(nic, njc);
+	eta_x = Array2D<T>(nic, njc);
+
+	xi_y = Array2D<T>(nic, njc);
+	eta_y = Array2D<T>(nic, njc);
+
+	x_xi = Array2D<T>(nic, njc);
+	x_eta = Array2D<T>(nic, njc);
+
+	y_xi = Array2D<T>(nic, njc);
+	y_eta = Array2D<T>(nic, njc);
+	
+	
 	solution = std::make_shared<Solution<T>>(this);
 	calc_metrics();
 };
@@ -221,6 +375,18 @@ Mesh<T>::Mesh(std::shared_ptr<Mesh<T>> mesh, const uint nskipi, const uint nskip
 	ds_eta = Array2D<T>(nic, njc);
 	ds_chi = Array2D<T>(nic, njc);
 
+	xi_x = Array2D<T>(nic, njc);
+	eta_x = Array2D<T>(nic, njc);
+
+	xi_y = Array2D<T>(nic, njc);
+	eta_y = Array2D<T>(nic, njc);
+
+	x_xi = Array2D<T>(nic, njc);
+	x_eta = Array2D<T>(nic, njc);
+
+	y_xi = Array2D<T>(nic, njc);
+	y_eta = Array2D<T>(nic, njc);
+	
 	solution = std::make_shared<Solution<T>>(this);
 	calc_metrics();
 };
