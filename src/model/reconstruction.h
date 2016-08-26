@@ -100,7 +100,7 @@ public:
 		for(uint i=0; i<nic; i++){
 			for(uint j=0; j<njc; j++){
 				a1[i][j] = 3.0*f2[i+1][j]*f2[i][j];
-				a2[i][j] = 2*(f2[i+1][j] - f2[i][j])*(f2[i+1][j] - f2[i][j]) + a1[i][j];
+				a2[i][j] = 2.0*(f2[i+1][j] - f2[i][j])*(f2[i+1][j] - f2[i][j]) + a1[i][j];
 				f3qt[i][j] = 0.25*(a1[i][j] + eps)/(a2[i][j] + eps);
 			}
 		}
@@ -138,7 +138,7 @@ public:
 		for(uint i=0; i<nic; i++){
 			for(uint j=0; j<njc; j++){
 				a1[i][j] = 3.0*f2[i][j+1]*f2[i][j];
-				a2[i][j] = 2*(f2[i][j+1] - f2[i][j])*(f2[i][j+1] - f2[i][j]) + a1[i][j];
+				a2[i][j] = 2.0*(f2[i][j+1] - f2[i][j])*(f2[i][j+1] - f2[i][j]) + a1[i][j];
 				f3qt[i][j] = 0.25*(a1[i][j] + eps)/(a2[i][j] + eps);
 			}
 		}

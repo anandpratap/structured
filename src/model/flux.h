@@ -17,7 +17,7 @@ class RoeFlux: public ConvectiveFlux<T, Tad>{
 				  Array2D<Tad>& rrht_a, Array2D<Tad>& urht_a, Array2D<Tad>& vrht_a, Array2D<Tad>& prht_a,
 				  Array3D<Tad>& f_a){
 		constexpr auto gm1 = GAMMA - 1.0;
-		constexpr auto ogm1 = 1/gm1;
+		constexpr auto ogm1 = 1.0/gm1;
 		auto ni = normal.extent(0);
 		auto nj = normal.extent(1);
 
@@ -36,28 +36,28 @@ class RoeFlux: public ConvectiveFlux<T, Tad>{
 				const Tad vrht = vrht_a[i][j];
 				const Tad prht = prht_a[i][j];
 
-				const Tad rlfti = 1/rlft;
+				const Tad rlfti = 1.0/rlft;
 				const Tad rulft = rlft*ulft;
 				const Tad rvlft = rlft*vlft;
-				const Tad uvl = 0.5f*(ulft*ulft + vlft*vlft);
+				const Tad uvl = 0.5*(ulft*ulft + vlft*vlft);
 				const Tad elft = plft*ogm1 + rlft*uvl;
 				const Tad hlft = (elft + plft)*rlfti;
 		
 				
-				const Tad rrhti = 1/rrht;
+				const Tad rrhti = 1.0/rrht;
 				const Tad rurht = rrht*urht;
 				const Tad rvrht = rrht*vrht;
-				const Tad uvr = 0.5f*(urht*urht + vrht*vrht);
+				const Tad uvr = 0.5*(urht*urht + vrht*vrht);
 				const Tad erht = prht*ogm1 + rrht*uvr;
 				const Tad hrht = (erht + prht)*rrhti;
 				
 				const Tad rat = sqrt(rrht*rlfti);
-				const Tad rati = 1/(rat+1);
+				const Tad rati = 1.0/(rat+1.0);
 				const Tad rav = rat*rlft;
 				const Tad uav = (rat*urht + ulft)*rati;
 				const Tad vav = (rat*vrht + vlft)*rati;
 				const Tad hav = (rat*hrht + hlft)*rati;
-				const Tad uv = 0.5f*(uav*uav + vav*vav);
+				const Tad uv = 0.5*(uav*uav + vav*vav);
 				const Tad cav = sqrt(gm1*(hav - uv));
 				
 				Tad aq1 = rrht - rlft;
@@ -72,7 +72,7 @@ class RoeFlux: public ConvectiveFlux<T, Tad>{
 				
 				const Tad uu = r1*uav + r2*vav;
 				const Tad c2 = cav*cav;
-				const Tad c2i = 1/c2;
+				const Tad c2i = 1.0/c2;
 				const Tad auu = fabs(uu);
 				const Tad aupc = fabs(uu + cav);
 				const Tad aumc = fabs(uu - cav);
@@ -81,7 +81,7 @@ class RoeFlux: public ConvectiveFlux<T, Tad>{
 				const Tad uurht = r1*urht + r2*vrht;
 				const Tad rcav = rav*cav;
 				const Tad aquu = uurht - uulft;
-				const Tad c2ih = 0.5f*c2i;
+				const Tad c2ih = 0.5*c2i;
 				const Tad ruuav = auu*rav;
 				
 				const Tad b1 = auu*(aq1 - c2i*aq4);
@@ -97,7 +97,7 @@ class RoeFlux: public ConvectiveFlux<T, Tad>{
 				aq3 = vav*b4 + r2*b5 + b7;
 				aq4 = hav*b4 + uu*b5 + uav*b6 + vav*b7 - c2*b1*ogm1;
 				
-				const Tad aj = 0.5f*dr;
+				const Tad aj = 0.5*dr;
 				const Tad plar = plft + prht;
 				const Tad eplft = elft + plft;
 				const Tad eprht = erht + prht;
@@ -119,7 +119,7 @@ class AUSMFlux: public ConvectiveFlux<T, Tad>{
 				  Array2D<Tad>& rrht_a, Array2D<Tad>& urht_a, Array2D<Tad>& vrht_a, Array2D<Tad>& prht_a,
 				  Array3D<Tad>& f_a){
 		constexpr auto gm1 = GAMMA - 1.0;
-		constexpr auto ogm1 = 1/gm1;
+		constexpr auto ogm1 = 1.0/gm1;
 		auto ni = normal.extent(0);
 		auto nj = normal.extent(1);
 
@@ -149,27 +149,27 @@ class AUSMFlux: public ConvectiveFlux<T, Tad>{
 				const Tad machrht = urht_normal/arht;
 				
 
-				const Tad rlfti = 1/rlft;
-				const Tad uvl = 0.5f*(ulft*ulft + vlft*vlft);
+				const Tad rlfti = 1.0/rlft;
+				const Tad uvl = 0.5*(ulft*ulft + vlft*vlft);
 				const Tad elft = plft*ogm1 + rlft*uvl;
 				const Tad hlft = (elft + plft)*rlfti;
 		
 				
-				const Tad rrhti = 1/rrht;
-				const Tad uvr = 0.5f*(urht*urht + vrht*vrht);
+				const Tad rrhti = 1.0/rrht;
+				const Tad uvr = 0.5*(urht*urht + vrht*vrht);
 				const Tad erht = prht*ogm1 + rrht*uvr;
 				const Tad hrht = (erht + prht)*rrhti;
 				
-				auto mach_p = [](Tad M){return fabs(M) <= 1.0 ? 0.25*(M+1.0)*(M+1.0): 0.5*(M + fabs(M));};
-				auto mach_m = [](Tad M){return fabs(M) <= 1.0 ? -0.25*(M-1.0)*(M-1.0): 0.5*(M - fabs(M));};
+				auto mach_p = [](Tad M){return std::abs(M) <= 1.0 ? 0.25*(M+1.0)*(M+1.0): 0.5*(M + fabs(M));};
+				auto mach_m = [](Tad M){return std::abs(M) <= 1.0 ? -0.25*(M-1.0)*(M-1.0): 0.5*(M - fabs(M));};
 
 				const Tad mach_half = mach_p(machlft) + mach_m(machrht);
 
-				auto pres_p = [](Tad M, Tad p){return fabs(M) <= 1.0 ? 0.25*p*(M+1.0)*(M+1.0)*(2.0-M): 0.5*p*(M+fabs(M))/M;};
-				auto pres_m = [](Tad M, Tad p){return fabs(M) <= 1.0 ? 0.25*p*(M-1.0)*(M-1.0)*(2.0+M): 0.5*p*(M-fabs(M))/M;};
+				auto pres_p = [](Tad M, Tad p){return std::abs(M) <= 1.0 ? 0.25*p*(M+1.0)*(M+1.0)*(2.0-M): 0.5*p*(M+fabs(M))/M;};
+				auto pres_m = [](Tad M, Tad p){return std::abs(M) <= 1.0 ? 0.25*p*(M-1.0)*(M-1.0)*(2.0+M): 0.5*p*(M-fabs(M))/M;};
 				const Tad p_half = pres_p(machlft, plft) + pres_m(machrht, prht);
 
-				if(mach_half >= 0.0){
+				if(mach_half.real() >= 0.0){
 					f_a[i][j][0] = rlft*alft*mach_half*ds;
 					f_a[i][j][1] = rlft*alft*ulft*mach_half*ds + p_half*nx;
 					f_a[i][j][2] = rlft*alft*vlft*mach_half*ds + p_half*ny;

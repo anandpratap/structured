@@ -115,8 +115,8 @@ public:
 				p[i][jend] = 1.5*p[i][1] - 0.5*p[i][2];
 				rho[i][jend] = 1.5*rho[i][1] - 0.5*rho[i][2];
 				un = u[i][1]*mesh->normal_eta[i-1][jend][0] + v[i][1]*mesh->normal_eta[i-1][jend][1];
-				u[i][jend] = u[i][1] - 2*un*mesh->normal_eta[i-1][jend][0]/ds;
-				v[i][jend] = v[i][1] - 2*un*mesh->normal_eta[i-1][jend][1]/ds;
+				u[i][jend] = u[i][1] - 2.0*un*mesh->normal_eta[i-1][jend][0]/ds;
+				v[i][jend] = v[i][1] - 2.0*un*mesh->normal_eta[i-1][jend][1]/ds;
 			}
 		}
 
