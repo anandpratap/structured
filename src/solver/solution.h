@@ -13,8 +13,8 @@ template<class T>
 class Solution{
  public:
 	uint nic, njc, nq, naux;
-	T ***q;
-	T ***q_aux;
+	Array3D<T> q;
+	Array3D<T> q_aux;
 public:
 	Solution(auto mesh);
 	//	Solution(std::shared_ptr<Mesh<T>> mesh, std::shared_ptr<Mesh<T>> old_mesh, const uint nskipi=0, const uint nskipj=0, const uint refine=0);
@@ -28,8 +28,8 @@ Solution<T>::Solution(auto mesh){
 	nic = mesh->nic;
 	njc = mesh->njc;
 
-	q = allocate_3d_array<T>(nic, njc, nq);
-	q_aux = allocate_3d_array<T>(nic, njc, naux);
+	q = Array3D<T>(nic, njc, nq);
+	q_aux = Array3D<T>(nic, njc, naux);
 
 	for(uint i=0; i<nic; i++){
 		for(uint j=0; j<njc; j++){
@@ -51,8 +51,6 @@ Solution<T>::Solution(auto mesh){
 
 template<class T>
 Solution<T>::~Solution(){
-	release_3d_array(q, nic, njc, nq);
-	release_3d_array(q_aux, nic, njc, naux);
 }
 
 

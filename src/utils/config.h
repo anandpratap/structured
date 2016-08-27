@@ -1,7 +1,22 @@
 #ifndef _CONFIG_H
 #define _CONFIG_H
 #include "common.h"
-
+class Boundary{
+ public:
+	std::string name;
+	std::string type;
+	std::string face;
+	uint start, end;
+	
+	Boundary(std::string val_name, std::string val_type, std::string val_face, uint val_start, uint val_end){
+		name = val_name;
+		type = val_type;
+		face = val_face;
+		start = val_start;
+		end = val_end;
+		spdlog::get("console")->info("type: {} face: {}", type, face);
+	}
+};
 class Profiler{
  public:
 	std::shared_ptr<Timer> timer_main;
@@ -53,7 +68,7 @@ template<class T>
 class ConfigSolver{
  public:
 	int order, cfl_ramp_iteration, under_relaxation_ramp_iteration;
-	std::string scheme;
+	std::string scheme, flux;
 	bool time_accurate, cfl_ramp, under_relaxation_ramp;
 	T cfl, under_relaxation, cfl_ramp_exponent, under_relaxation_ramp_exponent;
 	T tolerance;
@@ -65,6 +80,8 @@ class ConfigSolver{
 		order = config->get_qualified_as<int64_t>("solver.order").value_or(1);
 		time_accurate =  config->get_qualified_as<bool>("solver.time_accurate").value_or(false);
 		scheme = config->get_qualified_as<std::string>("solver.scheme").value_or("forward_euler");
+
+		flux = config->get_qualified_as<std::string>("solver.flux").value_or("ausm");
 
 		tolerance = config->get_qualified_as<double>("solver.tolerance").value_or(1e10);
 
@@ -101,13 +118,29 @@ class ConfigGeometry{
 	int ni, nj, tail;
 	std::string filename;
 	std::string format;
+	std::vector<Boundary*> boundary;
 	void set(std::shared_ptr<cpptoml::table> config){
 		filename = config->get_qualified_as<std::string>("geometry.filename").value_or("grid.unf2");
 		format = config->get_qualified_as<std::string>("geometry.format").value_or("grid.unf2");
 		ni= config->get_qualified_as<int64_t>("geometry.ni").value_or(0);
 		nj= config->get_qualified_as<int64_t>("geometry.nj").value_or(0);
 		tail= config->get_qualified_as<int64_t>("geometry.tail").value_or(0);
+		
+		auto bcs = config->get_table_array("boundary");
+		for (const auto& bc : *bcs){
+			std::string name = bc->get_qualified_as<std::string>("name").value_or("boundary");
+			std::string type = bc->get_qualified_as<std::string>("type").value_or("");
+			std::string face = bc->get_qualified_as<std::string>("face").value_or("");
+			int start = bc->get_qualified_as<int64_t>("start").value_or(0);
+			int end = bc->get_qualified_as<int64_t>("end").value_or(0);
+			boundary.push_back(new Boundary(name, type, face, (uint)start, (uint)end)); 
+		}
 	}
+	~ConfigGeometry(){
+		for(auto&& bc : boundary)
+			delete bc;
+	}
+	
 };
 
 
@@ -155,6 +188,7 @@ class Config{
 		PRINT_CONFIG(solver->iteration_max);
 		PRINT_CONFIG(solver->order);
 		PRINT_CONFIG(solver->scheme);
+		PRINT_CONFIG(solver->flux);
 		PRINT_CONFIG(solver->time_accurate);
 		PRINT_CONFIG(solver->tolerance);
 

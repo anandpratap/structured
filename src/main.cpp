@@ -6,9 +6,9 @@
 
 int main(int argc, char *argv[]){
 #if defined(ENABLE_FLOAT)
-	typedef float qtype;
+	using qtype = float;
 #else
-	typedef double qtype;
+	using qtype = double;
 #endif
 
 	cmdline::parser parser;

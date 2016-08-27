@@ -8,9 +8,9 @@
 template<class T>
 class IOManager{
 public:
+	Array2D<T> rho, u, v, p;
 	std::shared_ptr<Config<T>> config;
 	std::shared_ptr<Mesh<T>> mesh;
-	T *xc_array, *yc_array, *q_array;
 	IOManager(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config<T>> val_config){
 		config = val_config;
 		mesh = val_mesh;
@@ -19,16 +19,14 @@ public:
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
-		
-		xc_array = new T[nic*njc];
-		yc_array = new T[nic*njc];
-		q_array = new T[nic*njc*nq];
+
+		rho = Array2D<T>(nic, njc);
+		u = Array2D<T>(nic, njc);
+		v = Array2D<T>(nic, njc);
+		p = Array2D<T>(nic, njc);
 	};
 
 	~IOManager(){
-		delete[] xc_array;
-		delete[] yc_array;
-		delete[] q_array;
 		
 	}
 
@@ -43,9 +41,9 @@ public:
 		std::string filename = config->io->label + ".tec";
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
-		T ***q = mesh->solution->q;
-		T **xc = mesh->xc;
-		T **yc = mesh->yc;
+		auto q = mesh->solution->q;
+		auto xc = mesh->xc;
+		auto yc = mesh->yc;
 		
 		std::ofstream outfile;
 		outfile.open(filename);
@@ -69,26 +67,15 @@ public:
 		std::string filename = config->io->label + ".npz";
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
-		T ***q = mesh->solution->q;
-		T **xc = mesh->xc;
-		T **yc = mesh->yc;
+		auto q = mesh->solution->q;
+		auto xc = mesh->xc;
+		auto yc = mesh->yc;
 		const unsigned int shape[] = {nic, njc};
 		const unsigned int shapeq[] = {nic, njc, 4};
 		
-		const unsigned int shapetmp[] = {5U, 2U};
-			
-		for(int i=0; i<nic; i++){
-			for(int j=0; j<njc; j++){
-				xc_array[i*njc + j] = xc[i][j];
-				yc_array[i*njc + j] = yc[i][j];
-				for(int k=0; k<4; k++){
-					q_array[i*njc*4 + j*4 + k] = q[i][j][k];
-				}
-			}
-		}
-		cnpy::npz_save(filename,"xc",xc_array,shape,2,"w");
-		cnpy::npz_save(filename,"yc",yc_array,shape,2,"a");
-		cnpy::npz_save(filename,"q",q_array,shapeq,3,"a");
+		cnpy::npz_save(filename,"xc",xc.data(),shape,2,"w");
+		cnpy::npz_save(filename,"yc",yc.data(),shape,2,"a");
+		cnpy::npz_save(filename,"q",q.data(),shapeq,3,"a");
 		
 		spdlog::get("console")->info("Wrote numpy npz file {}.", filename);
 	}
@@ -99,13 +86,13 @@ public:
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
-		T ***q = mesh->solution->q;
-		T **xc = mesh->xc;
-		T **yc = mesh->yc;
+		auto q = mesh->solution->q;
+		auto xc = mesh->xc;
+		auto yc = mesh->yc;
 		std::ofstream outfile(filename,std::ofstream::binary);
 		for(int i=0; i<nic; i++){
 			for(int j=0; j<njc; j++){
-				outfile.write(reinterpret_cast<const char*>(q[i][j]), sizeof(T)*nq);
+				outfile.write(reinterpret_cast<const char*>(&q[i][j][0]), sizeof(T)*nq);
 			}
 		}
 		outfile.close();
@@ -117,9 +104,9 @@ public:
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
-		T ***q = mesh->solution->q;
-		T **xc = mesh->xc;
-		T **yc = mesh->yc;
+		auto q = mesh->solution->q;
+		auto xc = mesh->xc;
+		auto yc = mesh->yc;
 		std::ifstream infile(filename,std::ofstream::binary);
 
 		infile.seekg (0,infile.end);
@@ -130,7 +117,7 @@ public:
 		
 		for(int i=0; i<nic; i++){
 			for(int j=0; j<njc; j++){
-				infile.read(reinterpret_cast<char*>(q[i][j]), sizeof(T)*nq);
+				infile.read(reinterpret_cast<char*>(&q[i][j][0]), sizeof(T)*nq);
 			}
 		}
 		infile.close();
@@ -141,21 +128,20 @@ public:
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
-		T ***q = mesh->solution->q;
-		T **xc = mesh->xc;
-		T **yc = mesh->yc;
+		auto q = mesh->solution->q;
+		auto xc = mesh->xc;
+		auto yc = mesh->yc;
 		T p_inf = 1/1.4;
 		T rho_inf = 1.0;
 		T u_inf = 0.5;
 		int j1 = mesh->j1-1;
-		T rho, u, v, p, x, cp;
+		T x, cp;
 		std::ofstream outfile;
 		outfile.open(filename);
-		
+		primvars<T>(q, rho, u, v, p);
 		for(uint i=j1; i<j1+mesh->nb; i++){
-			primvars<T>(q[i][0], &rho, &u, &v, &p);
 			x = xc[i][0];
-			cp = (p - p_inf)/(0.5*rho_inf*u_inf*u_inf);
+			cp = (p[i][0] - p_inf)/(0.5*rho_inf*u_inf*u_inf);
 			outfile<<x<<" "<<cp<<std::endl;
 		}
 		outfile.close();
