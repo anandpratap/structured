@@ -169,7 +169,7 @@ class AUSMFlux: public ConvectiveFlux<T, Tad>{
 				auto pres_m = [](Tad M, Tad p){return std::abs(M) <= 1.0 ? 0.25*p*(M-1.0)*(M-1.0)*(2.0+M): 0.5*p*(M-fabs(M))/M;};
 				const Tad p_half = pres_p(machlft, plft) + pres_m(machrht, prht);
 
-				if(mach_half.real() >= 0.0){
+				if(mach_half >= 0.0){
 					f_a[i][j][0] = rlft*alft*mach_half*ds;
 					f_a[i][j][1] = rlft*alft*ulft*mach_half*ds + p_half*nx;
 					f_a[i][j][2] = rlft*alft*vlft*mach_half*ds + p_half*ny;
