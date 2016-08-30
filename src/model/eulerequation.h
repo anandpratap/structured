@@ -24,7 +24,180 @@ public:
 
 	void calc_residual(Array3D<Tad>& a_q, Array3D<Tad>& a_rhs);
 	void calc_convective_residual(Array3D<Tad>& a_rhs);
-	void calc_viscous_residual(Array3D<Tad>& a_rhs){};
+	void calc_viscous_residual(Array3D<Tad>& a_rhs){
+		auto grad_u = Array3D<Tad>(nic, njc, 3);
+		auto grad_v = Array3D<Tad>(nic, njc, 3);
+		auto grad_Temp = Array3D<Tad>(nic, njc, 3);
+		auto Temp = Array2D<Tad>(nic+2, njc+2);
+		auto Rc = 1.0;
+		auto mu = 1e-4;
+		auto k = mu*GAMMA/(GAMMA-1.0);
+		for(int i=0; i<nic+2; i++){
+			for(int j=0; j<njc+2; j++){
+				Temp[i][j] = p[i][j]/rho[i][j]/Rc;
+			}
+		}
+		mesh->calc_gradient(u, grad_u, 1, 1);
+		mesh->calc_gradient(v, grad_v, 1, 1);
+		mesh->calc_gradient(Temp, grad_Temp, 1, 1);
+
+		// xi
+		
+		for(int i=0; i<ni; i++){
+			for(int j=0; j<njc; j++){
+				Tad dudx, dudy, dvdx, dvdy, ubar, vbar, dTdx, dTdy;
+					auto nx = mesh->normal_chi[i][j][0];
+					auto ny = mesh->normal_chi[i][j][1];
+					ubar = (u[i+1][j+1] + u[i][j+1])*0.5;
+					vbar = (v[i+1][j+1] + v[i][j+1])*0.5;
+					if(i == 0){
+					dudx = grad_u[i][j][0];
+					dudy = grad_u[i][j][1];
+					
+					dvdx = grad_v[i][j][0];
+					dvdy = grad_v[i][j][1];
+					
+					dTdx = grad_Temp[i][j][0];
+					dTdy = grad_Temp[i][j][1];
+
+
+				}
+
+				else if(i == ni-1){
+					dudx = grad_u[i-1][j][0];
+					dudy = grad_u[i-1][j][1];
+					
+					dvdx = grad_v[i-1][j][0];
+					dvdy = grad_v[i-1][j][1];
+					
+					dTdx = grad_Temp[i-1][j][0];
+					dTdy = grad_Temp[i-1][j][1];
+
+				}
+				else{
+					auto dudx_bar = (grad_u[i][j][0] + grad_u[i-1][j][0])*0.5;
+					auto dudy_bar = (grad_u[i][j][1] + grad_u[i-1][j][1])*0.5;
+					
+					auto dvdx_bar = (grad_v[i][j][0] + grad_v[i-1][j][0])*0.5;
+					auto dvdy_bar = (grad_v[i][j][1] + grad_v[i-1][j][1])*0.5;
+					
+					auto dTdx_bar = (grad_Temp[i][j][0] + grad_Temp[i-1][j][0])*0.5;
+					auto dTdy_bar = (grad_Temp[i][j][1] + grad_Temp[i-1][j][1])*0.5;
+					
+					auto rijx = mesh->xc[i][j] - mesh->xc[i-1][j];
+					auto rijy = mesh->yc[i][j] - mesh->yc[i-1][j];
+					auto dr = std::sqrt(rijx*rijx + rijy*rijy);
+					rijx = rijx/dr;
+					rijy = rijy/dr;
+					
+					dudx = dudx_bar;// + ((u[i][j] - u[i-1][j])/dr - dudx_bar*rijx - dudy_bar*rijy)*rijx;
+					dudy = dudy_bar;// + ((u[i][j] - u[i-1][j])/dr - dudx_bar*rijx - dudy_bar*rijy)*rijy;
+					
+					dvdx = dvdx_bar;// + ((v[i][j] - v[i-1][j])/dr - dvdx_bar*rijx - dvdy_bar*rijy)*rijx;
+					dvdy = dvdy_bar;// + ((v[i][j] - v[i-1][j])/dr - dvdx_bar*rijx - dvdy_bar*rijy)*rijy;
+					
+					dTdx = dTdx_bar;// + ((Temp[i][j] - Temp[i-1][j])/dr - dTdx_bar*rijx - dTdy_bar*rijy)*rijx;
+					dTdy = dTdy_bar;// + ((Temp[i][j] - Temp[i-1][j])/dr - dTdx_bar*rijx - dTdy_bar*rijy)*rijy;
+
+
+				}
+
+				auto tau_xy = mu*(dudy + dvdx);
+				auto tau_xx = mu*(2.0*dudx - 2.0/3.0*(dudx + dvdy));
+				auto tau_yy = mu*(2.0*dvdy - 2.0/3.0*(dudx + dvdy));
+				auto q_x = -k*dTdx;
+				auto q_y = -k*dTdy;
+
+				flux_xi[i][j][1] = tau_xx*nx + tau_xy*ny;
+				flux_xi[i][j][2] = tau_xy*nx + tau_yy*ny;
+				flux_xi[i][j][3] = (ubar*tau_xx + vbar*tau_xy - q_x)*nx + (ubar*tau_xy + vbar*tau_yy - q_y)*ny;
+			}
+		}
+
+
+				
+		for(int i=0; i<nic; i++){
+			for(int j=0; j<nj; j++){
+				Tad dudx, dudy, dvdx, dvdy, ubar, vbar, dTdx, dTdy;
+					auto nx = mesh->normal_eta[i][j][0];
+					auto ny = mesh->normal_eta[i][j][1];
+					ubar = (u[i+1][j+1] + u[i+1][j])*0.5;
+					vbar = (v[i+1][j+1] + v[i+1][j])*0.5;
+
+					if(j == 0){
+						dudx = grad_u[i][j][0];
+					dudy = grad_u[i][j][1];
+					
+					dvdx = grad_v[i][j][0];
+					dvdy = grad_v[i][j][1];
+					
+					dTdx = grad_Temp[i][j][0];
+					dTdy = grad_Temp[i][j][1];
+
+
+				}
+
+				else if(j == nj-1){
+					dudx = grad_u[i][j-1][0];
+					dudy = grad_u[i][j-1][1];
+					
+					dvdx = grad_v[i][j-1][0];
+					dvdy = grad_v[i][j-1][1];
+					
+					dTdx = grad_Temp[i][j-1][0];
+					dTdy = grad_Temp[i][j-1][1];
+
+
+				}
+				else{
+					auto dudx_bar = (grad_u[i][j][0] + grad_u[i][j-1][0])*0.5;
+					auto dudy_bar = (grad_u[i][j][1] + grad_u[i][j-1][1])*0.5;
+					
+					auto dvdx_bar = (grad_v[i][j][0] + grad_v[i][j-1][0])*0.5;
+					auto dvdy_bar = (grad_v[i][j][1] + grad_v[i][j-1][1])*0.5;
+					
+					auto dTdx_bar = (grad_Temp[i][j][0] + grad_Temp[i][j-1][0])*0.5;
+					auto dTdy_bar = (grad_Temp[i][j][1] + grad_Temp[i][j-1][1])*0.5;
+					
+					auto rijx = mesh->xc[i][j] - mesh->xc[i][j-1];
+					auto rijy = mesh->yc[i][j] - mesh->yc[i][j-1];
+					auto dr = std::sqrt(rijx*rijx + rijy*rijy);
+					rijx = rijx/dr;
+					rijy = rijy/dr;
+					
+					dudx = dudx_bar;// + ((u[i][j] - u[i][j-1])/dr - dudx_bar*rijx - dudy_bar*rijy)*rijx;
+					dudy = dudy_bar;// + ((u[i][j] - u[i][j-1])/dr - dudx_bar*rijx - dudy_bar*rijy)*rijy;
+					
+					dvdx = dvdx_bar;// + ((v[i][j] - v[i][j-1])/dr - dvdx_bar*rijx - dvdy_bar*rijy)*rijx;
+					dvdy = dvdy_bar;// + ((v[i][j] - v[i][j-1])/dr - dvdx_bar*rijx - dvdy_bar*rijy)*rijy;
+					
+					dTdx = dTdx_bar;// + ((Temp[i][j] - Temp[i][j-1])/dr - dTdx_bar*rijx - dTdy_bar*rijy)*rijx;
+					dTdy = dTdy_bar;// + ((Temp[i][j] - Temp[i][j-1])/dr - dTdx_bar*rijx - dTdy_bar*rijy)*rijy;
+
+				}
+
+				auto tau_xy = mu*(dudy + dvdx);
+				auto tau_xx = mu*(2.0*dudx - 2.0/3.0*(dudx + dvdy));
+				auto tau_yy = mu*(2.0*dvdy - 2.0/3.0*(dudx + dvdy));
+				auto q_x = -k*dTdx;
+				auto q_y = -k*dTdy;
+
+				flux_eta[i][j][1] = tau_xx*nx + tau_xy*ny;
+				flux_eta[i][j][2] = tau_xy*nx + tau_yy*ny;
+				flux_eta[i][j][3] = (ubar*tau_xx + vbar*tau_xy - q_x)*nx + (ubar*tau_xy + vbar*tau_yy - q_y)*ny;
+			}
+		}
+
+
+		for(uint i=0; i< nic; i++){
+			for(uint j=0; j< njc; j++){
+				for(uint k=1; k<mesh->solution->nq; k++){
+					a_rhs[i][j][k] += (flux_eta[i][j+1][k] - flux_eta[i][j][k]);
+					a_rhs[i][j][k] += (flux_xi[i+1][j][k] - flux_xi[i][j][k]);
+				}
+			}
+		}
+	};
 	void calc_source_residual(Array3D<Tad>& a_rhs){};
 	void calc_primvars(Array3D<Tad>& a_q);
 	void calc_boundary();
@@ -99,6 +272,10 @@ public:
 			}
 			else if(type == "slipwall"){
 				auto boundarycondition = new BoundaryConditionInviscidWall<T, Tad>(name, mesh, config, facei, start, end);
+				boundaryconditions.push_back(boundarycondition);
+			}
+			else if(type == "wall"){
+				auto boundarycondition = new BoundaryConditionViscousWall<T, Tad>(name, mesh, config, facei, start, end);
 				boundaryconditions.push_back(boundarycondition);
 			}
 			else if(type == "wake"){

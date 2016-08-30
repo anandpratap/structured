@@ -38,7 +38,7 @@ public:
 
 	void calc_metrics();
 	template<class Tad>
-	void calc_gradient(Array2D<Tad>& q, Array3D<Tad> &grad_q);
+		void calc_gradient(Array2D<Tad>& q, Array3D<Tad> &grad_q, uint skipi=0, uint skipj=0);
 	void simple_loader(std::string filename);
 	void plot3d_loader(std::string filename);
 };
@@ -192,12 +192,12 @@ void Mesh<T>::calc_metrics(){
 
 template<class T>
 template<class Tad>
-void Mesh<T>::calc_gradient(Array2D<Tad>& q, Array3D<Tad> &grad_q){
+void Mesh<T>::calc_gradient(Array2D<Tad>& q, Array3D<Tad> &grad_q, uint skipi, uint skipj){
 	Tad q_xi, q_eta;
 	for(uint i=1; i<nic-1; i++){
 		for(uint j=1; j<njc-1; j++){
-			q_xi = (q[i][j+1] - q[i][j-1])/2.0; 
-			q_eta = (q[i+1][j] - q[i-1][j])/2.0;
+			q_xi = (q[i+skipi][j+skipj+1] - q[i+skipi][j+skipj-1])/2.0; 
+			q_eta = (q[i+skipi+1][j+skipj] - q[i+skipi-1][j+skipj])/2.0;
 			grad_q[i][j][0] = xi_x[i][j]*q_xi + eta_x[i][j]*q_eta;
 			grad_q[i][j][1] = xi_y[i][j]*q_xi + eta_y[i][j]*q_eta;
 		}
@@ -205,49 +205,49 @@ void Mesh<T>::calc_gradient(Array2D<Tad>& q, Array3D<Tad> &grad_q){
 	
 	for(uint i=1; i<nic-1; i++){
 		uint j = 0;
-		q_xi = (q[i][j+1] - q[i][j]);
-		q_eta = (q[i+1][j] - q[i-1][j])/2.0;
+		q_xi = (q[i+skipi][j+skipj+1] - q[i+skipi][j+skipj]);
+		q_eta = (q[i+skipi+1][j+skipj] - q[i+skipi-1][j+skipj])/2.0;
 		grad_q[i][j][0] = xi_x[i][j]*q_xi + eta_x[i][j]*q_eta;
 		grad_q[i][j][1] = xi_y[i][j]*q_xi + eta_y[i][j]*q_eta;
 		j = njc-1;
-		q_xi = (q[i][j] - q[i][j-1]);
-		q_eta = (q[i+1][j] - q[i-1][j])/2.0;
+		q_xi = (q[i+skipi][j+skipj] - q[i+skipi][j+skipj-1]);
+		q_eta = (q[i+skipi+1][j+skipj] - q[i+skipi-1][j+skipj])/2.0;
 		grad_q[i][j][0] = xi_x[i][j]*q_xi + eta_x[i][j]*q_eta;
 		grad_q[i][j][1] = xi_y[i][j]*q_xi + eta_y[i][j]*q_eta;
 	}
 
 	for(uint j=1; j<njc-1; j++){
 		uint i = 0;
-		q_xi = (q[i][j+1] - q[i][j-1])/2.0; 
-		q_eta = (q[i+1][j] - q[i][j]);
+		q_xi = (q[i+skipi][j+skipj+1] - q[i+skipi][j+skipj-1])/2.0; 
+		q_eta = (q[i+skipi+1][j+skipj] - q[i+skipi][j+skipj]);
 		grad_q[i][j][0] = xi_x[i][j]*q_xi + eta_x[i][j]*q_eta;
 		grad_q[i][j][1] = xi_y[i][j]*q_xi + eta_y[i][j]*q_eta;
 		i = nic-1;
-		q_xi = (q[i][j+1] - q[i][j-1])/2.0; 
-		q_eta = (q[i][j] - q[i-1][j]);
+		q_xi = (q[i+skipi][j+skipj+1] - q[i+skipi][j+skipj-1])/2.0; 
+		q_eta = (q[i+skipi][j+skipj] - q[i+skipi-1][j+skipj]);
 		grad_q[i][j][0] = xi_x[i][j]*q_xi + eta_x[i][j]*q_eta;
 		grad_q[i][j][1] = xi_y[i][j]*q_xi + eta_y[i][j]*q_eta;
 	}
 
 	{
 		uint i=0; uint j=0;
-		q_xi = (q[i][j+1] - q[i][j]);
-		q_eta = (q[i+1][j] - q[i][j]);
+		q_xi = (q[i+skipi][j+skipj+1] - q[i+skipi][j+skipj]);
+		q_eta = (q[i+skipi+1][j+skipj] - q[i+skipi][j+skipj]);
 		grad_q[i][j][0] = xi_x[i][j]*q_xi + eta_x[i][j]*q_eta;
 		grad_q[i][j][1] = xi_y[i][j]*q_xi + eta_y[i][j]*q_eta;
 		i=nic-1; j=0;
-		q_xi = (q[i][j+1] - q[i][j]);
-		q_eta = (q[i][j] - q[i-1][j]);
+		q_xi = (q[i+skipi][j+skipj+1] - q[i+skipi][j+skipj]);
+		q_eta = (q[i+skipi][j+skipj] - q[i+skipi-1][j+skipj]);
 		grad_q[i][j][0] = xi_x[i][j]*q_xi + eta_x[i][j]*q_eta;
 		grad_q[i][j][1] = xi_y[i][j]*q_xi + eta_y[i][j]*q_eta;
 		i=nic-1; j=njc-1;
-		q_xi = (q[i][j] - q[i][j-1]);
-		q_eta = (q[i][j] - q[i-1][j]);
+		q_xi = (q[i+skipi][j+skipj] - q[i+skipi][j+skipj-1]);
+		q_eta = (q[i+skipi][j+skipj] - q[i+skipi-1][j+skipj]);
 		grad_q[i][j][0] = xi_x[i][j]*q_xi + eta_x[i][j]*q_eta;
 		grad_q[i][j][1] = xi_y[i][j]*q_xi + eta_y[i][j]*q_eta;
 		i=0; j=njc-1;
-		q_xi = (q[i][j] - q[i][j-1]);
-		q_eta = (q[i+1][j] - q[i][j]);
+		q_xi = (q[i+skipi][j+skipj] - q[i+skipi][j+skipj-1]);
+		q_eta = (q[i+skipi+1][j+skipj] - q[i+skipi][j+skipj]);
 		grad_q[i][j][0] = xi_x[i][j]*q_xi + eta_x[i][j]*q_eta;
 		grad_q[i][j][1] = xi_y[i][j]*q_xi + eta_y[i][j]*q_eta;
 	}
