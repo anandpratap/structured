@@ -56,12 +56,15 @@ class Profiler{
 template<class T>
 class ConfigFreestream{
  public:
-	T rho_inf, u_inf, v_inf, p_inf;
+	T rho_inf, u_inf, v_inf, p_inf, mu_inf, pr_inf, T_inf;
 	void set(std::shared_ptr<cpptoml::table> config){
 		rho_inf =  config->get_qualified_as<double>("freestream.rho_inf").value_or(1.0);
 		u_inf =  config->get_qualified_as<double>("freestream.u_inf").value_or(0.0);
 		v_inf =  config->get_qualified_as<double>("freestream.v_inf").value_or(0.0);
 		p_inf =  config->get_qualified_as<double>("freestream.p_inf").value_or(1.0/1.4);
+		T_inf =  config->get_qualified_as<double>("freestream.T_inf").value_or(1.0/1.4);
+		mu_inf =  config->get_qualified_as<double>("freestream.mu_inf").value_or(0.0);
+		pr_inf =  config->get_qualified_as<double>("freestream.pr_inf").value_or(0.7);
 	};
 };
 template<class T>
@@ -184,6 +187,9 @@ class Config{
 		PRINT_CONFIG(freestream->u_inf);
 		PRINT_CONFIG(freestream->v_inf);
 		PRINT_CONFIG(freestream->p_inf);
+		PRINT_CONFIG(freestream->T_inf);
+		PRINT_CONFIG(freestream->mu_inf);
+		PRINT_CONFIG(freestream->pr_inf);
 		
 		PRINT_CONFIG(solver->iteration_max);
 		PRINT_CONFIG(solver->order);

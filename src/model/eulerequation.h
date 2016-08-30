@@ -29,9 +29,13 @@ public:
 		auto grad_v = Array3D<Tad>(nic, njc, 3);
 		auto grad_Temp = Array3D<Tad>(nic, njc, 3);
 		auto Temp = Array2D<Tad>(nic+2, njc+2);
-		auto Rc = 1.0;
-		auto mu = 1e-4;
-		auto k = mu*GAMMA/(GAMMA-1.0);
+		auto mu = config->freestream->mu_inf;
+		auto p_inf = config->freestream->p_inf;
+		auto pr_inf = config->freestream->pr_inf;
+		auto rho_inf = config->freestream->rho_inf;
+		auto T_inf = config->freestream->T_inf;
+		auto Rc = p_inf/rho_inf/T_inf;
+		auto k = mu*GAMMA*Rc/(GAMMA-1.0)/pr_inf;
 		for(int i=0; i<nic+2; i++){
 			for(int j=0; j<njc+2; j++){
 				Temp[i][j] = p[i][j]/rho[i][j]/Rc;
