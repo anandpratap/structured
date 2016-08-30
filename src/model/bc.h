@@ -174,12 +174,19 @@ public:
 				Tad un, ds;
 				ds = mesh->normal_eta[i-1][jend][0]*mesh->normal_eta[i-1][jend][0] +
 					mesh->normal_eta[i-1][jend][1]*mesh->normal_eta[i-1][jend][1];
-				
-				p[i][jend] = 1.5*p[i][1] - 0.5*p[i][2];
-				rho[i][jend] = 1.5*rho[i][1] - 0.5*rho[i][2];
-				//un = u[i][1]*mesh->normal_eta[i-1][jend][0] + v[i][1]*mesh->normal_eta[i-1][jend][1];
-				u[i][jend] = -u[i][1];// - 2.0*un*mesh->normal_eta[i-1][jend][0]/ds;
-				v[i][jend] = -v[i][1];// - 2.0*un*mesh->normal_eta[i-1][jend][1]/ds;
+				if(face == bottom){
+					p[i][jend] = 1.5*p[i][1] - 0.5*p[i][2];
+					rho[i][jend] = 1.5*rho[i][1] - 0.5*rho[i][2];
+					u[i][jend] = -u[i][1];
+					v[i][jend] = -v[i][1];
+				}
+				else{
+					//spdlog::get("console")->debug("{} {} {}", i, start, end);
+					p[i][jend] = 1.5*p[i][njc] - 0.5*p[i][njc-1];
+					rho[i][jend] = 1.5*rho[i][njc] - 0.5*rho[i][njc-1];
+					u[i][jend] = -u[i][njc];
+					v[i][jend] = -v[i][njc];
+				}
 			}
 		}
 
