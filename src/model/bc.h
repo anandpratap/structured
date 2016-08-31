@@ -7,22 +7,22 @@
 #define top 2
 #define left 3
 
-template<class T, class Tad>
+template<class Tx, class Tad>
 class BoundaryCondition{
 public:
 	virtual void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p){};
 };
 
-template<class T, class Tad>
-class BoundaryConditionFreestream: public BoundaryCondition<T, Tad>{
+template<class Tx, class Tad>
+class BoundaryConditionFreestream: public BoundaryCondition<Tx, Tad>{
 public:
 	std::string name;
 	uint face;
 	uint start, end;
 	uint ni, nj, nic, njc;
-	T rho_inf, u_inf, v_inf, p_inf;
-	BoundaryConditionFreestream(std::string val_name, std::shared_ptr<Mesh<T>> mesh, std::shared_ptr<Config<T>> config,
-								uint val_face, uint val_start, uint val_end): BoundaryCondition<T, Tad>(){
+	Tx rho_inf, u_inf, v_inf, p_inf;
+	BoundaryConditionFreestream(std::string val_name, std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Config<Tx>> config,
+								uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
 		name = val_name;
 		face = val_face;
 		start = val_start;
@@ -72,17 +72,17 @@ public:
 	};
 };
 
-template<class T, class Tad>
-class BoundaryConditionInviscidWall: public BoundaryCondition<T, Tad>{
+template<class Tx, class Tad>
+class BoundaryConditionInviscidWall: public BoundaryCondition<Tx, Tad>{
 public:
 	std::string name;
 	uint face;
 	uint start, end;
 	uint ni, nj, nic, njc;
-	T rho_inf, u_inf, v_inf, p_inf;
-	std::shared_ptr<Mesh<T>> mesh;
-	BoundaryConditionInviscidWall(std::string val_name, std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config<T>> config,
-								  uint val_face, uint val_start, uint val_end): BoundaryCondition<T, Tad>(){
+	Tx rho_inf, u_inf, v_inf, p_inf;
+	std::shared_ptr<Mesh<Tx>> mesh;
+	BoundaryConditionInviscidWall(std::string val_name, std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config,
+								  uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
 		name = val_name;
 		mesh = val_mesh;
 		face = val_face;
@@ -135,17 +135,17 @@ public:
 	};
 };
 
-template<class T, class Tad>
-class BoundaryConditionViscousWall: public BoundaryCondition<T, Tad>{
+template<class Tx, class Tad>
+class BoundaryConditionViscousWall: public BoundaryCondition<Tx, Tad>{
 public:
 	std::string name;
 	uint face;
 	uint start, end;
 	uint ni, nj, nic, njc;
-	T rho_inf, u_inf, v_inf, p_inf;
-	std::shared_ptr<Mesh<T>> mesh;
-	BoundaryConditionViscousWall(std::string val_name, std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config<T>> config,
-								  uint val_face, uint val_start, uint val_end): BoundaryCondition<T, Tad>(){
+	Tx rho_inf, u_inf, v_inf, p_inf;
+	std::shared_ptr<Mesh<Tx>> mesh;
+	BoundaryConditionViscousWall(std::string val_name, std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config,
+								  uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
 		name = val_name;
 		mesh = val_mesh;
 		face = val_face;
@@ -206,17 +206,17 @@ public:
 };
 
 
-template<class T, class Tad>
-class BoundaryConditionWake: public BoundaryCondition<T, Tad>{
+template<class Tx, class Tad>
+class BoundaryConditionWake: public BoundaryCondition<Tx, Tad>{
 public:
 	std::string name;
 	uint face;
 	uint start, end;
 	uint ni, nj, nic, njc;
-	T rho_inf, u_inf, v_inf, p_inf;
-	std::shared_ptr<Mesh<T>> mesh;
-	BoundaryConditionWake(std::string val_name, std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config<T>> config,
-						  uint val_face, uint val_start, uint val_end): BoundaryCondition<T, Tad>(){
+	Tx rho_inf, u_inf, v_inf, p_inf;
+	std::shared_ptr<Mesh<Tx>> mesh;
+	BoundaryConditionWake(std::string val_name, std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config,
+						  uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
 		name = val_name;
 		mesh = val_mesh;
 		face = val_face;

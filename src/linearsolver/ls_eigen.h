@@ -1,15 +1,15 @@
 #ifndef _EIGEN_H
 #define _EIGEN_H
 
-template <class T>
+template <class Tx>
 class LinearSolverEigen{
-	std::shared_ptr<Mesh<T>> mesh;
+	std::shared_ptr<Mesh<Tx>> mesh;
 	Eigen::MatrixXd rhs, dq;
-	Eigen::SparseMatrix<T, Eigen::ColMajor> jac;
-	std::shared_ptr<Eigen::SparseLU<Eigen::SparseMatrix<T>>> solver;
+	Eigen::SparseMatrix<Tx,  Eigen::ColMajor> jac;
+	std::shared_ptr<Eigen::SparseLU<Eigen::SparseMatrix<Tx>>> solver;
 	uint c = 0;
  public:
-	LinearSolverEigen(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config<T>> val_config){
+	LinearSolverEigen(std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
 		mesh = val_mesh;
 
 		const auto ni = mesh->ni;
@@ -20,30 +20,30 @@ class LinearSolverEigen{
 	
 		rhs = Eigen::MatrixXd(nic*njc*nq, 1);
 		dq = Eigen::MatrixXd(nic*njc*nq, 1);
-		jac = Eigen::SparseMatrix<T,Eigen::ColMajor>(nic*njc*nq, nic*njc*nq);
+		jac = Eigen::SparseMatrix<Tx, Eigen::ColMajor>(nic*njc*nq, nic*njc*nq);
 
-		solver = std::make_shared<Eigen::SparseLU<Eigen::SparseMatrix<T>>>();
+		solver = std::make_shared<Eigen::SparseLU<Eigen::SparseMatrix<Tx>>>();
 	};
 
 	void preallocate(int nnz){
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
-		jac.reserve(Eigen::VectorXi::Constant(nic*njc*nq,36));
+		jac.reserve(Eigen::VectorXi::Constant(nic*njc*nq,MAX_NNZ));
 	};
 
 	~LinearSolverEigen(){
 	};
 
-	void set_jac(int nnz, unsigned int *rind, unsigned int *cind, T *values){
-		T value_tmp;
+	void set_jac(int nnz, unsigned int *rind, unsigned int *cind, Tx *values){
+		Tx value_tmp;
 		for(uint i=0; i<nnz; i++){
 			value_tmp = values[i];
 			jac.coeffRef(rind[i],cind[i]) = value_tmp;
 		}
 	};
 
-	void set_rhs(T *val_rhs){
+	void set_rhs(Tx *val_rhs){
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
@@ -53,7 +53,7 @@ class LinearSolverEigen{
 		}
 	};
 
-	void solve_and_update(T *q, T under_relaxation){
+	void solve_and_update(Tx *q, Tx under_relaxation){
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;

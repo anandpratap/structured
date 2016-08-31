@@ -1,7 +1,7 @@
 #ifndef __RECONSTRUCTION__H
 #define __RECONSTRUCTION__H
 #include "common.h"
-template<class T, class Tad>
+template<class Tx, class Tad>
 class Reconstruction{
 public:
 	virtual void evaluate_xi(Array2D<Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
@@ -11,12 +11,12 @@ public:
 	};
 };
 
-template<class T, class Tad>
-class FirstOrder: public Reconstruction<T, Tad>{
+template<class Tx, class Tad>
+class FirstOrder: public Reconstruction<Tx, Tad>{
 	uint ni, nj;
 	uint nic, njc;
 public:
-	FirstOrder(const uint val_ni, const uint val_nj): Reconstruction<T, Tad>(){
+	FirstOrder(const uint val_ni, const uint val_nj): Reconstruction<Tx, Tad>(){
 		ni = val_ni;
 		nj = val_nj;
 		nic = ni - 1;
@@ -45,17 +45,17 @@ public:
 };
 
 
-template<class T, class Tad>
-class SecondOrder: public Reconstruction<T, Tad>{
+template<class Tx, class Tad>
+class SecondOrder: public Reconstruction<Tx, Tad>{
 	uint ni, nj;
 	uint nic, njc;
-	T thm = 2.0/3.0;
-	T thp = 4.0/3.0;
-	T eps_xi, eps_eta;
+	Tx thm = 2.0/3.0;
+	Tx thp = 4.0/3.0;
+	Tx eps_xi, eps_eta;
 	Array2D<Tad> f2_xi, a1_xi, a2_xi, f3qt_xi;
 	Array2D<Tad> f2_eta, a1_eta, a2_eta, f3qt_eta;
 public:
-	SecondOrder(const uint val_ni, const uint val_nj): Reconstruction<T, Tad>(){
+	SecondOrder(const uint val_ni, const uint val_nj): Reconstruction<Tx, Tad>(){
 		ni = val_ni;
 		nj = val_nj;
 		nic = ni - 1;

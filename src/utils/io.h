@@ -5,13 +5,13 @@
 #include "mesh.h"
 #include "config.h"
 
-template<class T>
+template<class Tx>
 class IOManager{
 public:
-	Array2D<T> rho, u, v, p;
-	std::shared_ptr<Config<T>> config;
-	std::shared_ptr<Mesh<T>> mesh;
-	IOManager(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config<T>> val_config){
+	Array2D<Tx> rho, u, v, p, T;
+	std::shared_ptr<Config<Tx>> config;
+	std::shared_ptr<Mesh<Tx>> mesh;
+	IOManager(std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
 		config = val_config;
 		mesh = val_mesh;
 
@@ -20,10 +20,11 @@ public:
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
 
-		rho = Array2D<T>(nic, njc);
-		u = Array2D<T>(nic, njc);
-		v = Array2D<T>(nic, njc);
-		p = Array2D<T>(nic, njc);
+		rho = Array2D<Tx>(nic, njc);
+		u = Array2D<Tx>(nic, njc);
+		v = Array2D<Tx>(nic, njc);
+		p = Array2D<Tx>(nic, njc);
+		T = Array2D<Tx>(nic, njc);
 	};
 
 	~IOManager(){
@@ -131,14 +132,14 @@ public:
 		auto q = mesh->solution->q;
 		auto xc = mesh->xc;
 		auto yc = mesh->yc;
-		T p_inf = 1/1.4;
-		T rho_inf = 1.0;
-		T u_inf = 0.5;
+		Tx p_inf = 1/1.4;
+		Tx rho_inf = 1.0;
+		Tx u_inf = 0.5;
 		int j1 = mesh->j1-1;
-		T x, cp;
+		Tx x, cp;
 		std::ofstream outfile;
 		outfile.open(filename);
-		primvars<T>(q, rho, u, v, p);
+		primvars<Tx>(q, rho, u, v, p, T);
 		for(uint i=j1; i<j1+mesh->nb; i++){
 			x = xc[i][0];
 			cp = (p[i][0] - p_inf)/(0.5*rho_inf*u_inf*u_inf);

@@ -1,18 +1,18 @@
 #ifndef _FLUX_H
 #define _FLUX_H
-template <class T, class Tad>
+template <class Tx, class Tad>
 class ConvectiveFlux{
 public:
-	virtual void evaluate(Array3D<T>& normal,
+	virtual void evaluate(Array3D<Tx>& normal,
 				  Array2D<Tad>& rlft_a, Array2D<Tad>& ulft_a, Array2D<Tad>& vlft_a, Array2D<Tad>& plft_a,
 				  Array2D<Tad>& rrht_a, Array2D<Tad>& urht_a, Array2D<Tad>& vrht_a, Array2D<Tad>& prht_a,
 				  Array3D<Tad>& f_a){};
 };
 
-template<class T, class Tad>
-class RoeFlux: public ConvectiveFlux<T, Tad>{
+template<class Tx, class Tad>
+class RoeFlux: public ConvectiveFlux<Tx, Tad>{
  public:
-	void evaluate(Array3D<T>& normal,
+	void evaluate(Array3D<Tx>& normal,
 				  Array2D<Tad>& rlft_a, Array2D<Tad>& ulft_a, Array2D<Tad>& vlft_a, Array2D<Tad>& plft_a,
 				  Array2D<Tad>& rrht_a, Array2D<Tad>& urht_a, Array2D<Tad>& vrht_a, Array2D<Tad>& prht_a,
 				  Array3D<Tad>& f_a){
@@ -24,8 +24,8 @@ class RoeFlux: public ConvectiveFlux<T, Tad>{
 #pragma omp parallel for		
 		for(int i=0; i<ni; i++){
 			for(int j=0; j<nj; j++){
-				const T nx = normal[i][j][0];
-				const T ny = normal[i][j][1];
+				const Tx nx = normal[i][j][0];
+				const Tx ny = normal[i][j][1];
 				const Tad rlft = rlft_a[i][j];
 				const Tad ulft = ulft_a[i][j];
 				const Tad vlft = vlft_a[i][j];
@@ -111,10 +111,15 @@ class RoeFlux: public ConvectiveFlux<T, Tad>{
 };
 
 
-template<class T, class Tad>
-class AUSMFlux: public ConvectiveFlux<T, Tad>{
+template<class Tx, class Tad>
+class AUSMFlux: public ConvectiveFlux<Tx, Tad>{
  public:
-	void evaluate(Array3D<T>& normal,
+	Tad mach_p(Tad M){return fabs(M) <= 1.0 ? 0.25*(M+1.0)*(M+1.0): 0.5*(M + fabs(M));};
+	Tad mach_m(Tad M){return fabs(M) <= 1.0 ? -0.25*(M-1.0)*(M-1.0): 0.5*(M - fabs(M));};
+	Tad pres_p(Tad M, Tad p){return fabs(M) <= 1.0 ? 0.25*p*(M+1.0)*(M+1.0)*(2.0-M): 0.5*p*(M+fabs(M))/M;};
+	Tad pres_m(Tad M, Tad p){return fabs(M) <= 1.0 ? 0.25*p*(M-1.0)*(M-1.0)*(2.0+M): 0.5*p*(M-fabs(M))/M;};
+			
+	void evaluate(Array3D<Tx>& normal,
 				  Array2D<Tad>& rlft_a, Array2D<Tad>& ulft_a, Array2D<Tad>& vlft_a, Array2D<Tad>& plft_a,
 				  Array2D<Tad>& rrht_a, Array2D<Tad>& urht_a, Array2D<Tad>& vrht_a, Array2D<Tad>& prht_a,
 				  Array3D<Tad>& f_a){
@@ -126,8 +131,8 @@ class AUSMFlux: public ConvectiveFlux<T, Tad>{
 #pragma omp parallel for		
 		for(int i=0; i<ni; i++){
 			for(int j=0; j<nj; j++){
-				const T nx = normal[i][j][0];
-				const T ny = normal[i][j][1];
+				const Tx nx = normal[i][j][0];
+				const Tx ny = normal[i][j][1];
 				const Tad rlft = rlft_a[i][j];
 				const Tad ulft = ulft_a[i][j];
 				const Tad vlft = vlft_a[i][j];
@@ -138,12 +143,12 @@ class AUSMFlux: public ConvectiveFlux<T, Tad>{
 				const Tad vrht = vrht_a[i][j];
 				const Tad prht = prht_a[i][j];
 				
-				const T ds = std::sqrt(nx*nx + ny*ny);
+				const Tx ds = sqrt(nx*nx + ny*ny);
 				const Tad ulft_normal = (ulft*nx + vlft*ny)/ds;
 				const Tad urht_normal = (urht*nx + vrht*ny)/ds;
 
-				const Tad alft = std::sqrt(GAMMA*plft/rlft);
-				const Tad arht = std::sqrt(GAMMA*prht/rrht);
+				const Tad alft = sqrt(GAMMA*plft/rlft);
+				const Tad arht = sqrt(GAMMA*prht/rrht);
 
 				const Tad machlft = ulft_normal/alft;
 				const Tad machrht = urht_normal/arht;
@@ -160,13 +165,8 @@ class AUSMFlux: public ConvectiveFlux<T, Tad>{
 				const Tad erht = prht*ogm1 + rrht*uvr;
 				const Tad hrht = (erht + prht)*rrhti;
 				
-				auto mach_p = [](Tad M){return std::abs(M) <= 1.0 ? 0.25*(M+1.0)*(M+1.0): 0.5*(M + fabs(M));};
-				auto mach_m = [](Tad M){return std::abs(M) <= 1.0 ? -0.25*(M-1.0)*(M-1.0): 0.5*(M - fabs(M));};
 
 				const Tad mach_half = mach_p(machlft) + mach_m(machrht);
-
-				auto pres_p = [](Tad M, Tad p){return std::abs(M) <= 1.0 ? 0.25*p*(M+1.0)*(M+1.0)*(2.0-M): 0.5*p*(M+fabs(M))/M;};
-				auto pres_m = [](Tad M, Tad p){return std::abs(M) <= 1.0 ? 0.25*p*(M-1.0)*(M-1.0)*(2.0+M): 0.5*p*(M-fabs(M))/M;};
 				const Tad p_half = pres_p(machlft, plft) + pres_m(machrht, prht);
 
 				if(mach_half >= 0.0){

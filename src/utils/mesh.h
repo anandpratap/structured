@@ -5,35 +5,35 @@
 #include "solution.h"
 #include "config.h"
 
-template<class T>
+template<class Tx>
 class Solution;
 
-template <class T>
+template <class Tx>
 class Mesh{
  public:
-	std::shared_ptr<Config<T>> config;
+	std::shared_ptr<Config<Tx>> config;
 	uint ni, nj;
 	uint nic, njc;
 	uint j1, nb;
-	Array2D<T> xv, yv;
-	Array2D<T> xc, yc;
+	Array2D<Tx> xv, yv;
+	Array2D<Tx> xc, yc;
 
-	Array3D<T> normal_eta;
-	Array3D<T> normal_chi;
+	Array3D<Tx> normal_eta;
+	Array3D<Tx> normal_chi;
 
-	Array2D<T> ds_eta;
-	Array2D<T> ds_chi;
+	Array2D<Tx> ds_eta;
+	Array2D<Tx> ds_chi;
 
-	Array2D<T> volume;
-	Array2D<T> xi_x, xi_y, eta_x, eta_y;
-	Array2D<T> x_xi, y_xi, x_eta, y_eta;
+	Array2D<Tx> volume;
+	Array2D<Tx> xi_x, xi_y, eta_x, eta_y;
+	Array2D<Tx> x_xi, y_xi, x_eta, y_eta;
 	
-	std::shared_ptr<Solution<T>> solution;
+	std::shared_ptr<Solution<Tx>> solution;
 	
 public:
-	Mesh(std::shared_ptr<Config<T>> config);
+	Mesh(std::shared_ptr<Config<Tx>> config);
 
-	Mesh(std::shared_ptr<Mesh<T>> mesh, const uint nskipi=0, const uint nskipj=0, const uint refine=0);
+	Mesh(std::shared_ptr<Mesh<Tx>> mesh, const uint nskipi=0, const uint nskipj=0, const uint refine=0);
 	~Mesh();
 
 	void calc_metrics();
@@ -43,8 +43,8 @@ public:
 	void plot3d_loader(std::string filename);
 };
 
-template<class T>
-void Mesh<T>::simple_loader(std::string filename){
+template<class Tx>
+void Mesh<Tx>::simple_loader(std::string filename){
 	std::ifstream infile(filename);
 	infile >> std::fixed >> std::setprecision(20);
 	for(uint j=0; j<nj; j++){
@@ -55,14 +55,15 @@ void Mesh<T>::simple_loader(std::string filename){
 	infile.close();
 }
 
-template<class T>
-void Mesh<T>::plot3d_loader(std::string filename){
+template<class Tx>
+void Mesh<Tx>::plot3d_loader(std::string filename){
 	std::ifstream infile(filename);
 	infile >> std::fixed >> std::setprecision(20);
 	int nblock, ni_, nj_;
 	infile >> nblock;
 	infile >> ni_ >> nj_;
 	assert(nblock == 1);
+	spdlog::get("console")->debug("{} {} {} {}", ni, ni_, nj, nj_);
 	assert(ni == ni_);
 	assert(nj == nj_);
 
@@ -80,10 +81,10 @@ void Mesh<T>::plot3d_loader(std::string filename){
 	infile.close();
 }
 
-template<class T>
-void Mesh<T>::calc_metrics(){
-	auto reta = Array3D<T>(nic, nj, 2U);
-	auto rchi = Array3D<T>(ni, njc, 2U);
+template<class Tx>
+void Mesh<Tx>::calc_metrics(){
+	auto reta = Array3D<Tx>(nic, nj, 2U);
+	auto rchi = Array3D<Tx>(ni, njc, 2U);
 
 	for(uint i=0; i<nic; i++){
 		for(uint j=0; j<nj; j++){
@@ -181,7 +182,7 @@ void Mesh<T>::calc_metrics(){
 	}
 	for(int i=0; i<nic; i++){
 		for(int j=0; j<njc; j++){
-			T ijac = 1.0/(x_xi[i][j]*y_eta[i][j] - x_eta[i][j]*y_xi[i][j]); 
+			Tx ijac = 1.0/(x_xi[i][j]*y_eta[i][j] - x_eta[i][j]*y_xi[i][j]); 
 			xi_x[i][j] = y_eta[i][j]*ijac;
 			eta_x[i][j] = -y_xi[i][j]*ijac;
 			xi_y[i][j] = -x_eta[i][j]*ijac;
@@ -190,9 +191,9 @@ void Mesh<T>::calc_metrics(){
 	}
 };
 
-template<class T>
+template<class Tx>
 template<class Tad>
-void Mesh<T>::calc_gradient(Array2D<Tad>& q, Array3D<Tad> &grad_q, uint skipi, uint skipj){
+void Mesh<Tx>::calc_gradient(Array2D<Tad>& q, Array3D<Tad> &grad_q, uint skipi, uint skipj){
 	Tad q_xi, q_eta;
 	for(uint i=1; i<nic-1; i++){
 		for(uint j=1; j<njc-1; j++){
@@ -253,8 +254,8 @@ void Mesh<T>::calc_gradient(Array2D<Tad>& q, Array3D<Tad> &grad_q, uint skipi, u
 	}
 }
 
-template<class T>
-Mesh<T>::Mesh(std::shared_ptr<Config<T>> val_config){
+template<class Tx>
+Mesh<Tx>::Mesh(std::shared_ptr<Config<Tx>> val_config){
 	config = val_config;
 	ni = config->geometry->ni;
 	nj = config->geometry->nj;
@@ -263,8 +264,8 @@ Mesh<T>::Mesh(std::shared_ptr<Config<T>> val_config){
 	nic = ni - 1;
 	njc = nj - 1;
 	
-	xv = Array2D<T>(ni, nj);
-	yv = Array2D<T>(ni, nj);
+	xv = Array2D<Tx>(ni, nj);
+	yv = Array2D<Tx>(ni, nj);
 
 	if(config->geometry->format == "simple"){
 		simple_loader(config->geometry->filename);
@@ -275,37 +276,37 @@ Mesh<T>::Mesh(std::shared_ptr<Config<T>> val_config){
 	else{
 		spdlog::get("console")->critical("file format not found!");
 	}
-	xc = Array2D<T>(nic, njc);
-	yc = Array2D<T>(nic, njc);
+	xc = Array2D<Tx>(nic, njc);
+	yc = Array2D<Tx>(nic, njc);
 
-	volume = Array2D<T>(nic, njc);
+	volume = Array2D<Tx>(nic, njc);
 
-	normal_eta = Array3D<T>(ni-1, nj, 2U);
-	normal_chi = Array3D<T>(ni, nj-1, 2U);
+	normal_eta = Array3D<Tx>(ni-1, nj, 2U);
+	normal_chi = Array3D<Tx>(ni, nj-1, 2U);
 
-	ds_eta = Array2D<T>(nic, njc);
-	ds_chi = Array2D<T>(nic, njc);
+	ds_eta = Array2D<Tx>(nic, njc);
+	ds_chi = Array2D<Tx>(nic, njc);
 
-	xi_x = Array2D<T>(nic, njc);
-	eta_x = Array2D<T>(nic, njc);
+	xi_x = Array2D<Tx>(nic, njc);
+	eta_x = Array2D<Tx>(nic, njc);
 
-	xi_y = Array2D<T>(nic, njc);
-	eta_y = Array2D<T>(nic, njc);
+	xi_y = Array2D<Tx>(nic, njc);
+	eta_y = Array2D<Tx>(nic, njc);
 
-	x_xi = Array2D<T>(nic, njc);
-	x_eta = Array2D<T>(nic, njc);
+	x_xi = Array2D<Tx>(nic, njc);
+	x_eta = Array2D<Tx>(nic, njc);
 
-	y_xi = Array2D<T>(nic, njc);
-	y_eta = Array2D<T>(nic, njc);
+	y_xi = Array2D<Tx>(nic, njc);
+	y_eta = Array2D<Tx>(nic, njc);
 	
 	
-	solution = std::make_shared<Solution<T>>(this);
+	solution = std::make_shared<Solution<Tx>>(this);
 	calc_metrics();
 };
 
 
-template<class T>
-Mesh<T>::Mesh(std::shared_ptr<Mesh<T>> mesh, const uint nskipi, const uint nskipj, const uint refine){
+template<class Tx>
+Mesh<Tx>::Mesh(std::shared_ptr<Mesh<Tx>> mesh, const uint nskipi, const uint nskipj, const uint refine){
 	config = mesh->config;
 	if(!refine){
 		ni = std::ceil((float)mesh->ni/(nskipi+1U));
@@ -326,8 +327,8 @@ Mesh<T>::Mesh(std::shared_ptr<Mesh<T>> mesh, const uint nskipi, const uint nskip
 	nic = ni - 1;
 	njc = nj - 1;
 	
-	xv = Array2D<T>(ni, nj);
-	yv = Array2D<T>(ni, nj);
+	xv = Array2D<Tx>(ni, nj);
+	yv = Array2D<Tx>(ni, nj);
 
 	
 	for(uint i=0; i<ni; i++){
@@ -364,35 +365,35 @@ Mesh<T>::Mesh(std::shared_ptr<Mesh<T>> mesh, const uint nskipi, const uint nskip
 		}
 
 	}
-	xc = Array2D<T>(nic, njc);
-	yc = Array2D<T>(nic, njc);
+	xc = Array2D<Tx>(nic, njc);
+	yc = Array2D<Tx>(nic, njc);
 
-	volume = Array2D<T>(nic, njc);
+	volume = Array2D<Tx>(nic, njc);
 
-	normal_eta = Array3D<T>(ni-1, nj, 2U);
-	normal_chi = Array3D<T>(ni, nj-1, 2U);
+	normal_eta = Array3D<Tx>(ni-1, nj, 2U);
+	normal_chi = Array3D<Tx>(ni, nj-1, 2U);
 
-	ds_eta = Array2D<T>(nic, njc);
-	ds_chi = Array2D<T>(nic, njc);
+	ds_eta = Array2D<Tx>(nic, njc);
+	ds_chi = Array2D<Tx>(nic, njc);
 
-	xi_x = Array2D<T>(nic, njc);
-	eta_x = Array2D<T>(nic, njc);
+	xi_x = Array2D<Tx>(nic, njc);
+	eta_x = Array2D<Tx>(nic, njc);
 
-	xi_y = Array2D<T>(nic, njc);
-	eta_y = Array2D<T>(nic, njc);
+	xi_y = Array2D<Tx>(nic, njc);
+	eta_y = Array2D<Tx>(nic, njc);
 
-	x_xi = Array2D<T>(nic, njc);
-	x_eta = Array2D<T>(nic, njc);
+	x_xi = Array2D<Tx>(nic, njc);
+	x_eta = Array2D<Tx>(nic, njc);
 
-	y_xi = Array2D<T>(nic, njc);
-	y_eta = Array2D<T>(nic, njc);
+	y_xi = Array2D<Tx>(nic, njc);
+	y_eta = Array2D<Tx>(nic, njc);
 	
-	solution = std::make_shared<Solution<T>>(this);
+	solution = std::make_shared<Solution<Tx>>(this);
 	calc_metrics();
 };
 
-template<class T>
-Mesh<T>::~Mesh(){
+template<class Tx>
+Mesh<Tx>::~Mesh(){
 	
 }
 

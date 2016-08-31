@@ -1,12 +1,12 @@
 #ifndef _ARMA_H
 #define _ARMA_H
-template<class T>
+template<class Tx>
 class LinearSolverArma{
  public:
-	std::shared_ptr<Mesh<T>> mesh;
-	arma::Mat<T> rhs, dq;
-	arma::SpMat<T> jac;
-	LinearSolverArma(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config<T>> val_config){
+	std::shared_ptr<Mesh<Tx>> mesh;
+	arma::Mat<Tx> rhs, dq;
+	arma::SpMat<Tx> jac;
+	LinearSolverArma(std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
 		mesh = val_mesh;
 
 		const auto ni = mesh->ni;
@@ -15,20 +15,20 @@ class LinearSolverArma{
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
 
-		rhs = arma::Mat<T>(nic*njc*nq, 1);
-		dq = arma::Mat<T>(nic*njc*nq, 1);
-		jac = arma::SpMat<T>(nic*njc*nq, nic*njc*nq);
+		rhs = arma::Mat<Tx>(nic*njc*nq, 1);
+		dq = arma::Mat<Tx>(nic*njc*nq, 1);
+		jac = arma::SpMat<Tx>(nic*njc*nq, nic*njc*nq);
 	};
 
-	void set_jac(int nnz, unsigned int *rind, unsigned int *cind, T *values){
-		T value_tmp;
+	void set_jac(int nnz, unsigned int *rind, unsigned int *cind, Tx *values){
+		Tx value_tmp;
 		for(uint i=0; i<nnz; i++){
 			value_tmp = values[i];
 			jac(rind[i],cind[i]) = value_tmp;
 		}
 	};
 
-	void set_rhs(T *val_rhs){
+	void set_rhs(Tx *val_rhs){
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
@@ -38,7 +38,7 @@ class LinearSolverArma{
 		}
 	};
 
-	void solve_and_update(T *q, T under_relaxation){
+	void solve_and_update(Tx *q, Tx under_relaxation){
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;

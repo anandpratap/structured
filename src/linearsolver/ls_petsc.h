@@ -2,18 +2,17 @@
 #define _PETSC_H
 #define CONFIG_PETSC_TOL 1e-12
 #define CONFIG_PETSC_MAXITER 1000
-
-template <class T>
+template <class Tx>
 class LinearSolverPetsc{
-	std::shared_ptr<Mesh<T>> mesh;
+	std::shared_ptr<Mesh<Tx>> mesh;
 	Vec dq, rhs;
 	Mat jac;
-	T *dq_array;
+	Tx *dq_array;
 	PC pc;
 	KSP ksp;
 
  public:
-	LinearSolverPetsc(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config<T>> val_config){
+	LinearSolverPetsc(std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
 		mesh = val_mesh;
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
@@ -28,7 +27,7 @@ class LinearSolverPetsc{
 		ierr = VecSetFromOptions(dq);
 		ierr = VecDuplicate(dq,&rhs);
 
-		MatCreateSeqAIJ(PETSC_COMM_WORLD, nvar, nvar, 36, NULL, &jac);
+		MatCreateSeqAIJ(PETSC_COMM_WORLD, nvar, nvar, MAX_NNZ, NULL, &jac);
 		
 		ierr = KSPCreate(PETSC_COMM_WORLD, &ksp);
 		ierr = KSPSetOperators(ksp, jac, jac);
@@ -54,7 +53,7 @@ class LinearSolverPetsc{
 
 	};
 	
-	void set_jac(int nnz, unsigned int *rind, unsigned int *cind, T *values){
+	void set_jac(int nnz, unsigned int *rind, unsigned int *cind, Tx *values){
 		PetscScalar value_tmp;
 		PetscErrorCode ierr;
 		int row_idx, col_idx;
@@ -68,7 +67,7 @@ class LinearSolverPetsc{
 		MatAssemblyEnd(jac, MAT_FINAL_ASSEMBLY);
 	};
 
-	void set_rhs(T *val_rhs){
+	void set_rhs(Tx *val_rhs){
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
@@ -81,7 +80,7 @@ class LinearSolverPetsc{
 		}
 	};
 
-	void solve_and_update(T *q, T under_relaxation){
+	void solve_and_update(Tx *q, Tx under_relaxation){
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;

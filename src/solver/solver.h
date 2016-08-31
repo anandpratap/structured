@@ -184,14 +184,14 @@ Solver<T, Tad>::Solver(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config
 #endif
 
 
-	logger_convergence = spdlog::basic_logger_mt("convergence", "history.dat", true);
+	label = config->io->label;
+	logger_convergence = spdlog::basic_logger_mt("convergence", label+".history", true);
 	logger_convergence->info(" ");
 	logger = spdlog::get("console");
 
 	CFL = config->solver->cfl;
 	UNDER_RELAXATION = config->solver->under_relaxation;
-	label = config->io->label;
-
+	
 
 	equation = std::make_shared<EulerEquation<T, Tad>>(mesh, config);
 	iomanager = std::make_shared<IOManager<T>>(mesh, config);
