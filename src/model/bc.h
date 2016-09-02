@@ -10,7 +10,7 @@
 template<class Tx, class Tad>
 class BoundaryCondition{
 public:
-	virtual void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p){};
+	virtual void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){};
 };
 
 template<class Tx, class Tad>
@@ -37,7 +37,7 @@ public:
 		njc = nj - 1;
 	};
 	
-	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p){
+	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
 		uint iend, jend;
 		if(face == bottom || face == top){
 			if(face == bottom)
@@ -98,7 +98,7 @@ public:
 		njc = nj - 1;
 	};
 	
-	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p){
+	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
 		uint iend, jend;
 		if(face == bottom || face == top){
 			if(face == bottom)
@@ -176,7 +176,7 @@ public:
 		njc = nj - 1;
 	};
 	
-	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p){
+	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
 		uint iend, jend;
 		if(face == bottom || face == top){
 			if(face == bottom)
@@ -191,6 +191,8 @@ public:
 					rho[i][jend] = 1.5*rho[i][1] - 0.5*rho[i][2];
 					u[i][jend] = -(1.5*u[i][1] - 0.5*u[i][2]);
 					v[i][jend] = -(1.5*v[i][1] - 0.5*v[i][2]);
+
+					T[i][jend] = p[i][jend]/rho[i][jend];
 					//p[i][jend] = p[i][1];
 					//rho[i][jend] = rho[i][1];
 					//u[i][jend] = -u[i][1];
@@ -203,11 +205,12 @@ public:
 					/* rho[i][jend] = 1.5*rho[i][njc] - 0.5*rho[i][njc-1]; */
 					/* u[i][jend] = -(1.5*u[i][njc] - 0.5*u[i][njc-1]); */
 					/* v[i][jend] = -(1.5*v[i][njc] - 0.5*v[i][njc-1]); */
-
-					p[i][jend] = p[i][njc];
-					rho[i][jend] = rho[i][njc];
-					u[i][jend] = -u[i][njc];
-					v[i][jend] = -v[i][njc];
+					p[i][jend] = 1.5*p[i][njc] - 0.5*p[i][njc-1];
+					rho[i][jend] = 1.5*rho[i][njc] - 0.5*rho[i][njc-1];
+					u[i][jend] = -(1.5*u[i][njc] - 0.5*u[i][njc-1]);
+					v[i][jend] = -(1.5*v[i][njc] - 0.5*v[i][njc-1]);
+					T[i][jend] = p[i][jend]/rho[i][jend];
+					
 					
 				}
 			}
@@ -255,7 +258,7 @@ public:
 		njc = nj - 1;
 	};
 	
-	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p){
+	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
 		uint iend, jend;
 		if(face == bottom || face == top){
 			if(face == bottom)
@@ -328,7 +331,7 @@ public:
 		njc = nj - 1;
 	};
 	
-	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p){
+	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
 		uint iend, jend;
 		if(face == bottom || face == top){
 			if(face == bottom)
@@ -356,7 +359,72 @@ public:
 				rho[iend][j] = rho[iend-1][j];
 				u[iend][j] = u[iend-1][j];
 				v[iend][j] = v[iend-1][j];
-				p[iend][j] = p_inf*.9;
+				p[iend][j] = p_inf;
+			}
+		}
+		
+	};
+};
+
+
+
+template<class Tx, class Tad>
+class BoundaryConditionPeriodic: public BoundaryCondition<Tx, Tad>{
+public:
+	std::string name;
+	uint face;
+	uint start, end;
+	uint ni, nj, nic, njc;
+	Tx rho_inf, u_inf, v_inf, p_inf;
+	BoundaryConditionPeriodic(std::string val_name, std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Config<Tx>> config,
+								uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
+		name = val_name;
+		face = val_face;
+		start = val_start;
+		end = val_end;
+		rho_inf = config->freestream->rho_inf;
+		u_inf = config->freestream->u_inf;
+		v_inf = config->freestream->v_inf;
+		p_inf = config->freestream->p_inf;
+		ni = mesh->ni;
+		nj = mesh->nj;
+		nic = ni - 1;
+		njc = nj - 1;
+	};
+	
+	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
+		uint iend, jend;
+		if(face == bottom || face == top){
+			if(face == bottom)
+				jend = 0;
+			else
+				jend = njc + 1;
+
+#pragma omp parallel for
+			for(uint i=start; i<=end; i++){
+				rho[i][jend] = rho_inf;
+				u[i][jend] = u_inf;
+				v[i][jend] = v_inf;
+				p[i][jend] = p_inf;
+			}
+		}
+
+		if(face == left || face == right){
+#pragma omp parallel for
+			for(uint j=start; j<=end; j++){
+				rho[0][j] = rho[nic][j];
+				u[0][j] = u[nic][j];
+				v[0][j] = v[nic][j];
+				p[0][j] = p[nic][j];
+				T[0][j] = T[nic][j];
+				
+				rho[nic+1][j] = rho[1][j];
+				u[nic+1][j] = u[1][j];
+				v[nic+1][j] = v[1][j];
+				p[nic+1][j] = p[1][j];
+				T[nic+1][j] = T[1][j];
+
+				//				spdlog::get("console")->debug("periodic bc");
 			}
 		}
 		
