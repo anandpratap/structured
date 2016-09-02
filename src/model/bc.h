@@ -432,5 +432,88 @@ public:
 };
 
 
+template<class Tx, class Tad>
+class BoundaryConditionIsothermalWall: public BoundaryCondition<Tx, Tad>{
+public:
+	std::string name;
+	uint face;
+	uint start, end;
+	uint ni, nj, nic, njc;
+	Tx rho_inf, u_inf, v_inf, p_inf;
+	std::shared_ptr<Mesh<Tx>> mesh;
+	BoundaryConditionIsothermalWall(std::string val_name, std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config,
+								  uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
+		name = val_name;
+		mesh = val_mesh;
+		face = val_face;
+		start = val_start;
+		end = val_end;
+		rho_inf = config->freestream->rho_inf;
+		u_inf = config->freestream->u_inf;
+		v_inf = config->freestream->v_inf;
+		p_inf = config->freestream->p_inf;
+		ni = mesh->ni;
+		nj = mesh->nj;
+		nic = ni - 1;
+		njc = nj - 1;
+	};
+	
+	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
+		uint iend, jend;
+		if(face == bottom || face == top){
+			if(face == bottom)
+				jend = 0;
+			else
+				jend = njc + 1;
+
+#pragma omp parallel for
+			for(uint i=start; i<=end; i++){
+				if(face == bottom){
+					T[i][jend] = 2.0/1.4;
+					p[i][jend] = 1.5*p[i][1] - 0.5*p[i][2];
+					//rho[i][jend] = 1.5*rho[i][1] - 0.5*rho[i][2];
+					u[i][jend] = -(1.5*u[i][1] - 0.5*u[i][2]);
+					v[i][jend] = -(1.5*v[i][1] - 0.5*v[i][2]);
+					rho[i][jend] = p[i][jend]/T[i][jend];
+					
+					//p[i][jend] = p[i][1];
+					//rho[i][jend] = rho[i][1];
+					//u[i][jend] = -u[i][1];
+					//v[i][jend] = -v[i][1];
+
+				}
+				else{
+					//spdlog::get("console")->debug("{} {} {}", i, start, end);
+					/* p[i][jend] = 1.5*p[i][njc] - 0.5*p[i][njc-1]; */
+					/* rho[i][jend] = 1.5*rho[i][njc] - 0.5*rho[i][njc-1]; */
+					/* u[i][jend] = -(1.5*u[i][njc] - 0.5*u[i][njc-1]); */
+					/* v[i][jend] = -(1.5*v[i][njc] - 0.5*v[i][njc-1]); */
+					p[i][jend] = 1.5*p[i][njc] - 0.5*p[i][njc-1];
+					//rho[i][jend] = 1.5*rho[i][njc] - 0.5*rho[i][njc-1];
+					u[i][jend] = -(1.5*u[i][njc] - 0.5*u[i][njc-1]);
+					v[i][jend] = -(1.5*v[i][njc] - 0.5*v[i][njc-1]);
+					T[i][jend] = 1.0/1.4;
+					rho[i][jend] = p[i][jend]/T[i][jend];
+					
+				}
+			}
+		}
+
+		if(face == left || face == right){
+			if(face == left)
+				iend = 0;
+			else
+				iend = nic + 1;
+
+#pragma omp parallel for
+			for(uint j=start; j<=end; j++){
+				spdlog::get("console")->critical("Boundary condition not implemented!");
+			}
+		}
+		
+	};
+};
+
+
 
 #endif

@@ -435,8 +435,8 @@ public:
 				for(uint k=1; k<mesh->solution->nq; k++){
 					a_rhs[i][j][k] += (flux_eta[i][j+1][k] - flux_eta[i][j][k]);
 					a_rhs[i][j][k] += (flux_xi[i+1][j][k] - flux_xi[i][j][k]);
-					if(k==3)
-						spdlog::get("console")->debug("rhs = {}, {}, {}",  (flux_eta[i][j+1][k] - flux_eta[i][j][k]).value(), (flux_xi[i+1][j][k] - flux_xi[i][j][k]).value(), mesh->volume[i][j]);
+					//if(k==3)
+					//	spdlog::get("console")->debug("rhs = {}, {}, {}",  (flux_eta[i][j+1][k] - flux_eta[i][j][k]).value(), (flux_xi[i+1][j][k] - flux_xi[i][j][k]).value(), mesh->volume[i][j]);
 					//spdlog::get("console")->debug("viscous contribution {} {} ", (flux_eta[i][j+1][k].value() - flux_eta[i][j][k].value()), (flux_xi[i+1][j][k].value() - flux_xi[i][j][k].value()));
 				}
 			}
@@ -547,6 +547,10 @@ public:
 			}
 			else if(type == "wall"){
 				auto boundarycondition = new BoundaryConditionViscousWall<Tx, Tad>(name, mesh, config, facei, start, end);
+				boundaryconditions.push_back(boundarycondition);
+			}
+			else if(type == "isothermalwall"){
+				auto boundarycondition = new BoundaryConditionIsothermalWall<Tx, Tad>(name, mesh, config, facei, start, end);
 				boundaryconditions.push_back(boundarycondition);
 			}
 			else if(type == "wake"){
