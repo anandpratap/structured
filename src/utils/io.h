@@ -19,6 +19,7 @@ public:
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
+		const auto ntrans = mesh->solution->ntrans;
 
 		rho = Array2D<Tx>(nic, njc);
 		u = Array2D<Tx>(nic, njc);
@@ -45,17 +46,44 @@ public:
 		auto q = mesh->solution->q;
 		auto xc = mesh->xc;
 		auto yc = mesh->yc;
-		
+
+		const auto nq = mesh->solution->nq;
+		const auto ntrans = mesh->solution->ntrans;
+
 		std::ofstream outfile;
 		outfile.open(filename);
 		char buffer [500];
 		outfile<<"title = \"Solution\""<<"\n";
-		outfile<<"variables = \"x\" \"y\" \"rho\" \"u\" \"v\" \"p\""<<"\n"; 
+		outfile<<"variables = \"x\" \"y\" \"rho\" \"u\" \"v\" \"p\"";
+		for(uint tn=0; tn<ntrans; tn++){
+			outfile << " \"psi_0\"";
+		}
+		for(uint tn=0; tn<mesh->solution->naux; tn++){
+			outfile << " \"qaux_"<<tn<<"\"";
+		}
+
+		outfile << "\n";
+
 		outfile<<"zone i="<<nic<<", j="<<njc<<", f=point\n";
+		
 		for(uint j=0; j<njc; j++){
 			for(uint i=0; i<nic; i++){
-				sprintf(buffer, "%8.14E %8.14E %8.14E %8.14E %8.14E %8.14E\n", xc[i][j], yc[i][j], q[i][j][0], q[i][j][1], q[i][j][2], q[i][j][3]);
-				outfile<<buffer;
+				outfile << xc[i][j] << " ";
+				outfile << yc[i][j] << " ";
+
+				for(uint k=0; k<nq; k++){
+					outfile << q[i][j][k] << " ";
+				}
+
+				for(uint tn=0; tn<ntrans; tn++){
+					outfile << q[i][j][4+tn] << " ";
+				}
+
+				for(uint tn=0; tn<mesh->solution->naux; tn++){
+					outfile << mesh->solution->q_aux[i][j][tn] << " ";
+				}
+		
+				outfile << "\n";
 			}
 		}
 		
@@ -87,13 +115,14 @@ public:
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
+		const auto ntrans = mesh->solution->ntrans;
 		auto q = mesh->solution->q;
 		auto xc = mesh->xc;
 		auto yc = mesh->yc;
 		std::ofstream outfile(filename,std::ofstream::binary);
 		for(int i=0; i<nic; i++){
 			for(int j=0; j<njc; j++){
-				outfile.write(reinterpret_cast<const char*>(&q[i][j][0]), sizeof(T)*nq);
+				outfile.write(reinterpret_cast<const char*>(&q[i][j][0]), sizeof(T)*(nq+ntrans));
 			}
 		}
 		outfile.close();
@@ -105,6 +134,8 @@ public:
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
+		const auto ntrans = mesh->solution->ntrans;
+				
 		auto q = mesh->solution->q;
 		auto xc = mesh->xc;
 		auto yc = mesh->yc;
@@ -112,13 +143,13 @@ public:
 
 		infile.seekg (0,infile.end);
 		long size = infile.tellg();
-		long size_expected = nic*njc*nq*sizeof(T);
+		long size_expected = nic*njc*(nq+ntrans)*sizeof(T);
 		infile.seekg (0);
 		assert(size == size_expected);
 		
 		for(int i=0; i<nic; i++){
 			for(int j=0; j<njc; j++){
-				infile.read(reinterpret_cast<char*>(&q[i][j][0]), sizeof(T)*nq);
+				infile.read(reinterpret_cast<char*>(&q[i][j][0]), sizeof(T)*(nq+ntrans));
 			}
 		}
 		infile.close();
