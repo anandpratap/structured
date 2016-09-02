@@ -95,9 +95,12 @@ void Solver<T, Tad>::calc_dt(){
 			T v = q[i][j][2]/rho;
 			T rhoE = q[i][j][3];
 			T p = (rhoE - 0.5*rho*(u*u + v*v))*(GAMMA-1.0);
-			T lambda = std::sqrt(GAMMA*p/rho) + std::abs(u) + std::abs(v);
+			T lambda = sqrt(GAMMA*p/rho) + fabs(u) + fabs(v);
+			T len_min = std::min(mesh->ds_eta[i][j], mesh->ds_chi[i][j]);
+			T mu = config->freestream->mu_inf;
 			for(int k=0; k<nq; k++)
-				dt[i][j][k] = std::min(mesh->ds_eta[i][j], mesh->ds_chi[i][j])/lambda*CFL;
+				dt[i][j][k] = CFL/(lambda/len_min + 2.0*mu/len_min/len_min);
+			//dt[i][j][4] = dt[i][j][0];
 		}
 	}
 
@@ -140,9 +143,10 @@ void Solver<T, Tad>::initialize(){
 		iomanager->read_restart();
 	}
 	uint nq = mesh->solution->nq;
+	uint ntrans = mesh->solution->ntrans;
 	for(uint i=0; i<nic; i++){
 		for(uint j=0; j<njc; j++){
-			for(uint k=0; k<nq; k++){
+			for(uint k=0; k<nq+ntrans; k++){
 				q_tmp[i][j][k] = mesh->solution->q[i][j][k];
 			}
 		}
@@ -162,14 +166,16 @@ Solver<T, Tad>::Solver(std::shared_ptr<Mesh<T>> val_mesh, std::shared_ptr<Config
 	uint nic = mesh->nic;
 	uint njc = mesh->njc;
 	uint nq = mesh->solution->nq;
-	nt = nic*njc*nq;
+	uint ntrans = mesh->solution->ntrans;
+
+	nt = nic*njc*(nq+ntrans);
 	
-	dt = Array3D<T>(nic, njc, nq);
-	rhs = Array3D<T>(nic, njc, nq);
-	q = Array3D<T>(nic, njc, nq);
-	q_tmp = Array3D<T>(nic, njc, nq);
-	a_q = Array3D<Tad>(nic, njc, nq);
-	a_rhs = Array3D<Tad>(nic, njc, nq);
+	dt = Array3D<T>(nic, njc, nq+ntrans);
+	rhs = Array3D<T>(nic, njc, nq+ntrans);
+	q = Array3D<T>(nic, njc, nq+ntrans);
+	q_tmp = Array3D<T>(nic, njc, nq+ntrans);
+	a_q = Array3D<Tad>(nic, njc, nq+ntrans);
+	a_rhs = Array3D<Tad>(nic, njc, nq+ntrans);
 
 #if defined(ENABLE_ARMA)
 	linearsolver = std::make_shared<LinearSolverArma<T>>(mesh, config);
@@ -214,7 +220,9 @@ void Solver<T, Tad>::solve(){
 	uint nic = mesh->nic;
 	uint njc = mesh->njc;
 	uint nq = mesh->solution->nq;
-	T l2norm[nq] = {1e10};
+	uint ntrans = mesh->solution->ntrans;
+
+	T l2norm[nq+ntrans] = {1e10};
 
 	uint counter = 0;
 	T t = 0.0;
@@ -236,7 +244,7 @@ void Solver<T, Tad>::solve(){
 		trace_on(1);
 		for(uint i=0; i<nic; i++){
 			for(uint j=0; j<njc; j++){
-				for(uint k=0; k<nq; k++){
+				for(uint k=0; k<nq+ntrans; k++){
 					a_q[i][j][k] <<= q[i][j][k];
 				}
 			}
@@ -245,7 +253,7 @@ void Solver<T, Tad>::solve(){
 		
 		for(uint i=0; i<nic; i++){
 			for(uint j=0; j<njc; j++){
-				for(uint k=0; k<nq; k++){
+				for(uint k=0; k<nq+ntrans; k++){
 					a_rhs[i][j][k] >>= rhs[i][j][k];
 				}
 			}
@@ -277,7 +285,7 @@ void Solver<T, Tad>::solve(){
 		float dt_perfs = timer_residual.diff();
 
 		T l2normq;
-		for(uint k=0; k<nq; k++){
+		for(uint k=0; k<nq+ntrans; k++){
 			l2normq = 0.0;
 			for(uint i=0; i<nic; i++){
 				for(uint j=0; j<njc; j++){
@@ -289,14 +297,21 @@ void Solver<T, Tad>::solve(){
 		
 		if(counter > config->solver->iteration_max){
 			logger->info("Max iteration reached!");
+			copy_to_solution();
+			iomanager->write(counter);
+			float dt_main = timer_main.diff();
+			logger->info("Final:: Step: {:08d} Time: {:.2e} Wall Time: {:.2e} CFL: {:.2e} Density Norm: {:.2e}", counter, t, dt_main, CFL, l2norm[0]);
+			logger_convergence->info("{:08d} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e}", counter, t, dt_main, CFL, l2norm[0], l2norm[1], l2norm[2], l2norm[3]);
 			break;
 		}
-		if(l2norm[0] < config->solver->tolerance){
+		//		logger->debug("transport l2 {}", l2norm[4]);
+		if(l2norm[0] < config->solver->tolerance && l2norm[1] < config->solver->tolerance && 0){
 			logger->info("Convergence reached!");
 			copy_to_solution();
 			iomanager->write(counter);
 			float dt_main = timer_main.diff();
 			logger->info("Final:: Step: {:08d} Time: {:.2e} Wall Time: {:.2e} CFL: {:.2e} Density Norm: {:.2e}", counter, t, dt_main, CFL, l2norm[0]);
+			logger_convergence->info("{:08d} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e}", counter, t, dt_main, CFL, l2norm[0], l2norm[1], l2norm[2], l2norm[3]);
 			break;
 		}
 #if defined(ENABLE_ADOLC)
@@ -310,9 +325,9 @@ void Solver<T, Tad>::solve(){
 			linearsolver->preallocate(nnz);
 		T dt_local = 0;
 		for(uint i=0; i<nnz; i++){
-			const auto k_idx = rind[i]%nq;
-			const auto j_idx = ((rind[i]-k_idx)/nq)%njc;
-			const auto i_idx = (rind[i] - k_idx - j_idx*nq)/njc/nq;
+			const auto k_idx = rind[i]%(nq+ntrans);
+			const auto j_idx = ((rind[i]-k_idx)/(nq+ntrans))%njc;
+			const auto i_idx = (rind[i] - k_idx - j_idx*(nq+ntrans))/njc/(nq+ntrans);
 			dt_local = dt[i_idx][j_idx][k_idx];
 			values[i] = -values[i];
 			//			std::cout<<dt_local<<std::endl;
