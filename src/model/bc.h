@@ -356,7 +356,7 @@ public:
 				rho[iend][j] = rho[iend-1][j];
 				u[iend][j] = u[iend-1][j];
 				v[iend][j] = v[iend-1][j];
-				p[iend][j] = p_inf;
+				p[iend][j] = p_inf*.9;
 			}
 		}
 		

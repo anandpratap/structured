@@ -3,6 +3,7 @@
 #include "flux.h"
 #include "reconstruction.h"
 #include "bc.h"
+
 template<class Tx, class Tad>
 class EulerEquation{
 public:
@@ -22,7 +23,7 @@ public:
 	
 
 	std::vector<BoundaryCondition<Tx, Tad>*> boundaryconditions;
-
+	//std::unique_ptr<TransportEquation<Tx, Tad>> transport;	
 	void calc_residual(Array3D<Tad>& a_q, Array3D<Tad>& a_rhs);
 	void calc_convective_residual(Array3D<Tad>& a_rhs);
 	void calc_viscous_residual(Array3D<Tad>& a_rhs){
@@ -33,15 +34,18 @@ public:
 		auto T_inf = config->freestream->T_inf;
 		auto Rc = p_inf/rho_inf/T_inf;
 		auto k = mu*GAMMA*Rc/(GAMMA-1.0)/pr_inf;
-		for(int i=0; i<nic+2; i++){
-			for(int j=0; j<njc+2; j++){
-				T[i][j] = p[i][j]/rho[i][j]/Rc;
-			}
-		}
 		mesh->calc_gradient(u, grad_u, 1, 1);
 		mesh->calc_gradient(v, grad_v, 1, 1);
 		mesh->calc_gradient(T, grad_T, 1, 1);
-
+		for(int i=0; i<nic; i++){
+			for(int j=0; j<njc; j++){
+				mesh->solution->q_aux[i][j][0] = grad_u[i][j][0].value();
+				mesh->solution->q_aux[i][j][1] = grad_u[i][j][1].value();
+				mesh->solution->q_aux[i][j][2] = grad_v[i][j][0].value();
+				mesh->solution->q_aux[i][j][3] = grad_v[i][j][1].value();
+			}
+		}
+		
 		// xi
 		
 		for(int i=0; i<ni; i++){
@@ -76,27 +80,51 @@ public:
 
 				}
 				else{
-					const Tad dudx_bar = (grad_u[i][j][0] + grad_u[i-1][j][0])*0.5;
-					const Tad dudy_bar = (grad_u[i][j][1] + grad_u[i-1][j][1])*0.5;
+
+					/* dvdy = grad_v[i][j][1]; */
+					const uint b = 1;
+
+					const Tad uleft = u[i+b-1][j+b];
+					const Tad uright = u[i+b][j+b];
+					const Tad utop = 0.25*(uleft+uright+u[i+b-1][j+b+1]+u[i+b][j+b+1]);
+					const Tad ubottom = 0.25*(uleft+uright+u[i+b-1][j+b-1]+u[i+b][j+b-1]);
+
+					const Tad vleft = v[i+b-1][j+b];
+					const Tad vright = v[i+b][j+b];
+					const Tad vtop = 0.25*(vleft+vright+v[i+b-1][j+b+1]+v[i+b][j+b+1]);
+					const Tad vbottom = 0.25*(vleft+vright+v[i+b-1][j+b-1]+v[i+b][j+b-1]);
 					
-					const Tad dvdx_bar = (grad_v[i][j][0] + grad_v[i-1][j][0])*0.5;
-					const Tad dvdy_bar = (grad_v[i][j][1] + grad_v[i-1][j][1])*0.5;
-					
+
+						
+						double normal_top[2];
+						double normal_bottom[2];
+						double normal_left[2];
+						double normal_right[2];
+						// for(int k=0; k<2; k++){
+						// 	normal_top[k] = 0.5*(mesh->normal_eta[i][j][k] + mesh->normal_eta[i][j+1][k]);
+						// 	normal_bottom[k] = 0.5*(mesh->normal_eta[i][j][k] + mesh->normal_eta[i][j-1][k]);
+						// 	normal_left[k] = 0.5*(mesh->normal_chi[i][j] + mesh->normal_chi[i][j-1]);
+						// 	normal_right[k] = 0.5*(mesh->normal_chi[i+1][j] + mesh->normal_chi[i+1][j-1]);
+						// }
+						double volume = 0.5*(mesh->volume[i][j] + mesh->volume[i-1][j]);
+						for(int k=0; k<2; k++){
+							normal_top[k] = 0.5*(mesh->normal_eta[i][j+1][k] + mesh->normal_eta[i-1][j+1][k]);
+							normal_bottom[k] = 0.5*(mesh->normal_eta[i][j][k] + mesh->normal_eta[i-1][j][k]);
+							normal_right[k] = 0.5*(mesh->normal_chi[i][j][k] + mesh->normal_chi[i+1][j][k]);
+							normal_left[k] = 0.5*(mesh->normal_chi[i][j][k] + mesh->normal_chi[i-1][j][k]);
+						}
+
+						
+						dudx = (normal_top[0]*utop - normal_bottom[0]*ubottom + normal_right[0]*uright - normal_left[0]*uleft)/volume;
+						dudy = (normal_top[1]*utop - normal_bottom[1]*ubottom + normal_right[1]*uright - normal_left[1]*uleft)/volume;
+						
+						dvdx = (normal_top[0]*vtop - normal_bottom[0]*vbottom + normal_right[0]*vright - normal_left[0]*vleft)/volume;
+						dvdy = (normal_top[1]*vtop - normal_bottom[1]*vbottom + normal_right[1]*vright - normal_left[1]*vleft)/volume;
+
+
+
 					const Tad dTdx_bar = (grad_T[i][j][0] + grad_T[i-1][j][0])*0.5;
 					const Tad dTdy_bar = (grad_T[i][j][1] + grad_T[i-1][j][1])*0.5;
-					
-					auto rijx = mesh->xc[i][j] - mesh->xc[i-1][j];
-					auto rijy = mesh->yc[i][j] - mesh->yc[i-1][j];
-					auto dr = std::sqrt(rijx*rijx + rijy*rijy);
-					rijx = rijx/dr;
-					rijy = rijy/dr;
-					
-					dudx = dudx_bar;// + ((u[i][j] - u[i-1][j])/dr - dudx_bar*rijx - dudy_bar*rijy)*rijx;
-					dudy = dudy_bar;// + ((u[i][j] - u[i-1][j])/dr - dudx_bar*rijx - dudy_bar*rijy)*rijy;
-					
-					dvdx = dvdx_bar;// + ((v[i][j] - v[i-1][j])/dr - dvdx_bar*rijx - dvdy_bar*rijy)*rijx;
-					dvdy = dvdy_bar;// + ((v[i][j] - v[i-1][j])/dr - dvdx_bar*rijx - dvdy_bar*rijy)*rijy;
-					
 					dTdx = dTdx_bar;// + ((T[i][j] - T[i-1][j])/dr - dTdx_bar*rijx - dTdy_bar*rijy)*rijx;
 					dTdy = dTdy_bar;// + ((T[i][j] - T[i-1][j])/dr - dTdx_bar*rijx - dTdy_bar*rijy)*rijy;
 
@@ -109,9 +137,12 @@ public:
 				const Tad q_x = -k*dTdx;
 				const Tad q_y = -k*dTdy;
 
+				flux_xi[i][j][0] = 0.0;
 				flux_xi[i][j][1] = tau_xx*nx + tau_xy*ny;
 				flux_xi[i][j][2] = tau_xy*nx + tau_yy*ny;
-				flux_xi[i][j][3] = (ubar*tau_xx + vbar*tau_xy - q_x)*nx + (ubar*tau_xy + vbar*tau_yy - q_y)*ny;
+				flux_xi[i][j][3] = 0.0;//(ubar*tau_xx + vbar*tau_xy - q_x)*nx + (ubar*tau_xy + vbar*tau_yy - q_y)*ny;
+				
+
 			}
 		}
 
@@ -126,24 +157,105 @@ public:
 					vbar = (v[i+1][j+1] + v[i+1][j])*0.5;
 
 					if(j == 0){
-						dudx = grad_u[i][j][0];
-					dudy = grad_u[i][j][1];
+						/* const Tad dudeta = (u[i+1][j+1] - u[i+1][j]);
+						const Tad dvdeta = (v[i+1][j+1] - v[i+1][j]);
+						const Tad dudxi = (u[i+2][j+1] - u[i+1-1][j+1])/2.0;
+						const Tad dvdxi = (v[i+2][j+1] - v[i+1-1][j+1])/2.0;
+
+						*/
+						
+						//dudx = mesh->xi_x[i][j]*dudxi + mesh->eta_x[i][j]*dudeta;
+						//dudy = mesh->xi_y[i][j]*dudxi + mesh->eta_y[i][j]*dudeta;
+						
+						//dvdx = mesh->xi_x[i][j]*dvdxi + mesh->eta_x[i][j]*dvdeta;
+						//dvdy = mesh->xi_y[i][j]*dvdxi + mesh->eta_y[i][j]*dvdeta;
+						
+						//dudx = 0.0; dudy=0.0; dvdx=0.0; dvdy=0.0;
+						
+					   /* 	dudx = grad_u[i][j][0]; */
+					/* dudy = grad_u[i][j][1]; */
 					
-					dvdx = grad_v[i][j][0];
-					dvdy = grad_v[i][j][1];
-					
-					dTdx = grad_T[i][j][0];
-					dTdy = grad_T[i][j][1];
+					/* dvdx = grad_v[i][j][0]; */
+					/* dvdy = grad_v[i][j][1]; */
+						const uint b = 1;
+						const Tad utop = u[i+b][j+b];
+						const Tad ubottom = u[i+b][j+b-1];
+
+						const Tad uleft = 0.25*(utop + ubottom + u[i+b-1][j+b] + u[i+b-1][j+b-1]);
+						const Tad uright = 0.25*(utop + ubottom + u[i+b+1][j+b] + u[i+b+1][j+b-1]);
+
+						const Tad vtop = v[i+b][j+b];
+						const Tad vbottom = v[i+b][j+b-1];
+
+						const Tad vleft = 0.25*(vtop + vbottom + v[i+b-1][j+b] + v[i+b-1][j+b-1]);
+						const Tad vright = 0.25*(vtop + vbottom + v[i+b+1][j+b] + v[i+b+1][j+b-1]);
+
+						
+						double normal_top[2];
+						double normal_bottom[2];
+						double normal_left[2];
+						double normal_right[2];
+						// for(int k=0; k<2; k++){
+						// 	normal_top[k] = 0.5*(mesh->normal_eta[i][j][k] + mesh->normal_eta[i][j+1][k]);
+						// 	normal_bottom[k] = 0.5*(mesh->normal_eta[i][j][k] + mesh->normal_eta[i][j-1][k]);
+						// 	normal_left[k] = 0.5*(mesh->normal_chi[i][j] + mesh->normal_chi[i][j-1]);
+						// 	normal_right[k] = 0.5*(mesh->normal_chi[i+1][j] + mesh->normal_chi[i+1][j-1]);
+						// }
+						double volume = mesh->volume[i][j];
+						for(int k=0; k<2; k++){
+							normal_top[k] = 0.5*(mesh->normal_eta[i][j][k] + mesh->normal_eta[i][j+1][k]);
+							normal_bottom[k] = mesh->normal_eta[i][j][k];
+							normal_left[k] = mesh->normal_chi[i][j][k];
+							normal_right[k] = mesh->normal_chi[i+1][j][k];
+						}
+
+						
+						dudx = (normal_top[0]*utop - normal_bottom[0]*ubottom + normal_right[0]*uright - normal_left[0]*uleft)/volume;
+						dudy = (normal_top[1]*utop - normal_bottom[1]*ubottom + normal_right[1]*uright - normal_left[1]*uleft)/volume;
+						
+						dvdx = (normal_top[0]*vtop - normal_bottom[0]*vbottom + normal_right[0]*vright - normal_left[0]*vleft)/volume;
+						dvdy = (normal_top[1]*vtop - normal_bottom[1]*vbottom + normal_right[1]*vright - normal_left[1]*vleft)/volume;
+
+						dTdx = grad_T[i][j][0];
+						dTdy = grad_T[i][j][1];
 
 
 				}
 
 				else if(j == nj-1){
-					dudx = grad_u[i][j-1][0];
-					dudy = grad_u[i][j-1][1];
 					
-					dvdx = grad_v[i][j-1][0];
-					dvdy = grad_v[i][j-1][1];
+					
+
+					const uint b = 1;
+					const Tad utop = u[i+b][j+b];
+					const Tad ubottom = u[i+b][j+b-1];
+
+					const Tad uleft = 0.25*(utop + ubottom + u[i+b-1][j+b] + u[i+b-1][j+b-1]);
+					const Tad uright = 0.25*(utop + ubottom + u[i+b+1][j+b] + u[i+b+1][j+b-1]);
+
+					const Tad vtop = v[i+b][j+b];
+					const Tad vbottom = v[i+b][j+b-1];
+
+					const Tad vleft = 0.25*(vtop + vbottom + v[i+b-1][j+b] + v[i+b-1][j+b-1]);
+					const Tad vright = 0.25*(vtop + vbottom + v[i+b+1][j+b] + v[i+b+1][j+b-1]);
+
+						
+					double normal_top[2];
+					double normal_bottom[2];
+					double normal_left[2];
+					double normal_right[2];
+					for(int k=0; k<2; k++){
+						normal_top[k] = mesh->normal_eta[i][j][k];
+						normal_bottom[k] = 0.5*(mesh->normal_eta[i][j][k] + mesh->normal_eta[i][j-1][k]);
+						normal_left[k] = mesh->normal_chi[i][j-1][k];
+						normal_right[k] = mesh->normal_chi[i+1][j-1][k];
+					}
+					double volume = mesh->volume[i][j-1];
+					dudx = (normal_top[0]*utop - normal_bottom[0]*ubottom + normal_right[0]*uright - normal_left[0]*uleft)/volume;
+					dudy = (normal_top[1]*utop - normal_bottom[1]*ubottom + normal_right[1]*uright - normal_left[1]*uleft)/volume;
+						
+					dvdx = (normal_top[0]*vtop - normal_bottom[0]*vbottom + normal_right[0]*vright - normal_left[0]*vleft)/volume;
+					dvdy = (normal_top[1]*vtop - normal_bottom[1]*vbottom + normal_right[1]*vright - normal_left[1]*vleft)/volume;
 					
 					dTdx = grad_T[i][j-1][0];
 					dTdy = grad_T[i][j-1][1];
@@ -151,29 +263,43 @@ public:
 
 				}
 				else{
-					const Tad dudx_bar = (grad_u[i][j][0] + grad_u[i][j-1][0])*0.5;
-					const Tad dudy_bar = (grad_u[i][j][1] + grad_u[i][j-1][1])*0.5;
+
+
+					const uint b = 1;
+					const Tad utop = u[i+b][j+b];
+					const Tad ubottom = u[i+b][j+b-1];
+
+						const Tad uleft = 0.25*(utop + ubottom + u[i+b-1][j+b] + u[i+b-1][j+b-1]);
+						const Tad uright = 0.25*(utop + ubottom + u[i+b+1][j+b] + u[i+b+1][j+b-1]);
+
+						const Tad vtop = v[i+b][j+b];
+						const Tad vbottom = v[i+b][j+b-1];
+
+						const Tad vleft = 0.25*(vtop + vbottom + v[i+b-1][j+b] + v[i+b-1][j+b-1]);
+						const Tad vright = 0.25*(vtop + vbottom + v[i+b+1][j+b] + v[i+b+1][j+b-1]);
+
+						
+						double normal_top[2];
+						double normal_bottom[2];
+						double normal_left[2];
+						double normal_right[2];
+						for(int k=0; k<2; k++){
+							normal_top[k] = 0.5*(mesh->normal_eta[i][j][k] + mesh->normal_eta[i][j+1][k]);
+							normal_bottom[k] = 0.5*(mesh->normal_eta[i][j][k] + mesh->normal_eta[i][j-1][k]);
+							normal_left[k] = 0.5*(mesh->normal_chi[i][j][k] + mesh->normal_chi[i][j-1][k]);
+							normal_right[k] = 0.5*(mesh->normal_chi[i+1][j][k] + mesh->normal_chi[i+1][j-1][k]);
+						}
+						double volume = 0.5*(mesh->volume[i][j] + mesh->volume[i][j-1]);
+						dudx = (normal_top[0]*utop - normal_bottom[0]*ubottom + normal_right[0]*uright - normal_left[0]*uleft)/volume;
+						dudy = (normal_top[1]*utop - normal_bottom[1]*ubottom + normal_right[1]*uright - normal_left[1]*uleft)/volume;
+						
+						dvdx = (normal_top[0]*vtop - normal_bottom[0]*vbottom + normal_right[0]*vright - normal_left[0]*vleft)/volume;
+						dvdy = (normal_top[1]*vtop - normal_bottom[1]*vbottom + normal_right[1]*vright - normal_left[1]*vleft)/volume;
 					
-					const Tad dvdx_bar = (grad_v[i][j][0] + grad_v[i][j-1][0])*0.5;
-					const Tad dvdy_bar = (grad_v[i][j][1] + grad_v[i][j-1][1])*0.5;
-					
-					const Tad dTdx_bar = (grad_T[i][j][0] + grad_T[i][j-1][0])*0.5;
-					const Tad dTdy_bar = (grad_T[i][j][1] + grad_T[i][j-1][1])*0.5;
-					
-					auto rijx = mesh->xc[i][j] - mesh->xc[i][j-1];
-					auto rijy = mesh->yc[i][j] - mesh->yc[i][j-1];
-					auto dr = std::sqrt(rijx*rijx + rijy*rijy);
-					rijx = rijx/dr;
-					rijy = rijy/dr;
-					
-					dudx = dudx_bar;// + ((u[i][j] - u[i][j-1])/dr - dudx_bar*rijx - dudy_bar*rijy)*rijx;
-					dudy = dudy_bar;// + ((u[i][j] - u[i][j-1])/dr - dudx_bar*rijx - dudy_bar*rijy)*rijy;
-					
-					dvdx = dvdx_bar;// + ((v[i][j] - v[i][j-1])/dr - dvdx_bar*rijx - dvdy_bar*rijy)*rijx;
-					dvdy = dvdy_bar;// + ((v[i][j] - v[i][j-1])/dr - dvdx_bar*rijx - dvdy_bar*rijy)*rijy;
-					
-					dTdx = dTdx_bar;// + ((T[i][j] - T[i][j-1])/dr - dTdx_bar*rijx - dTdy_bar*rijy)*rijx;
-					dTdy = dTdy_bar;// + ((T[i][j] - T[i][j-1])/dr - dTdx_bar*rijx - dTdy_bar*rijy)*rijy;
+						const Tad dTdx_bar = (grad_T[i][j][0] + grad_T[i][j-1][0])*0.5;
+						const Tad dTdy_bar = (grad_T[i][j][1] + grad_T[i][j-1][1])*0.5;
+						dTdx = dTdx_bar;// + ((T[i][j] - T[i][j-1])/dr - dTdx_bar*rijx - dTdy_bar*rijy)*rijx;
+						dTdy = dTdy_bar;// + ((T[i][j] - T[i][j-1])/dr - dTdx_bar*rijx - dTdy_bar*rijy)*rijy;
 
 				}
 
@@ -185,7 +311,9 @@ public:
 
 				flux_eta[i][j][1] = tau_xx*nx + tau_xy*ny;
 				flux_eta[i][j][2] = tau_xy*nx + tau_yy*ny;
-				flux_eta[i][j][3] = (ubar*tau_xx + vbar*tau_xy - q_x)*nx + (ubar*tau_xy + vbar*tau_yy - q_y)*ny;
+				flux_eta[i][j][3] = 0.0;// (ubar*tau_xx + vbar*tau_xy - q_x)*nx + (ubar*tau_xy + vbar*tau_yy - q_y)*ny;
+				flux_eta[i][j][0] = 0.0;
+				//flux_eta[i][j][3] = 0.0;
 			}
 		}
 
@@ -195,6 +323,7 @@ public:
 				for(uint k=1; k<mesh->solution->nq; k++){
 					a_rhs[i][j][k] += (flux_eta[i][j+1][k] - flux_eta[i][j][k]);
 					a_rhs[i][j][k] += (flux_xi[i+1][j][k] - flux_xi[i][j][k]);
+					//spdlog::get("console")->debug("viscous contribution {} {} ", (flux_eta[i][j+1][k].value() - flux_eta[i][j][k].value()), (flux_xi[i+1][j][k].value() - flux_xi[i][j][k].value()));
 				}
 			}
 		}
@@ -248,6 +377,9 @@ public:
 		flux_xi = Array3D<Tad>(ni, njc, 4U);
 		flux_eta = Array3D<Tad>(nic, nj, 4U);
 
+		//transport = std::make_unique<TransportEquation<Tx, Tad>>(mesh, config);
+
+		
 		if(config->solver->order == 1){
 			reconstruction = std::make_unique<FirstOrder<Tx, Tad>>(ni, nj);
 		}
@@ -278,6 +410,10 @@ public:
 			if(face=="top") facei = top;
 			if(type == "freestream"){
 				auto boundarycondition = new BoundaryConditionFreestream<Tx, Tad>(name, mesh, config, facei, start, end);
+				boundaryconditions.push_back(boundarycondition);
+			}
+			else if(type=="outflow"){
+				auto boundarycondition = new BoundaryConditionOutflow<Tx, Tad>(name, mesh, config, facei, start, end);
 				boundaryconditions.push_back(boundarycondition);
 			}
 			else if(type == "slipwall"){
@@ -357,11 +493,15 @@ template <class Tx, class Tad>
 	calc_convective_residual(a_rhs);
 	calc_viscous_residual(a_rhs);
 	calc_source_residual(a_rhs);
-	
+	//transport->calc_residual(a_q, a_rhs, u, v,
+	//						 ulft_xi, urht_xi,
+	//						 ulft_eta, urht_eta,
+	//						 vlft_xi, vrht_xi,
+	//						 vlft_eta, vrht_eta);
 #pragma omp parallel for
 	for(uint i=0; i< nic; i++){
 		for(uint j=0; j< njc; j++){
-			for(uint k=0; k<mesh->solution->nq; k++){
+			for(uint k=0; k<mesh->solution->nq+mesh->solution->ntrans; k++){
 				a_rhs[i][j][k] /= mesh->volume[i][j];
 			}
 		}
