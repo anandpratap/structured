@@ -17,7 +17,8 @@ class LinearSolverPetsc{
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
-		int nvar = nic*njc*nq;
+		const auto ntrans = mesh->solution->ntrans;
+		int nvar = nic*njc*(nq+ntrans);
 		PetscInitialize(&val_config->argc, &val_config->argv, NULL, NULL);
 
 		PetscErrorCode ierr;
@@ -36,7 +37,7 @@ class LinearSolverPetsc{
 		ierr = KSPSetType(ksp, KSPGMRES);
 		ierr = KSPSetTolerances(ksp, 1e-7, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT);
 		ierr = KSPSetFromOptions(ksp);
-		
+		MatSetBlockSize(jac, nq+ntrans);
 	};
 
 	~LinearSolverPetsc(){
@@ -73,8 +74,8 @@ class LinearSolverPetsc{
 		const auto nq = mesh->solution->nq;
 		PetscScalar value_tmp;
 		PetscErrorCode ierr;
-
-		for(int i=0; i<nic*njc*nq; i++){
+		const auto ntrans = mesh->solution->ntrans;
+		for(int i=0; i<nic*njc*(nq+ntrans); i++){
 			value_tmp = val_rhs[i];
 			VecSetValue(rhs, i, value_tmp, INSERT_VALUES);
 		}
@@ -84,10 +85,11 @@ class LinearSolverPetsc{
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
+		const auto ntrans = mesh->solution->ntrans;
 		KSPSolve(ksp, rhs, dq);
 		VecGetArray(dq, &dq_array);
 
-		for(int i=0; i<nic*njc*nq; i++){
+		for(int i=0; i<nic*njc*(nq+ntrans); i++){
 			q[i] = q[i] + dq_array[i]*under_relaxation;
 		}
 	};   

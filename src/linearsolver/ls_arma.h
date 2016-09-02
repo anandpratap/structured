@@ -14,10 +14,10 @@ class LinearSolverArma{
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
-
-		rhs = arma::Mat<Tx>(nic*njc*nq, 1);
-		dq = arma::Mat<Tx>(nic*njc*nq, 1);
-		jac = arma::SpMat<Tx>(nic*njc*nq, nic*njc*nq);
+		const auto ntrans = mesh->solution->ntrans;
+		rhs = arma::Mat<Tx>(nic*njc*(nq+ntrans), 1);
+		dq = arma::Mat<Tx>(nic*njc*(nq+ntrans), 1);
+		jac = arma::SpMat<Tx>(nic*njc*(nq+ntrans), nic*njc*(nq+ntrans));
 	};
 
 	void set_jac(int nnz, unsigned int *rind, unsigned int *cind, Tx *values){
@@ -32,8 +32,8 @@ class LinearSolverArma{
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
-
-		for(uint i=0; i<nic*njc*nq; i++){
+		const auto ntrans = mesh->solution->ntrans;
+		for(uint i=0; i<nic*njc*(nq+ntrans); i++){
 			rhs(i, 0) = val_rhs[i];
 		}
 	};
@@ -42,9 +42,10 @@ class LinearSolverArma{
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
+		const auto ntrans = mesh->solution->ntrans;
 
 		dq = arma::spsolve(jac, rhs, "superlu");
-		for(int i=0; i<nic*njc*nq; i++){
+		for(int i=0; i<nic*njc*(nq+ntrans); i++){
 			q[i] = q[i] + dq(i,0)*under_relaxation;
 		}
 	};
