@@ -159,9 +159,10 @@ public:
 	uint start, end;
 	uint ni, nj, nic, njc;
 	Tx rho_inf, u_inf, v_inf, p_inf;
+	double u_bc, v_bc;
 	std::shared_ptr<Mesh<Tx>> mesh;
 	BoundaryConditionViscousWall(std::string val_name, std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config,
-								  uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
+								 uint val_face, uint val_start, uint val_end, double val_u_bc, double val_v_bc): BoundaryCondition<Tx, Tad>(){
 		name = val_name;
 		mesh = val_mesh;
 		face = val_face;
@@ -175,6 +176,9 @@ public:
 		nj = mesh->nj;
 		nic = ni - 1;
 		njc = nj - 1;
+		
+		u_bc = val_u_bc;
+		v_bc = val_v_bc;
 	};
 	
 	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
@@ -190,29 +194,16 @@ public:
 				if(face == bottom){
 					p[i][jend] = 1.5*p[i][1] - 0.5*p[i][2];
 					rho[i][jend] = 1.5*rho[i][1] - 0.5*rho[i][2];
-					u[i][jend] = -(1.5*u[i][1] - 0.5*u[i][2]);
-					v[i][jend] = -(1.5*v[i][1] - 0.5*v[i][2]);
-
+					u[i][jend] = u_bc - (1.5*u[i][1] - 0.5*u[i][2]);
+					v[i][jend] = v_bc - (1.5*v[i][1] - 0.5*v[i][2]);
 					T[i][jend] = p[i][jend]/rho[i][jend];
-					//p[i][jend] = p[i][1];
-					//rho[i][jend] = rho[i][1];
-					//u[i][jend] = -u[i][1];
-					//v[i][jend] = -v[i][1];
-
 				}
 				else{
-					//spdlog::get("console")->debug("{} {} {}", i, start, end);
-					/* p[i][jend] = 1.5*p[i][njc] - 0.5*p[i][njc-1]; */
-					/* rho[i][jend] = 1.5*rho[i][njc] - 0.5*rho[i][njc-1]; */
-					/* u[i][jend] = -(1.5*u[i][njc] - 0.5*u[i][njc-1]); */
-					/* v[i][jend] = -(1.5*v[i][njc] - 0.5*v[i][njc-1]); */
 					p[i][jend] = 1.5*p[i][njc] - 0.5*p[i][njc-1];
 					rho[i][jend] = 1.5*rho[i][njc] - 0.5*rho[i][njc-1];
-					u[i][jend] = -(1.5*u[i][njc] - 0.5*u[i][njc-1]);
-					v[i][jend] = -(1.5*v[i][njc] - 0.5*v[i][njc-1]);
+					u[i][jend] = u_bc - (1.5*u[i][njc] - 0.5*u[i][njc-1]);
+					v[i][jend] = v_bc - (1.5*v[i][njc] - 0.5*v[i][njc-1]);
 					T[i][jend] = p[i][jend]/rho[i][jend];
-					
-					
 				}
 			}
 		}
@@ -441,9 +432,10 @@ public:
 	uint start, end;
 	uint ni, nj, nic, njc;
 	Tx rho_inf, u_inf, v_inf, p_inf;
+	double u_bc, v_bc, T_bc;
 	std::shared_ptr<Mesh<Tx>> mesh;
-	BoundaryConditionIsothermalWall(std::string val_name, std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config,
-								  uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
+ BoundaryConditionIsothermalWall(std::string val_name, std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config,
+								 uint val_face, uint val_start, uint val_end, double val_u_bc, double val_v_bc, double val_T_bc): BoundaryCondition<Tx, Tad>(){
 		name = val_name;
 		mesh = val_mesh;
 		face = val_face;
@@ -457,6 +449,11 @@ public:
 		nj = mesh->nj;
 		nic = ni - 1;
 		njc = nj - 1;
+
+		u_bc = val_u_bc;
+		v_bc = val_v_bc;
+		T_bc = val_T_bc;
+		
 	};
 	
 	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
@@ -470,32 +467,18 @@ public:
 #pragma omp parallel for
 			for(uint i=start; i<=end; i++){
 				if(face == bottom){
-					T[i][jend] = 1.0/1.4;
 					p[i][jend] = 1.5*p[i][1] - 0.5*p[i][2];
-					//rho[i][jend] = 1.5*rho[i][1] - 0.5*rho[i][2];
-					u[i][jend] = -(1.5*u[i][1] - 0.5*u[i][2]);
-					v[i][jend] = -(1.5*v[i][1] - 0.5*v[i][2]);
+					u[i][jend] = u_bc - (1.5*u[i][1] - 0.5*u[i][2]);
+					v[i][jend] = v_bc - (1.5*v[i][1] - 0.5*v[i][2]);
+					T[i][jend] = T_bc;
 					rho[i][jend] = p[i][jend]/T[i][jend];
-					
-					//p[i][jend] = p[i][1];
-					//rho[i][jend] = rho[i][1];
-					//u[i][jend] = -u[i][1];
-					//v[i][jend] = -v[i][1];
-
 				}
 				else{
-					//spdlog::get("console")->debug("{} {} {}", i, start, end);
-					/* p[i][jend] = 1.5*p[i][njc] - 0.5*p[i][njc-1]; */
-					/* rho[i][jend] = 1.5*rho[i][njc] - 0.5*rho[i][njc-1]; */
-					/* u[i][jend] = -(1.5*u[i][njc] - 0.5*u[i][njc-1]); */
-					/* v[i][jend] = -(1.5*v[i][njc] - 0.5*v[i][njc-1]); */
 					p[i][jend] = 1.5*p[i][njc] - 0.5*p[i][njc-1];
-					//rho[i][jend] = 1.5*rho[i][njc] - 0.5*rho[i][njc-1];
-					u[i][jend] = 0.1 - (1.5*u[i][njc] - 0.5*u[i][njc-1]);
-					v[i][jend] = -(1.5*v[i][njc] - 0.5*v[i][njc-1]);
-					T[i][jend] = 20.0/1.4;
+					u[i][jend] = u_bc - (1.5*u[i][njc] - 0.5*u[i][njc-1]);
+					v[i][jend] = v_bc - (1.5*v[i][njc] - 0.5*v[i][njc-1]);
+					T[i][jend] = T_bc;
 					rho[i][jend] = p[i][jend]/T[i][jend];
-					
 				}
 			}
 		}
@@ -559,6 +542,11 @@ class BoundaryContainer{
 			if(face=="bottom") facei = bottom;
 			if(face=="top") facei = top;
 
+
+			double u_bc = bc->get_qualified_as<double>("u").value_or(0.0);
+			double v_bc = bc->get_qualified_as<double>("v").value_or(0.0);
+			double T_bc = bc->get_qualified_as<double>("T").value_or(0.0);
+			
 			//auto c = config->config;
 			//spdlog::get("console")->debug("{}", c);
 			//auto tmp_inf =  c->get_qualified_as<double>("freestream.rho_inf").value_or(1.0);
@@ -580,11 +568,11 @@ class BoundaryContainer{
 				boundary_conditions.push_back(boundarycondition);
 			}
 			else if(type == "wall"){
-				auto boundarycondition = new BoundaryConditionViscousWall<Tx, Tad>(name, mesh, val_config, facei, start, end);
+				auto boundarycondition = new BoundaryConditionViscousWall<Tx, Tad>(name, mesh, val_config, facei, start, end, u_bc, v_bc);
 				boundary_conditions.push_back(boundarycondition);
 			}
 			else if(type == "isothermalwall"){
-				auto boundarycondition = new BoundaryConditionIsothermalWall<Tx, Tad>(name, mesh, val_config, facei, start, end);
+				auto boundarycondition = new BoundaryConditionIsothermalWall<Tx, Tad>(name, mesh, val_config, facei, start, end, u_bc, v_bc, T_bc);
 				boundary_conditions.push_back(boundarycondition);
 			}
 			else if(type == "wake"){
