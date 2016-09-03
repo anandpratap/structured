@@ -3,6 +3,7 @@
 #include "flux.h"
 #include "reconstruction.h"
 #include "bc.h"
+#include "common.h"
 
 template<class Tx, class Tad>
 class EulerEquation{
@@ -21,8 +22,8 @@ public:
 	std::unique_ptr<Reconstruction<Tx, Tad>> reconstruction;
 	std::unique_ptr<ConvectiveFlux<Tx, Tad>> convective_flux;
 	
-
-	std::vector<BoundaryCondition<Tx, Tad>*> boundaryconditions;
+	std::unique_ptr<BoundaryContainer<Tx, Tad>> boundary_container;
+   
 	//std::unique_ptr<TransportEquation<Tx, Tad>> transport;	
 	void calc_residual(Array3D<Tad>& a_q, Array3D<Tad>& a_rhs);
 	void calc_convective_residual(Array3D<Tad>& a_rhs);
@@ -442,10 +443,16 @@ public:
 			}
 		}
 	};
-	void calc_source_residual(Array3D<Tad>& a_rhs){
+	void calc_source_residual(Array3D<Tad>& a_q, Array3D<Tad>& a_rhs){
 		for(uint i=0; i< nic; i++){
 			for(uint j=0; j< njc; j++){
-				const Tad dpdx = -.1;
+				const Tad dpdx = 0.0; //-.1;
+				//const Tx r = abs(mesh->yc[i][j] - 0.05);
+				//a_rhs[i][j][0] -= rho[i+1][j+1]*v[i+1][j+1]/r*mesh->volume[i][j];
+				//a_rhs[i][j][1] -= rho[i+1][j+1]*u[i+1][j+1]*v[i+1][j+1]/r*mesh->volume[i][j];
+				//a_rhs[i][j][2] -= rho[i+1][j+1]*v[i+1][j+1]*v[i+1][j+1]/r*mesh->volume[i][j];
+				//a_rhs[i][j][3] -= (a_q[i][j][3] + p[i+1][j+1])*v[i+1][j+1]/r*mesh->volume[i][j];
+				
 				a_rhs[i][j][1] += -dpdx*mesh->volume[i][j];
 			}
 		}
@@ -511,62 +518,18 @@ public:
 			
 		}
 
+		boundary_container = std::make_unique<BoundaryContainer<Tx, Tad>>(config->filename, mesh, config);
+		
 		if(config->solver->flux == "roe")
 			convective_flux = std::make_unique<RoeFlux<Tx, Tad>>();
 		else if(config->solver->flux == "ausm")
 			convective_flux = std::make_unique<AUSMFlux<Tx, Tad>>();
 		else
 			spdlog::get("console")->critical("Flux not found.");
-		
-		for(const auto& bc : config->geometry->boundary){
-			auto name = bc->name;
-			auto type = bc->type;
-			auto face = bc->face;
-			auto start = bc->start;
-			auto end = bc->end;
-			uint facei;
-			if(face=="left") facei = left;
-			if(face=="right") facei = right;
-			if(face=="bottom") facei = bottom;
-			if(face=="top") facei = top;
-			if(type == "freestream"){
-				auto boundarycondition = new BoundaryConditionFreestream<Tx, Tad>(name, mesh, config, facei, start, end);
-				boundaryconditions.push_back(boundarycondition);
-			}
-			else if(type=="outflow"){
-				auto boundarycondition = new BoundaryConditionOutflow<Tx, Tad>(name, mesh, config, facei, start, end);
-				boundaryconditions.push_back(boundarycondition);
-			}
-			else if(type=="periodic"){
-				auto boundarycondition = new BoundaryConditionPeriodic<Tx, Tad>(name, mesh, config, facei, start, end);
-				boundaryconditions.push_back(boundarycondition);
-			}
-			else if(type == "slipwall"){
-				auto boundarycondition = new BoundaryConditionInviscidWall<Tx, Tad>(name, mesh, config, facei, start, end);
-				boundaryconditions.push_back(boundarycondition);
-			}
-			else if(type == "wall"){
-				auto boundarycondition = new BoundaryConditionViscousWall<Tx, Tad>(name, mesh, config, facei, start, end);
-				boundaryconditions.push_back(boundarycondition);
-			}
-			else if(type == "isothermalwall"){
-				auto boundarycondition = new BoundaryConditionIsothermalWall<Tx, Tad>(name, mesh, config, facei, start, end);
-				boundaryconditions.push_back(boundarycondition);
-			}
-			else if(type == "wake"){
-				auto boundarycondition = new BoundaryConditionWake<Tx, Tad>(name, mesh, config, facei, start, end);
-				boundaryconditions.push_back(boundarycondition);
-			}
-			else{
-				spdlog::get("console")->info("Wrong type of BC.");
-			}
-		}
-		
+				
 	};
 
 	~EulerEquation(){
-		for(auto&& bc : boundaryconditions)
-			delete bc;
 	};
 };
 template <class Tx, class Tad>
@@ -598,8 +561,7 @@ void EulerEquation<Tx, Tad>::calc_primvars(Array3D<Tad>& a_q){
 
 template <class Tx, class Tad>
 void EulerEquation<Tx, Tad>::calc_boundary(){
-	for(auto&& bc : boundaryconditions)
-		bc->apply(rho, u, v, p, T);
+	boundary_container->apply(rho, u, v, p, T);
 }
 
 template <class Tx, class Tad>
@@ -621,7 +583,7 @@ template <class Tx, class Tad>
 	
 	calc_convective_residual(a_rhs);
 	calc_viscous_residual(a_rhs);
-	calc_source_residual(a_rhs);
+	calc_source_residual(a_q, a_rhs);
 	//transport->calc_residual(a_q, a_rhs, u, v,
 	//						 ulft_xi, urht_xi,
 	//						 ulft_eta, urht_eta,

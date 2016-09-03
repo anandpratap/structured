@@ -7,6 +7,7 @@
 #define top 2
 #define left 3
 
+
 template<class Tx, class Tad>
 class BoundaryCondition{
 public:
@@ -469,7 +470,7 @@ public:
 #pragma omp parallel for
 			for(uint i=start; i<=end; i++){
 				if(face == bottom){
-					T[i][jend] = 2.0/1.4;
+					T[i][jend] = 1.0/1.4;
 					p[i][jend] = 1.5*p[i][1] - 0.5*p[i][2];
 					//rho[i][jend] = 1.5*rho[i][1] - 0.5*rho[i][2];
 					u[i][jend] = -(1.5*u[i][1] - 0.5*u[i][2]);
@@ -490,9 +491,9 @@ public:
 					/* v[i][jend] = -(1.5*v[i][njc] - 0.5*v[i][njc-1]); */
 					p[i][jend] = 1.5*p[i][njc] - 0.5*p[i][njc-1];
 					//rho[i][jend] = 1.5*rho[i][njc] - 0.5*rho[i][njc-1];
-					u[i][jend] = -(1.5*u[i][njc] - 0.5*u[i][njc-1]);
+					u[i][jend] = 0.1 - (1.5*u[i][njc] - 0.5*u[i][njc-1]);
 					v[i][jend] = -(1.5*v[i][njc] - 0.5*v[i][njc-1]);
-					T[i][jend] = 1.0/1.4;
+					T[i][jend] = 20.0/1.4;
 					rho[i][jend] = p[i][jend]/T[i][jend];
 					
 				}
@@ -516,4 +517,84 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+template<class Tx, class Tad>
+class BoundaryContainer{
+ public:
+	std::vector<BoundaryCondition<Tx, Tad>*> boundary_conditions;
+	
+	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
+		for(auto&& bc : boundary_conditions)
+			bc->apply(rho, u, v, p, T);
+	};
+
+	~BoundaryContainer(){
+		for(auto&& bc : boundary_conditions)
+			delete bc;
+	};
+	BoundaryContainer(std::string filename, std::shared_ptr<Mesh<Tx>> & mesh, std::shared_ptr<Config<Tx>> val_config){
+		auto config = cpptoml::parse_file(filename);
+		auto bcs = config->get_table_array("boundary");
+		for (const auto& bc : *bcs){
+			std::string name = bc->get_qualified_as<std::string>("name").value_or("boundary");
+			std::string type = bc->get_qualified_as<std::string>("type").value_or("");
+			std::string face = bc->get_qualified_as<std::string>("face").value_or("");
+			int start = bc->get_qualified_as<int64_t>("start").value_or(0);
+			int end = bc->get_qualified_as<int64_t>("end").value_or(0);
+
+			uint facei;
+			if(face=="left") facei = left;
+			if(face=="right") facei = right;
+			if(face=="bottom") facei = bottom;
+			if(face=="top") facei = top;
+
+			//auto c = config->config;
+			//spdlog::get("console")->debug("{}", c);
+			//auto tmp_inf =  c->get_qualified_as<double>("freestream.rho_inf").value_or(1.0);
+			
+			if(type == "freestream"){
+				auto boundarycondition = new BoundaryConditionFreestream<Tx, Tad>(name, mesh, val_config, facei, start, end);
+				boundary_conditions.push_back(boundarycondition);
+			}
+			else if(type=="outflow"){
+				auto boundarycondition = new BoundaryConditionOutflow<Tx, Tad>(name, mesh, val_config, facei, start, end);
+				boundary_conditions.push_back(boundarycondition);
+			}
+			else if(type=="periodic"){
+				auto boundarycondition = new BoundaryConditionPeriodic<Tx, Tad>(name, mesh, val_config, facei, start, end);
+				boundary_conditions.push_back(boundarycondition);
+			}
+			else if(type == "slipwall"){
+				auto boundarycondition = new BoundaryConditionInviscidWall<Tx, Tad>(name, mesh, val_config, facei, start, end);
+				boundary_conditions.push_back(boundarycondition);
+			}
+			else if(type == "wall"){
+				auto boundarycondition = new BoundaryConditionViscousWall<Tx, Tad>(name, mesh, val_config, facei, start, end);
+				boundary_conditions.push_back(boundarycondition);
+			}
+			else if(type == "isothermalwall"){
+				auto boundarycondition = new BoundaryConditionIsothermalWall<Tx, Tad>(name, mesh, val_config, facei, start, end);
+				boundary_conditions.push_back(boundarycondition);
+			}
+			else if(type == "wake"){
+				auto boundarycondition = new BoundaryConditionWake<Tx, Tad>(name, mesh, val_config, facei, start, end);
+				boundary_conditions.push_back(boundarycondition);
+			}
+			else{
+				spdlog::get("console")->info("Wrong type of BC.");
+			}
+		}
+	}
+};
 #endif
