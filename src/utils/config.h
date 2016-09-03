@@ -61,6 +61,7 @@ class ConfigSolver{
 	Tx cfl, under_relaxation, cfl_ramp_exponent, under_relaxation_ramp_exponent;
 	Tx tolerance;
 	int iteration_max;
+	Tx dpdx, dpdy;
 	
 	void set(std::shared_ptr<cpptoml::table> config){
 		iteration_max = config->get_qualified_as<int64_t>("solver.iteration_max").value_or(1);
@@ -83,7 +84,9 @@ class ConfigSolver{
 		under_relaxation_ramp =  config->get_qualified_as<bool>("solver.under_relaxation_ramp").value_or(false);
 		under_relaxation_ramp_iteration = config->get_qualified_as<int64_t>("solver.under_relaxation_ramp_iteration").value_or(20);
 		under_relaxation_ramp_exponent = config->get_qualified_as<double>("solver.under_relaxation_ramp_exponent").value_or(1.1);
-		
+
+		dpdx = config->get_qualified_as<double>("source.dpdx").value_or(0.0);
+		dpdy = config->get_qualified_as<double>("source.dpdy").value_or(0.0);
 	};
 };
 template<class Tx>
@@ -185,6 +188,9 @@ class Config{
 		PRINT_CONFIG(io->label);
 		PRINT_CONFIG(io->stdout_frequency);
 		PRINT_CONFIG(io->fileout_frequency);
+
+		PRINT_CONFIG(solver->dpdx);
+		PRINT_CONFIG(solver->dpdy);
 		
 		PRINT_CONFIG(geometry->filename);
 		PRINT_CONFIG(geometry->format);
