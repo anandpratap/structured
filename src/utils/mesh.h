@@ -37,11 +37,146 @@ public:
 	~Mesh();
 
 	void calc_metrics();
+
 	template<class Tad>
-		void calc_gradient(Array2D<Tad>& q, Array3D<Tad> &grad_q, uint skipi=0, uint skipj=0);
+	void calc_gradient(Array2D<Tad>& q, Array3D<Tad> &grad_q, uint skipi=0, uint skipj=0);
+
+	template<class Tad>
+	void calc_gradient(Array2D<Tad>& q, Array3D<Tad>& grad_xi, Array3D<Tad>& grad_eta);
+
+	template<class Tad>
+	void calc_face(Array2D<Tad>& q, Array2D<Tad>& q_xi, Array2D<Tad>& q_eta);
+
 	void simple_loader(std::string filename);
 	void plot3d_loader(std::string filename);
 };
+
+
+
+template<class Tx>
+template<class Tad>
+void Mesh<Tx>::calc_face(Array2D<Tad>& q, Array2D<Tad>& q_xi, Array2D<Tad>& q_eta){
+	for(int i=0; i<ni; i++){
+		for(int j=0; j<njc; j++){
+			const uint b = 1;
+			const Tad qleft = q[i+b-1][j+b];
+			const Tad qright = q[i+b][j+b];
+			const Tad qtop = 0.25*(qleft+qright+q[i+b-1][j+b+1]+q[i+b][j+b+1]);
+			const Tad qbottom = 0.25*(qleft+qright+q[i+b-1][j+b-1]+q[i+b][j+b-1]);
+			q_xi[i][j] = 0.25*(qleft+qright+qtop+qbottom);
+		}
+	}
+
+	for(int i=0; i<nic; i++){
+		for(int j=0; j<nj; j++){
+			const uint b = 1;
+			const Tad qtop = q[i+b][j+b];
+			const Tad qbottom = q[i+b][j+b-1];
+			const Tad qleft = 0.25*(qtop + qbottom + q[i+b-1][j+b] + q[i+b-1][j+b-1]);
+			const Tad qright = 0.25*(qtop + qbottom + q[i+b+1][j+b] + q[i+b+1][j+b-1]);
+			q_eta[i][j] = 0.25*(qleft+qright+qtop+qbottom);
+		}
+	}
+}
+
+template<class Tx>
+template<class Tad>
+void Mesh<Tx>::calc_gradient(Array2D<Tad>& q, Array3D<Tad>& grad_xi, Array3D<Tad>& grad_eta){
+	// xi
+	Tx normal_top[2];
+	Tx normal_bottom[2];
+	Tx normal_left[2];
+	Tx normal_right[2];
+	Tx volume_;
+	
+	for(int i=0; i<ni; i++){
+		for(int j=0; j<njc; j++){
+			auto nx = normal_chi[i][j][0];
+			auto ny = normal_chi[i][j][1];
+			const uint b = 1;
+			const Tad qleft = q[i+b-1][j+b];
+			const Tad qright = q[i+b][j+b];
+			const Tad qtop = 0.25*(qleft+qright+q[i+b-1][j+b+1]+q[i+b][j+b+1]);
+			const Tad qbottom = 0.25*(qleft+qright+q[i+b-1][j+b-1]+q[i+b][j+b-1]);
+			const Tad qbar = 0.25*(qleft+qright+qtop+qbottom);
+			if(i == 0){
+
+				volume_ = volume[i][j];
+				for(int k=0; k<2; k++){
+					normal_top[k] = normal_eta[i][j+1][k];
+					normal_bottom[k] = normal_eta[i][j][k];
+					normal_right[k] = 0.5*(normal_chi[i][j][k] + normal_chi[i+1][j][k]);
+					normal_left[k] = normal_chi[i][j][k];
+				}
+			}
+			
+			else if(i == ni-1){
+				volume_ = volume[i-1][j];
+				for(int k=0; k<2; k++){
+					normal_top[k] = normal_eta[i-1][j+1][k];
+					normal_bottom[k] = normal_eta[i-1][j][k];
+					normal_right[k] = normal_chi[i][j][k];
+					normal_left[k] = 0.5*(normal_chi[i][j][k] + normal_chi[i-1][j][k]);
+				}
+			}
+			else{
+				volume_ = 0.5*(volume[i][j] + volume[i-1][j]);
+				for(int k=0; k<2; k++){
+					normal_top[k] = 0.5*(normal_eta[i][j+1][k] + normal_eta[i-1][j+1][k]);
+					normal_bottom[k] = 0.5*(normal_eta[i][j][k] + normal_eta[i-1][j][k]);
+					normal_right[k] = 0.5*(normal_chi[i][j][k] + normal_chi[i+1][j][k]);
+					normal_left[k] = 0.5*(normal_chi[i][j][k] + normal_chi[i-1][j][k]);
+				}
+			}
+			grad_xi[i][j][0] = (normal_top[0]*qtop - normal_bottom[0]*qbottom + normal_right[0]*qright - normal_left[0]*qleft)/volume_;
+			grad_xi[i][j][1] = (normal_top[1]*qtop - normal_bottom[1]*qbottom + normal_right[1]*qright - normal_left[1]*qleft)/volume_;
+		}
+	}
+
+	for(int i=0; i<nic; i++){
+			for(int j=0; j<nj; j++){
+				auto nx = normal_eta[i][j][0];
+				auto ny = normal_eta[i][j][1];
+				const uint b = 1;
+				const Tad qtop = q[i+b][j+b];
+				const Tad qbottom = q[i+b][j+b-1];
+				
+				const Tad qleft = 0.25*(qtop + qbottom + q[i+b-1][j+b] + q[i+b-1][j+b-1]);
+				const Tad qright = 0.25*(qtop + qbottom + q[i+b+1][j+b] + q[i+b+1][j+b-1]);
+				const Tad qbar = 0.25*(qleft+qright+qtop+qbottom);
+				if(j == 0){
+					volume_ = volume[i][j];
+					for(int k=0; k<2; k++){
+						normal_top[k] = 0.5*(normal_eta[i][j][k] + normal_eta[i][j+1][k]);
+						normal_bottom[k] = normal_eta[i][j][k];
+						normal_left[k] = normal_chi[i][j][k];
+						normal_right[k] = normal_chi[i+1][j][k];
+					}
+				}
+				else if(j == nj-1){
+					for(int k=0; k<2; k++){
+						normal_top[k] = normal_eta[i][j][k];
+						normal_bottom[k] = 0.5*(normal_eta[i][j][k] + normal_eta[i][j-1][k]);
+						normal_left[k] = normal_chi[i][j-1][k];
+						normal_right[k] = normal_chi[i+1][j-1][k];
+					}
+					volume_ = volume[i][j-1];
+				}
+				else{
+					for(int k=0; k<2; k++){
+							normal_top[k] = 0.5*(normal_eta[i][j][k] + normal_eta[i][j+1][k]);
+							normal_bottom[k] = 0.5*(normal_eta[i][j][k] + normal_eta[i][j-1][k]);
+							normal_left[k] = 0.5*(normal_chi[i][j][k] + normal_chi[i][j-1][k]);
+							normal_right[k] = 0.5*(normal_chi[i+1][j][k] + normal_chi[i+1][j-1][k]);
+					}
+					volume_ = 0.5*(volume[i][j] + volume[i][j-1]);
+					
+				}
+			grad_eta[i][j][0] = (normal_top[0]*qtop - normal_bottom[0]*qbottom + normal_right[0]*qright - normal_left[0]*qleft)/volume_;
+			grad_eta[i][j][1] = (normal_top[1]*qtop - normal_bottom[1]*qbottom + normal_right[1]*qright - normal_left[1]*qleft)/volume_;	
+			}
+	}
+}
 
 template<class Tx>
 void Mesh<Tx>::simple_loader(std::string filename){
