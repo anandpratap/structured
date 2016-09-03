@@ -52,6 +52,7 @@ public:
 				u[i][jend] = u_inf;
 				v[i][jend] = v_inf;
 				p[i][jend] = p_inf;
+				T[i][jend] = p[i][jend]/rho[i][jend];
 			}
 		}
 
@@ -67,6 +68,7 @@ public:
 				u[iend][j] = u_inf;
 				v[iend][j] = v_inf;
 				p[iend][j] = p_inf;
+				T[iend][j] = p[iend][j]/rho[iend][j];
 			}
 		}
 		
@@ -121,6 +123,7 @@ public:
 					u[i][jend] = u[i][1] - 2.0*un*nx/ds;
 					v[i][jend] = v[i][1] - 2.0*un*ny/ds;
 
+					T[i][jend] = p[i][jend]/rho[i][jend];
 				}
 				else{
 					auto nx =  mesh->normal_eta[i-1][jend-1][0];
@@ -132,6 +135,7 @@ public:
 					un = u[i][njc]*nx + v[i][njc]*ny;
 					u[i][jend] = u[i][njc] - 2.0*un*nx/ds;
 					v[i][jend] = v[i][njc] - 2.0*un*ny/ds;
+					T[i][jend] = p[i][jend]/rho[i][jend];
 				}
 			}
 		}
@@ -194,15 +198,15 @@ public:
 				if(face == bottom){
 					p[i][jend] = 1.5*p[i][1] - 0.5*p[i][2];
 					rho[i][jend] = 1.5*rho[i][1] - 0.5*rho[i][2];
-					u[i][jend] = u_bc - (1.5*u[i][1] - 0.5*u[i][2]);
-					v[i][jend] = v_bc - (1.5*v[i][1] - 0.5*v[i][2]);
+					u[i][jend] = 2.0*u_bc - (1.5*u[i][1] - 0.5*u[i][2]);
+					v[i][jend] = 2.0*v_bc - (1.5*v[i][1] - 0.5*v[i][2]);
 					T[i][jend] = p[i][jend]/rho[i][jend];
 				}
 				else{
 					p[i][jend] = 1.5*p[i][njc] - 0.5*p[i][njc-1];
 					rho[i][jend] = 1.5*rho[i][njc] - 0.5*rho[i][njc-1];
-					u[i][jend] = u_bc - (1.5*u[i][njc] - 0.5*u[i][njc-1]);
-					v[i][jend] = v_bc - (1.5*v[i][njc] - 0.5*v[i][njc-1]);
+					u[i][jend] = 2.0*u_bc - (1.5*u[i][njc] - 0.5*u[i][njc-1]);
+					v[i][jend] = 2.0*v_bc - (1.5*v[i][njc] - 0.5*v[i][njc-1]);
 					T[i][jend] = p[i][jend]/rho[i][jend];
 				}
 			}
@@ -264,6 +268,7 @@ public:
 				u[i][jend] = u[nic+1-i][1];
 				v[i][jend] = v[nic+1-i][1];
 				p[i][jend] = p[nic+1-i][1];
+				T[i][jend] = p[i][jend]/rho[i][jend];
 			}	
 
 #pragma omp parallel for
@@ -272,6 +277,7 @@ public:
 				u[nic+1-i][jend] = u[i][1];
 				v[nic+1-i][jend] = v[i][1];
 				p[nic+1-i][jend] = p[i][1];
+				T[nic+1-i][jend] = p[nic+1-i][jend]/rho[nic+1-i][jend];
 			}
 		}
 
@@ -468,15 +474,15 @@ public:
 			for(uint i=start; i<=end; i++){
 				if(face == bottom){
 					p[i][jend] = 1.5*p[i][1] - 0.5*p[i][2];
-					u[i][jend] = u_bc - (1.5*u[i][1] - 0.5*u[i][2]);
-					v[i][jend] = v_bc - (1.5*v[i][1] - 0.5*v[i][2]);
+					u[i][jend] = 2.0*u_bc - (1.5*u[i][1] - 0.5*u[i][2]);
+					v[i][jend] = 2.0*v_bc - (1.5*v[i][1] - 0.5*v[i][2]);
 					T[i][jend] = T_bc;
 					rho[i][jend] = p[i][jend]/T[i][jend];
 				}
 				else{
 					p[i][jend] = 1.5*p[i][njc] - 0.5*p[i][njc-1];
-					u[i][jend] = u_bc - (1.5*u[i][njc] - 0.5*u[i][njc-1]);
-					v[i][jend] = v_bc - (1.5*v[i][njc] - 0.5*v[i][njc-1]);
+					u[i][jend] = 2.0*u_bc - (1.5*u[i][njc] - 0.5*u[i][njc-1]);
+					v[i][jend] = 2.0*v_bc - (1.5*v[i][njc] - 0.5*v[i][njc-1]);
 					T[i][jend] = T_bc;
 					rho[i][jend] = p[i][jend]/T[i][jend];
 				}
