@@ -120,14 +120,8 @@ public:
 	void calc_source_residual(Array3D<Tad>& a_q, Array3D<Tad>& a_rhs){
 		for(uint i=0; i< nic; i++){
 			for(uint j=0; j< njc; j++){
-				const Tad dpdx = 0.0; //-.1;
-				//const Tx r = abs(mesh->yc[i][j] - 0.05);
-				//a_rhs[i][j][0] -= rho[i+1][j+1]*v[i+1][j+1]/r*mesh->volume[i][j];
-				//a_rhs[i][j][1] -= rho[i+1][j+1]*u[i+1][j+1]*v[i+1][j+1]/r*mesh->volume[i][j];
-				//a_rhs[i][j][2] -= rho[i+1][j+1]*v[i+1][j+1]*v[i+1][j+1]/r*mesh->volume[i][j];
-				//a_rhs[i][j][3] -= (a_q[i][j][3] + p[i+1][j+1])*v[i+1][j+1]/r*mesh->volume[i][j];
-				
-				a_rhs[i][j][1] += -dpdx*mesh->volume[i][j];
+				a_rhs[i][j][1] += -config->solver->dpdx*mesh->volume[i][j];
+				a_rhs[i][j][2] += -config->solver->dpdy*mesh->volume[i][j];
 			}
 		}
 	};
