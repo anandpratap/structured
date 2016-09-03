@@ -101,10 +101,15 @@ public:
 		auto yc = mesh->yc;
 		const unsigned int shape[] = {nic, njc};
 		const unsigned int shapeq[] = {nic, njc, 4};
-		
+		primvars<Tx>(q, rho, u, v, p, T);
 		cnpy::npz_save(filename,"xc",xc.data(),shape,2,"w");
 		cnpy::npz_save(filename,"yc",yc.data(),shape,2,"a");
 		cnpy::npz_save(filename,"q",q.data(),shapeq,3,"a");
+		cnpy::npz_save(filename,"rho",rho.data(),shape,2,"a");
+		cnpy::npz_save(filename,"u",u.data(),shape,2,"a");
+		cnpy::npz_save(filename,"v",v.data(),shape,2,"a");
+		cnpy::npz_save(filename,"p",p.data(),shape,2,"a");
+		cnpy::npz_save(filename,"T",T.data(),shape,2,"a");
 		
 		spdlog::get("console")->info("Wrote numpy npz file {}.", filename);
 	}
