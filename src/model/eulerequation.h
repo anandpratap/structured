@@ -4,6 +4,7 @@
 #include "reconstruction.h"
 #include "bc.h"
 #include "common.h"
+#include "gas.h"
 
 template<class Tx, class Tad>
 class EulerEquation{
@@ -22,31 +23,29 @@ public:
 	Array3D<Tad> grad_T_xi, grad_T_eta;
 	Array2D<Tad> u_bar_xi, u_bar_eta;
 	Array2D<Tad> v_bar_xi, v_bar_eta;
+	Array2D<Tad> T_bar_xi, T_bar_eta;
 	
 	std::shared_ptr<Mesh<Tx>> mesh;
 	std::shared_ptr<Config<Tx>> config;
 	std::unique_ptr<Reconstruction<Tx, Tad>> reconstruction;
 	std::unique_ptr<ConvectiveFlux<Tx, Tad>> convective_flux;
-	
+	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
 	std::unique_ptr<BoundaryContainer<Tx, Tad>> boundary_container;
-   
+
+
+
+
 	//std::unique_ptr<TransportEquation<Tx, Tad>> transport;	
 	void calc_residual(Array3D<Tad>& a_q, Array3D<Tad>& a_rhs);
 	void calc_convective_residual(Array3D<Tad>& a_rhs);
 	void calc_viscous_residual(Array3D<Tad>& a_rhs){
-		auto mu = config->freestream->mu_inf;
-		auto p_inf = config->freestream->p_inf;
-		auto pr_inf = config->freestream->pr_inf;
-		auto rho_inf = config->freestream->rho_inf;
-		auto T_inf = config->freestream->T_inf;
-		auto Rc = p_inf/rho_inf/T_inf;
-		auto k = mu*GAMMA*Rc/(GAMMA-1.0)/pr_inf;
-	
+
 		mesh->calc_gradient(u, grad_u_xi, grad_u_eta);
 		mesh->calc_gradient(v, grad_v_xi, grad_v_eta);
 		mesh->calc_gradient(T, grad_T_xi, grad_T_eta);
 		mesh->calc_face(u, u_bar_xi, u_bar_eta);
 		mesh->calc_face(v, v_bar_xi, v_bar_eta);
+		mesh->calc_face(T, T_bar_xi, T_bar_eta);
 		// xi
 		
 		for(int i=0; i<ni; i++){
@@ -65,6 +64,9 @@ public:
 				const Tad ubar = u_bar_xi[i][j];
 				const Tad vbar = v_bar_xi[i][j];
 
+				const Tad mu = fluid_model->get_laminar_viscosity(T_bar_xi[i][j]);
+				const Tad k = fluid_model->get_thermal_conductivity(T_bar_xi[i][j]);
+				
 				const Tad tau_xy = mu*(dudy + dvdx);
 				const Tad tau_xx = mu*(2.0*dudx - 2.0/3.0*(dudx + dvdy));
 				const Tad tau_yy = mu*(2.0*dvdy - 2.0/3.0*(dudx + dvdy));
@@ -94,6 +96,9 @@ public:
 				const Tad ubar = u_bar_eta[i][j];
 				const Tad vbar = v_bar_eta[i][j];
 
+				const Tad mu = fluid_model->get_laminar_viscosity(T_bar_eta[i][j]);
+				const Tad k = fluid_model->get_thermal_conductivity(T_bar_eta[i][j]);
+				
 				const Tad tau_xy = mu*(dudy + dvdx);
 				const Tad tau_xx = mu*(2.0*dudx - 2.0/3.0*(dudx + dvdy));
 				const Tad tau_yy = mu*(2.0*dvdy - 2.0/3.0*(dudx + dvdy));
@@ -174,9 +179,11 @@ public:
 
 		u_bar_xi = Array2D<Tad>(ni, njc);
 		v_bar_xi = Array2D<Tad>(ni, njc);
+		T_bar_xi = Array2D<Tad>(ni, njc);
 
 		u_bar_eta = Array2D<Tad>(nic, nj);
 		v_bar_eta = Array2D<Tad>(nic, nj);
+		T_bar_eta = Array2D<Tad>(nic, nj);
 			
 		grad_u = Array3D<Tad>(nic, njc, 3);
 		grad_v = Array3D<Tad>(nic, njc, 3);
@@ -199,7 +206,7 @@ public:
 			
 		}
 
-		boundary_container = std::make_unique<BoundaryContainer<Tx, Tad>>(config->filename, mesh, config);
+
 		
 		if(config->solver->flux == "roe")
 			convective_flux = std::make_unique<RoeFlux<Tx, Tad>>();
@@ -207,7 +214,13 @@ public:
 			convective_flux = std::make_unique<AUSMFlux<Tx, Tad>>();
 		else
 			spdlog::get("console")->critical("Flux not found.");
-				
+
+
+		fluid_model = std::make_shared<FluidModel<Tx, Tad>>(config->freestream->p_inf, config->freestream->rho_inf,
+															config->freestream->T_inf, config->freestream->mu_inf,
+															config->freestream->pr_inf);
+
+		boundary_container = std::make_unique<BoundaryContainer<Tx, Tad>>(config->filename, mesh, config, fluid_model);
 	};
 
 	~EulerEquation(){
@@ -236,7 +249,7 @@ void EulerEquation<Tx, Tad>::calc_convective_residual(Array3D<Tad>& a_rhs){
 
 template <class Tx, class Tad>
 void EulerEquation<Tx, Tad>::calc_primvars(Array3D<Tad>& a_q){
-	primvars<Tad>(a_q, rho, u, v, p, T, 1U, 1U);
+	fluid_model->primvars(a_q, rho, u, v, p, T, 1U, 1U);
 }
 
 

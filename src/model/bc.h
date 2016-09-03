@@ -1,7 +1,7 @@
 #ifndef _BC_H
 #define _BC_H
 #include "common.h"
-
+#include "gas.h"
 #define bottom 0
 #define right 1
 #define top 2
@@ -22,8 +22,10 @@ public:
 	uint start, end;
 	uint ni, nj, nic, njc;
 	Tx rho_inf, u_inf, v_inf, p_inf;
-	BoundaryConditionFreestream(std::string val_name, std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Config<Tx>> config,
+	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
+ BoundaryConditionFreestream(std::string val_name, std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Config<Tx>> config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
 								uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
+		fluid_model = val_fluid_model;
 		name = val_name;
 		face = val_face;
 		start = val_start;
@@ -52,7 +54,7 @@ public:
 				u[i][jend] = u_inf;
 				v[i][jend] = v_inf;
 				p[i][jend] = p_inf;
-				T[i][jend] = p[i][jend]/rho[i][jend];
+				T[i][jend] = fluid_model->get_T_prho(p[i][jend], rho[i][jend]);
 			}
 		}
 
@@ -68,7 +70,7 @@ public:
 				u[iend][j] = u_inf;
 				v[iend][j] = v_inf;
 				p[iend][j] = p_inf;
-				T[iend][j] = p[iend][j]/rho[iend][j];
+				T[iend][j] = fluid_model->get_T_prho(p[iend][j], rho[iend][j]);
 			}
 		}
 		
@@ -84,8 +86,10 @@ public:
 	uint ni, nj, nic, njc;
 	Tx rho_inf, u_inf, v_inf, p_inf;
 	std::shared_ptr<Mesh<Tx>> mesh;
-	BoundaryConditionInviscidWall(std::string val_name, std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config,
+	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
+ BoundaryConditionInviscidWall(std::string val_name, std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
 								  uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
+		fluid_model = val_fluid_model;
 		name = val_name;
 		mesh = val_mesh;
 		face = val_face;
@@ -123,7 +127,7 @@ public:
 					u[i][jend] = u[i][1] - 2.0*un*nx/ds;
 					v[i][jend] = v[i][1] - 2.0*un*ny/ds;
 
-					T[i][jend] = p[i][jend]/rho[i][jend];
+					T[i][jend] = fluid_model->get_T_prho(p[i][jend], rho[i][jend]);
 				}
 				else{
 					auto nx =  mesh->normal_eta[i-1][jend-1][0];
@@ -135,7 +139,7 @@ public:
 					un = u[i][njc]*nx + v[i][njc]*ny;
 					u[i][jend] = u[i][njc] - 2.0*un*nx/ds;
 					v[i][jend] = v[i][njc] - 2.0*un*ny/ds;
-					T[i][jend] = p[i][jend]/rho[i][jend];
+					T[i][jend] = fluid_model->get_T_prho(p[i][jend], rho[i][jend]);
 				}
 			}
 		}
@@ -165,8 +169,10 @@ public:
 	Tx rho_inf, u_inf, v_inf, p_inf;
 	double u_bc, v_bc;
 	std::shared_ptr<Mesh<Tx>> mesh;
-	BoundaryConditionViscousWall(std::string val_name, std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config,
+	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
+ BoundaryConditionViscousWall(std::string val_name, std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
 								 uint val_face, uint val_start, uint val_end, double val_u_bc, double val_v_bc): BoundaryCondition<Tx, Tad>(){
+		fluid_model = val_fluid_model;
 		name = val_name;
 		mesh = val_mesh;
 		face = val_face;
@@ -200,14 +206,14 @@ public:
 					rho[i][jend] = 1.5*rho[i][1] - 0.5*rho[i][2];
 					u[i][jend] = 2.0*u_bc - (1.5*u[i][1] - 0.5*u[i][2]);
 					v[i][jend] = 2.0*v_bc - (1.5*v[i][1] - 0.5*v[i][2]);
-					T[i][jend] = p[i][jend]/rho[i][jend];
+					T[i][jend] = fluid_model->get_T_prho(p[i][jend], rho[i][jend]);
 				}
 				else{
 					p[i][jend] = 1.5*p[i][njc] - 0.5*p[i][njc-1];
 					rho[i][jend] = 1.5*rho[i][njc] - 0.5*rho[i][njc-1];
 					u[i][jend] = 2.0*u_bc - (1.5*u[i][njc] - 0.5*u[i][njc-1]);
 					v[i][jend] = 2.0*v_bc - (1.5*v[i][njc] - 0.5*v[i][njc-1]);
-					T[i][jend] = p[i][jend]/rho[i][jend];
+					T[i][jend] = fluid_model->get_T_prho(p[i][jend], rho[i][jend]);
 				}
 			}
 		}
@@ -237,9 +243,11 @@ public:
 	uint ni, nj, nic, njc;
 	Tx rho_inf, u_inf, v_inf, p_inf;
 	std::shared_ptr<Mesh<Tx>> mesh;
-	BoundaryConditionWake(std::string val_name, std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config,
+std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
+ BoundaryConditionWake(std::string val_name, std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
 						  uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
-		name = val_name;
+		fluid_model = val_fluid_model;
+	name = val_name;
 		mesh = val_mesh;
 		face = val_face;
 		start = val_start;
@@ -268,7 +276,7 @@ public:
 				u[i][jend] = u[nic+1-i][1];
 				v[i][jend] = v[nic+1-i][1];
 				p[i][jend] = p[nic+1-i][1];
-				T[i][jend] = p[i][jend]/rho[i][jend];
+				T[i][jend] = fluid_model->get_T_prho(p[i][jend], rho[i][jend]);
 			}	
 
 #pragma omp parallel for
@@ -277,7 +285,7 @@ public:
 				u[nic+1-i][jend] = u[i][1];
 				v[nic+1-i][jend] = v[i][1];
 				p[nic+1-i][jend] = p[i][1];
-				T[nic+1-i][jend] = p[nic+1-i][jend]/rho[nic+1-i][jend];
+				T[nic+1-i][jend] = fluid_model->get_T_prho(p[nic+1-i][jend], rho[nic+1-i][jend]);
 			}
 		}
 
@@ -313,8 +321,10 @@ public:
 	uint start, end;
 	uint ni, nj, nic, njc;
 	Tx rho_inf, u_inf, v_inf, p_inf;
-	BoundaryConditionOutflow(std::string val_name, std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Config<Tx>> config,
+	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
+ BoundaryConditionOutflow(std::string val_name, std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Config<Tx>> config,std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
 								uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
+		fluid_model = val_fluid_model;
 		name = val_name;
 		face = val_face;
 		start = val_start;
@@ -343,6 +353,7 @@ public:
 				u[i][jend] = u_inf;
 				v[i][jend] = v_inf;
 				p[i][jend] = p_inf;
+				T[i][jend] = fluid_model->get_T_prho(p[i][jend], rho[i][jend]);
 			}
 		}
 
@@ -358,6 +369,7 @@ public:
 				u[iend][j] = u[iend-1][j];
 				v[iend][j] = v[iend-1][j];
 				p[iend][j] = p_inf;
+				T[iend][j] = fluid_model->get_T_prho(p[iend][j], rho[iend][j]);
 			}
 		}
 		
@@ -374,8 +386,10 @@ public:
 	uint start, end;
 	uint ni, nj, nic, njc;
 	Tx rho_inf, u_inf, v_inf, p_inf;
-	BoundaryConditionPeriodic(std::string val_name, std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Config<Tx>> config,
+	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
+ BoundaryConditionPeriodic(std::string val_name, std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Config<Tx>> config,std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
 								uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
+		fluid_model = val_fluid_model;
 		name = val_name;
 		face = val_face;
 		start = val_start;
@@ -440,8 +454,10 @@ public:
 	Tx rho_inf, u_inf, v_inf, p_inf;
 	double u_bc, v_bc, T_bc;
 	std::shared_ptr<Mesh<Tx>> mesh;
- BoundaryConditionIsothermalWall(std::string val_name, std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config,
+	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
+ BoundaryConditionIsothermalWall(std::string val_name, std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config,std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
 								 uint val_face, uint val_start, uint val_end, double val_u_bc, double val_v_bc, double val_T_bc): BoundaryCondition<Tx, Tad>(){
+		fluid_model = val_fluid_model;
 		name = val_name;
 		mesh = val_mesh;
 		face = val_face;
@@ -477,14 +493,14 @@ public:
 					u[i][jend] = 2.0*u_bc - (1.5*u[i][1] - 0.5*u[i][2]);
 					v[i][jend] = 2.0*v_bc - (1.5*v[i][1] - 0.5*v[i][2]);
 					T[i][jend] = T_bc;
-					rho[i][jend] = p[i][jend]/T[i][jend];
+					rho[i][jend] = fluid_model->get_rho_pT(p[i][jend], T[i][jend]);
 				}
 				else{
 					p[i][jend] = 1.5*p[i][njc] - 0.5*p[i][njc-1];
 					u[i][jend] = 2.0*u_bc - (1.5*u[i][njc] - 0.5*u[i][njc-1]);
 					v[i][jend] = 2.0*v_bc - (1.5*v[i][njc] - 0.5*v[i][njc-1]);
 					T[i][jend] = T_bc;
-					rho[i][jend] = p[i][jend]/T[i][jend];
+					rho[i][jend] = fluid_model->get_rho_pT(p[i][jend], T[i][jend]);
 				}
 			}
 		}
@@ -532,7 +548,7 @@ class BoundaryContainer{
 		for(auto&& bc : boundary_conditions)
 			delete bc;
 	};
-	BoundaryContainer(std::string filename, std::shared_ptr<Mesh<Tx>> & mesh, std::shared_ptr<Config<Tx>> val_config){
+	BoundaryContainer(std::string filename, std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Config<Tx>> val_config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model){
 		auto config = cpptoml::parse_file(filename);
 		auto bcs = config->get_table_array("boundary");
 		for (const auto& bc : *bcs){
@@ -558,31 +574,31 @@ class BoundaryContainer{
 			//auto tmp_inf =  c->get_qualified_as<double>("freestream.rho_inf").value_or(1.0);
 			
 			if(type == "freestream"){
-				auto boundarycondition = new BoundaryConditionFreestream<Tx, Tad>(name, mesh, val_config, facei, start, end);
+				auto boundarycondition = new BoundaryConditionFreestream<Tx, Tad>(name, mesh, val_config, val_fluid_model, facei, start, end);
 				boundary_conditions.push_back(boundarycondition);
 			}
 			else if(type=="outflow"){
-				auto boundarycondition = new BoundaryConditionOutflow<Tx, Tad>(name, mesh, val_config, facei, start, end);
+				auto boundarycondition = new BoundaryConditionOutflow<Tx, Tad>(name, mesh, val_config, val_fluid_model, facei, start, end);
 				boundary_conditions.push_back(boundarycondition);
 			}
 			else if(type=="periodic"){
-				auto boundarycondition = new BoundaryConditionPeriodic<Tx, Tad>(name, mesh, val_config, facei, start, end);
+				auto boundarycondition = new BoundaryConditionPeriodic<Tx, Tad>(name, mesh, val_config, val_fluid_model, facei, start, end);
 				boundary_conditions.push_back(boundarycondition);
 			}
 			else if(type == "slipwall"){
-				auto boundarycondition = new BoundaryConditionInviscidWall<Tx, Tad>(name, mesh, val_config, facei, start, end);
+				auto boundarycondition = new BoundaryConditionInviscidWall<Tx, Tad>(name, mesh, val_config, val_fluid_model, facei, start, end);
 				boundary_conditions.push_back(boundarycondition);
 			}
 			else if(type == "wall"){
-				auto boundarycondition = new BoundaryConditionViscousWall<Tx, Tad>(name, mesh, val_config, facei, start, end, u_bc, v_bc);
+				auto boundarycondition = new BoundaryConditionViscousWall<Tx, Tad>(name, mesh, val_config, val_fluid_model, facei, start, end, u_bc, v_bc);
 				boundary_conditions.push_back(boundarycondition);
 			}
 			else if(type == "isothermalwall"){
-				auto boundarycondition = new BoundaryConditionIsothermalWall<Tx, Tad>(name, mesh, val_config, facei, start, end, u_bc, v_bc, T_bc);
+				auto boundarycondition = new BoundaryConditionIsothermalWall<Tx, Tad>(name, mesh, val_config, val_fluid_model, facei, start, end, u_bc, v_bc, T_bc);
 				boundary_conditions.push_back(boundarycondition);
 			}
 			else if(type == "wake"){
-				auto boundarycondition = new BoundaryConditionWake<Tx, Tad>(name, mesh, val_config, facei, start, end);
+				auto boundarycondition = new BoundaryConditionWake<Tx, Tad>(name, mesh, val_config, val_fluid_model, facei, start, end);
 				boundary_conditions.push_back(boundarycondition);
 			}
 			else{

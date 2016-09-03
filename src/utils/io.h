@@ -8,7 +8,6 @@
 template<class Tx>
 class IOManager{
 public:
-	Array2D<Tx> rho, u, v, p, T;
 	std::shared_ptr<Config<Tx>> config;
 	std::shared_ptr<Mesh<Tx>> mesh;
 	IOManager(std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
@@ -20,12 +19,6 @@ public:
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
 		const auto ntrans = mesh->solution->ntrans;
-
-		rho = Array2D<Tx>(nic, njc);
-		u = Array2D<Tx>(nic, njc);
-		v = Array2D<Tx>(nic, njc);
-		p = Array2D<Tx>(nic, njc);
-		T = Array2D<Tx>(nic, njc);
 	};
 
 	~IOManager(){
@@ -54,12 +47,15 @@ public:
 		outfile.open(filename);
 		char buffer [500];
 		outfile<<"title = \"Solution\""<<"\n";
-		outfile<<"variables = \"x\" \"y\" \"rho\" \"u\" \"v\" \"p\"";
+		outfile<<"variables = \"x\" \"y\"";
+		for(uint tn=0; tn<nq; tn++){
+			outfile << " \""<<mesh->solution->q_name[tn]<<"\"";
+		}
 		for(uint tn=0; tn<ntrans; tn++){
 			outfile << " \"psi_0\"";
 		}
 		for(uint tn=0; tn<mesh->solution->naux; tn++){
-			outfile << " \"qaux_"<<tn<<"\"";
+			outfile << " \""<<mesh->solution->q_aux_name[tn]<<"\"";
 		}
 
 		outfile << "\n";
@@ -101,7 +97,12 @@ public:
 		auto yc = mesh->yc;
 		const unsigned int shape[] = {nic, njc};
 		const unsigned int shapeq[] = {nic, njc, 4};
-		primvars<Tx>(q, rho, u, v, p, T);
+		auto rho = mesh->solution->rho;
+		auto u = mesh->solution->u;
+		auto v = mesh->solution->v;
+		auto p = mesh->solution->p;
+		auto T = mesh->solution->T;
+		
 		cnpy::npz_save(filename,"xc",xc.data(),shape,2,"w");
 		cnpy::npz_save(filename,"yc",yc.data(),shape,2,"a");
 		cnpy::npz_save(filename,"q",q.data(),shapeq,3,"a");
@@ -127,7 +128,7 @@ public:
 		std::ofstream outfile(filename,std::ofstream::binary);
 		for(int i=0; i<nic; i++){
 			for(int j=0; j<njc; j++){
-				outfile.write(reinterpret_cast<const char*>(&q[i][j][0]), sizeof(T)*(nq+ntrans));
+				outfile.write(reinterpret_cast<const char*>(&q[i][j][0]), sizeof(Tx)*(nq+ntrans));
 			}
 		}
 		outfile.close();
@@ -148,13 +149,13 @@ public:
 
 		infile.seekg (0,infile.end);
 		long size = infile.tellg();
-		long size_expected = nic*njc*(nq+ntrans)*sizeof(T);
+		long size_expected = nic*njc*(nq+ntrans)*sizeof(Tx);
 		infile.seekg (0);
 		assert(size == size_expected);
 		
 		for(int i=0; i<nic; i++){
 			for(int j=0; j<njc; j++){
-				infile.read(reinterpret_cast<char*>(&q[i][j][0]), sizeof(T)*(nq+ntrans));
+				infile.read(reinterpret_cast<char*>(&q[i][j][0]), sizeof(Tx)*(nq+ntrans));
 			}
 		}
 		infile.close();
@@ -175,7 +176,11 @@ public:
 		Tx x, cp;
 		std::ofstream outfile;
 		outfile.open(filename);
-		primvars<Tx>(q, rho, u, v, p, T);
+		auto rho = mesh->solution->rho;
+		auto u = mesh->solution->u;
+		auto v = mesh->solution->v;
+		auto p = mesh->solution->p;
+		auto T = mesh->solution->T;
 		for(uint i=j1; i<j1+mesh->nb; i++){
 			x = xc[i][0];
 			cp = (p[i][0] - p_inf)/(0.5*rho_inf*u_inf*u_inf);
