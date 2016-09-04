@@ -192,18 +192,18 @@ public:
 #pragma omp parallel for
 			for(uint i=start; i<=end; i++){
 				if(face == bottom){
-					p[i][jend] = 1.5*p[i][1] - 0.5*p[i][2];
+					T[i][jend] = 1.5*T[i][1] - 0.5*T[i][2];
 					rho[i][jend] = 1.5*rho[i][1] - 0.5*rho[i][2];
 					u[i][jend] = 2.0*u_bc - (1.5*u[i][1] - 0.5*u[i][2]);
 					v[i][jend] = 2.0*v_bc - (1.5*v[i][1] - 0.5*v[i][2]);
-					T[i][jend] = fluid_model->get_T_prho(p[i][jend], rho[i][jend]);
+					p[i][jend] = fluid_model->get_p_rhoT(rho[i][jend], T[i][jend]);
 				}
 				else{
-					p[i][jend] = 1.5*p[i][njc] - 0.5*p[i][njc-1];
+					T[i][jend] = 1.5*T[i][njc] - 0.5*T[i][njc-1];
 					rho[i][jend] = 1.5*rho[i][njc] - 0.5*rho[i][njc-1];
 					u[i][jend] = 2.0*u_bc - (1.5*u[i][njc] - 0.5*u[i][njc-1]);
 					v[i][jend] = 2.0*v_bc - (1.5*v[i][njc] - 0.5*v[i][njc-1]);
-					T[i][jend] = fluid_model->get_T_prho(p[i][jend], rho[i][jend]);
+					p[i][jend] = fluid_model->get_p_rhoT(rho[i][jend], T[i][jend]);
 				}
 			}
 		}
