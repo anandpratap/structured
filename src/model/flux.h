@@ -1,6 +1,58 @@
 #ifndef _FLUX_H
 #define _FLUX_H
 template <class Tx, class Tad>
+class DiffusiveFlux{
+public:
+	virtual void evaluate(Array3D<Tx>& val_normal,
+						  Array3D<Tad>& val_grad_u, Array3D<Tad>& val_grad_v, Array3D<Tad>& val_grad_T,
+						  Array2D<Tad>& val_ubar, Array2D<Tad>& val_vbar,
+						  Array2D<Tad>& val_mubar, Array2D<Tad>& val_kbar,
+						  Array3D<Tad>& val_flux){};
+};
+
+template<class Tx, class Tad>
+class GreeGaussFlux: public DiffusiveFlux<Tx, Tad>{
+public:
+	virtual void evaluate(Array3D<Tx>& val_normal,
+						  Array3D<Tad>& val_grad_u, Array3D<Tad>& val_grad_v, Array3D<Tad>& val_grad_T,
+						  Array2D<Tad>& val_ubar, Array2D<Tad>& val_vbar,
+						  Array2D<Tad>& val_mubar, Array2D<Tad>& val_kbar,
+						  Array3D<Tad>& val_flux){
+		for(uint i=0; i<val_normal.extent(0); i++){
+			for(uint j=0; j<val_normal.extent(1); j++){
+				const Tx nx = val_normal[i][j][0];
+				const Tx ny = val_normal[i][j][1];
+				const Tad dudx = val_grad_u[i][j][0];
+				const Tad dudy = val_grad_u[i][j][1];
+
+				const Tad dvdx = val_grad_v[i][j][0];
+				const Tad dvdy = val_grad_v[i][j][1];
+
+				const Tad dTdx = val_grad_T[i][j][0];
+				const Tad dTdy = val_grad_T[i][j][1];
+
+				const Tad ubar = val_ubar[i][j];
+				const Tad vbar = val_vbar[i][j];
+
+				const Tad mu = val_mubar[i][j];
+				const Tad k = val_kbar[i][j];
+				
+				const Tad tau_xy = mu*(dudy + dvdx);
+				const Tad tau_xx = mu*(2.0*dudx - 2.0/3.0*(dudx + dvdy));
+				const Tad tau_yy = mu*(2.0*dvdy - 2.0/3.0*(dudx + dvdy));
+				const Tad q_x = -k*dTdx;
+				const Tad q_y = -k*dTdy;
+
+				val_flux[i][j][0] = 0.0;
+				val_flux[i][j][1] = tau_xx*nx + tau_xy*ny;
+				val_flux[i][j][2] = tau_xy*nx + tau_yy*ny;
+				val_flux[i][j][3] = (ubar*tau_xx + vbar*tau_xy - q_x)*nx + (ubar*tau_xy + vbar*tau_yy - q_y)*ny;
+			}
+		}
+	};
+};
+
+template <class Tx, class Tad>
 class ConvectiveFlux{
 public:
 	virtual void evaluate(Array3D<Tx>& normal,

@@ -4,7 +4,7 @@
 template<class Tx, class Tad>
 class Reconstruction{
 public:
-	virtual void evaluate_xi(Array2D<Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
+	virtual void evaluate_chi(Array2D<Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
 	};
 	
 	virtual void evaluate_eta(Array2D<Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
@@ -23,7 +23,7 @@ public:
 		njc = nj - 1;
 	};
 	
-	void evaluate_xi(Array2D<Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
+	void evaluate_chi(Array2D<Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
 #pragma omp parallel for
 		for(uint i=0; i<ni; i++){
 			for(uint j=0; j<njc; j++){
@@ -51,8 +51,8 @@ class SecondOrder: public Reconstruction<Tx, Tad>{
 	uint nic, njc;
 	Tx thm = 2.0/3.0;
 	Tx thp = 4.0/3.0;
-	Tx eps_xi, eps_eta;
-	Array2D<Tad> f2_xi, a1_xi, a2_xi, f3qt_xi;
+	Tx eps_chi, eps_eta;
+	Array2D<Tad> f2_chi, a1_chi, a2_chi, f3qt_chi;
 	Array2D<Tad> f2_eta, a1_eta, a2_eta, f3qt_eta;
 public:
 	SecondOrder(const uint val_ni, const uint val_nj): Reconstruction<Tx, Tad>(){
@@ -61,13 +61,13 @@ public:
 		nic = ni - 1;
 		njc = nj - 1;
 
-		eps_xi = pow(10.0/nic, 3);
+		eps_chi = pow(10.0/nic, 3);
 		eps_eta = pow(10.0/njc, 3); 
 		
-		f2_xi = Array2D<Tad>(ni, njc);
-		a1_xi = Array2D<Tad>(nic, njc);
-		a2_xi = Array2D<Tad>(nic, njc);
-		f3qt_xi = Array2D<Tad>(nic, njc);
+		f2_chi = Array2D<Tad>(ni, njc);
+		a1_chi = Array2D<Tad>(nic, njc);
+		a2_chi = Array2D<Tad>(nic, njc);
+		f3qt_chi = Array2D<Tad>(nic, njc);
 
 
 		f2_eta = Array2D<Tad>(nic, nj);
@@ -76,12 +76,12 @@ public:
 		f3qt_eta = Array2D<Tad>(nic, njc);
 
 	};
-	void evaluate_xi(Array2D<Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
-		auto f2 = f2_xi;
-		auto a1 = a1_xi;
-		auto a2 = a2_xi;
-		auto f3qt = f3qt_xi;
-		auto eps = eps_xi;
+	void evaluate_chi(Array2D<Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
+		auto f2 = f2_chi;
+		auto a1 = a1_chi;
+		auto a2 = a2_chi;
+		auto f3qt = f3qt_chi;
+		auto eps = eps_chi;
 #pragma omp parallel  for
 		for(uint i=0; i<ni; i++){
 			for(uint j=0; j<njc; j++){

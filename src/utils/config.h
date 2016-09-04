@@ -42,6 +42,7 @@ template<class Tx>
 class ConfigFreestream{
  public:
 	Tx rho_inf, u_inf, v_inf, p_inf, mu_inf, pr_inf, T_inf;
+	bool if_viscous;
 	void set(std::shared_ptr<cpptoml::table> config){
 		rho_inf =  config->get_qualified_as<double>("freestream.rho_inf").value_or(1.0);
 		u_inf =  config->get_qualified_as<double>("freestream.u_inf").value_or(0.0);
@@ -50,6 +51,8 @@ class ConfigFreestream{
 		T_inf =  config->get_qualified_as<double>("freestream.T_inf").value_or(1.0/1.4);
 		mu_inf =  config->get_qualified_as<double>("freestream.mu_inf").value_or(0.0);
 		pr_inf =  config->get_qualified_as<double>("freestream.pr_inf").value_or(0.7);
+		
+		if_viscous = (mu_inf > 1e-15) ? true : false;
 	};
 };
 template<class Tx>

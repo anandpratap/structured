@@ -6,7 +6,7 @@
 #include <fenv.h>
 
 int main(int argc, char *argv[]){
-    feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 	
 #if defined(ENABLE_FLOAT)
 	using qtype = float;
