@@ -1,7 +1,6 @@
 #ifndef _SOLVER_H
 #define _SOLVER_H
 #include "common.h"
-#include "utils.h"
 #include "mesh.h"
 #include "linearsolver.h"
 #include "config.h"

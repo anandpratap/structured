@@ -2,7 +2,6 @@
 #define _SOLUTION_H
 
 #include "common.h"
-#include "utils.h"
 template<class T>
 class Mesh;
 

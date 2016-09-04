@@ -1,7 +1,6 @@
 #ifndef _IO_H
 #define _IO_H
 #include "common.h"
-#include "utils.h"
 #include "mesh.h"
 #include "config.h"
 
