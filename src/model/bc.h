@@ -537,6 +537,7 @@ public:
 template<class Tx, class Tad>
 class BoundaryContainer{
  public:
+	uint nic, njc, ni, nj;
 	std::vector<BoundaryCondition<Tx, Tad>*> boundary_conditions;
 	
 	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
@@ -544,11 +545,38 @@ class BoundaryContainer{
 			bc->apply(rho, u, v, p, T);
 	};
 
+	int get_index(int idx, int face){
+		if(idx >= 0){
+			return idx;
+		}
+		else{
+			if(face == bottom){
+				return nic + 2 + idx;
+			}
+			else if(face == right){
+				return njc + 2 + idx;
+			}
+			else if(face == top){
+				return nic + 2 + idx;
+			}
+			else if(face == left){
+				return njc + 2 + idx;
+			}
+			else{
+				spdlog::get("console")->critical("something went wrong!");
+			}
+		}
+	};
+	
 	~BoundaryContainer(){
 		for(auto&& bc : boundary_conditions)
 			delete bc;
 	};
 	BoundaryContainer(std::string filename, std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Config<Tx>> val_config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model){
+		ni = mesh->ni;
+		nj = mesh->nj;
+		nic = ni - 1;
+		njc = nj - 1;
 		auto config = cpptoml::parse_file(filename);
 		auto bcs = config->get_table_array("boundary");
 		for (const auto& bc : *bcs){
@@ -563,7 +591,7 @@ class BoundaryContainer{
 			if(face=="right") facei = right;
 			if(face=="bottom") facei = bottom;
 			if(face=="top") facei = top;
-
+			end = get_index(end, facei);
 
 			double u_bc = bc->get_qualified_as<double>("u").value_or(0.0);
 			double v_bc = bc->get_qualified_as<double>("v").value_or(0.0);
