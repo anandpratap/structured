@@ -4,7 +4,7 @@
 #include "reconstruction.h"
 #include "bc.h"
 #include "common.h"
-#include "gas.h"
+#include "fluid.h"
 
 template<class Tx, class Tad>
 class EulerEquation{
