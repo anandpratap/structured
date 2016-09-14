@@ -18,7 +18,20 @@ class Solution{
 	std::vector<std::string> q_aux_name;
 	Array2D<Tx> rho, u, v, p, T;
 	std::vector<std::string> primvars_name;
-	
+
+	int nnz;
+	int repeat = 0;
+	unsigned int *rind = nullptr;
+	unsigned int *cind = nullptr;
+	double *values = nullptr;
+	int options[4] = {0,0,0,0};
+
+	uint nt;
+	Array3D<Tx> rhs;
+	Tx **lhs;
+	Array3D<Tx> dt;
+	Array3D<Tx> q_tmp;
+	Array3D<adouble> a_q, a_rhs;
  public:
 	Solution(auto mesh);
 	//	Solution(std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Mesh<Tx>> old_mesh, const uint nskipi=0, const uint nskipj=0, const uint refine=0);
@@ -67,6 +80,14 @@ Solution<Tx>::Solution(auto mesh){
 			}
 		}
 	}
+
+
+	nt = nic*njc*(nq+ntrans);
+	dt = Array3D<Tx>(nic, njc, nq+ntrans);
+	rhs = Array3D<Tx>(nic, njc, nq+ntrans);
+	q_tmp = Array3D<Tx>(nic, njc, nq+ntrans);
+	a_q = Array3D<adouble>(nic, njc, nq+ntrans);
+	a_rhs = Array3D<adouble>(nic, njc, nq+ntrans);
 }
 
 

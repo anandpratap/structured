@@ -17,14 +17,14 @@ class Profiler{
 		timer_jacobian = std::make_shared<Timer>();
 		timer_linearsolver = std::make_shared<Timer>();
 	}
-
-	void update_time_residual(){t_residual += timer_residual->diff();}
+	float current_time(){return timer_main->diff();}
+	float update_time_residual(){t_residual += timer_residual->diff(); return timer_residual->diff();}
 	void reset_time_residual(){timer_residual->reset();}
 
-	void update_time_jacobian(){t_jacobian += timer_jacobian->diff();}
+	float update_time_jacobian(){t_jacobian += timer_jacobian->diff();return timer_jacobian->diff();}
 	void reset_time_jacobian(){timer_jacobian->reset();}
 
-	void update_time_linearsolver(){t_linearsolver += timer_linearsolver->diff();}
+	float update_time_linearsolver(){t_linearsolver += timer_linearsolver->diff();return timer_linearsolver->diff();}
 	void reset_time_linearsolver(){timer_linearsolver->reset();}
 	void print(){
 		float t_total = timer_main->diff();
