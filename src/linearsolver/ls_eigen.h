@@ -1,76 +1,79 @@
 #ifndef _EIGEN_H
 #define _EIGEN_H
-
+/*!
+  \brief High level linear solver wrapper to the Eigen linear algebra library. 
+ */
 template <class Tx>
 class LinearSolverEigen{
-	std::shared_ptr<Mesh<Tx>> mesh;
-	Eigen::MatrixXd rhs, dq;
-	Eigen::SparseMatrix<Tx,  Eigen::ColMajor> jac;
-	std::shared_ptr<Eigen::SparseLU<Eigen::SparseMatrix<Tx>>> solver;
-	uint c = 0;
+ private:
+	uint n; //!< Size of the linear system, square matrix is assumed.
+	Eigen::MatrixXd rhs; //!< Matrix container for the right hand side
+	Eigen::MatrixXd dq; //!< Matrix container for the solution
+	Eigen::SparseMatrix<Tx,  Eigen::ColMajor> lhs; //!< Matrix container for the left hand side
+	std::unique_ptr<Eigen::SparseLU<Eigen::SparseMatrix<Tx>>> solver; //!< Pointer to the linear solver
+
+	bool pattern_analyzed = false; //!< To ensure that pattern is analyzed when the solver is called for the first time 
+	uint number_lhs_update = 0; //!< Number of times the left hand side is updated.
+	uint number_rhs_update = 0; //!< Number of times the right hand side is updated.
  public:
 	LinearSolverEigen(std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
-		mesh = val_mesh;
+		const auto nic = val_mesh->nic;
+		const auto njc = val_mesh->njc;
+		const auto nq = val_mesh->solution->nq;
+		const auto ntrans = val_mesh->solution->ntrans;
+		n = nic*njc*(nq+ntrans);
+		
+		rhs = Eigen::MatrixXd(n, 1);
+		dq = Eigen::MatrixXd(n, 1);
+		lhs = Eigen::SparseMatrix<Tx, Eigen::ColMajor>(n, n);
 
-		const auto ni = mesh->ni;
-		const auto nj = mesh->nj;
-		const auto nic = mesh->nic;
-		const auto njc = mesh->njc;
-		const auto nq = mesh->solution->nq;
-		const auto ntrans = mesh->solution->ntrans;
-		rhs = Eigen::MatrixXd(nic*njc*(nq+ntrans), 1);
-		dq = Eigen::MatrixXd(nic*njc*(nq+ntrans), 1);
-		jac = Eigen::SparseMatrix<Tx, Eigen::ColMajor>(nic*njc*(nq+ntrans), nic*njc*(nq+ntrans));
-
-		solver = std::make_shared<Eigen::SparseLU<Eigen::SparseMatrix<Tx>>>();
+		solver = std::make_unique<Eigen::SparseLU<Eigen::SparseMatrix<Tx>>>();
 	};
 
 	void preallocate(int nnz){
-		const auto nic = mesh->nic;
-		const auto njc = mesh->njc;
-		const auto nq = mesh->solution->nq;
-		const auto ntrans = mesh->solution->ntrans;
-		jac.reserve(Eigen::VectorXi::Constant(nic*njc*(nq+ntrans),MAX_NNZ));
+		lhs.reserve(Eigen::VectorXi::Constant(n,MAX_NNZ));
 	};
 
 	~LinearSolverEigen(){
 	};
 
-	void set_jac(int nnz, unsigned int *rind, unsigned int *cind, Tx *values){
+	void set_lhs(int nnz, unsigned int *rind, unsigned int *cind, Tx *values){
+		number_lhs_update += 1;
 		Tx value_tmp;
 		for(uint i=0; i<nnz; i++){
 			value_tmp = values[i];
-			jac.coeffRef(rind[i],cind[i]) = value_tmp;
+			lhs.coeffRef(rind[i],cind[i]) = value_tmp;
 		}
 	};
 
 	void set_rhs(Tx *val_rhs){
-		const auto nic = mesh->nic;
-		const auto njc = mesh->njc;
-		const auto nq = mesh->solution->nq;
-		const auto ntrans = mesh->solution->ntrans;
-		for(uint i=0; i<nic*njc*(nq+ntrans); i++){
+		number_rhs_update += 1;
+		for(uint i=0; i<n; i++){
 			rhs(i, 0) = val_rhs[i];
 		}
 	};
 
-	void solve_and_update(Tx *q, Tx under_relaxation){
-		const auto nic = mesh->nic;
-		const auto njc = mesh->njc;
-		const auto nq = mesh->solution->nq;
-		const auto ntrans = mesh->solution->ntrans;
-		jac.makeCompressed();
-		if(c == 0){
-			solver->analyzePattern(jac);
-			c = 1;
+
+	void solve(){
+		if(number_rhs_update != number_lhs_update){
+			spdlog::get("console")->warn("Number of rhs update does not match with the number of lhs update!");
 		}
-		solver->factorize(jac);
+		
+		lhs.makeCompressed();
+		if(!pattern_analyzed){
+			solver->analyzePattern(lhs);
+			pattern_analyzed = true;
+		}
+		solver->factorize(lhs);
 		dq = solver->solve(rhs);
-		for(int i=0; i<nic*njc*(nq+ntrans); i++){
+	}
+	
+	void solve_and_update(Tx *q, Tx under_relaxation){
+		solve();
+		for(int i=0; i<n; i++){
 			q[i] = q[i] + dq(i,0)*under_relaxation;
 		}
 	};
-
 };
 
 #endif
