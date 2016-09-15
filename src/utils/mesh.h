@@ -6,6 +6,8 @@
 #include "eulerequation.h"
 #include "io.h"
 #include <memory>
+#include "linearsolver.h"
+
 template<class Tx>
 class Solution;
 
@@ -32,6 +34,17 @@ class Mesh: public std::enable_shared_from_this<Mesh<Tx>>{
 	std::shared_ptr<Solution<Tx>> solution;
 	std::shared_ptr<IOManager<Tx>> iomanager;
 	std::shared_ptr<EulerEquation<Tx, adouble>> equation;
+
+#if defined(ENABLE_ARMA)
+	std::shared_ptr<LinearSolverArma<Tx>> linearsolver;
+#endif
+#if defined(ENABLE_EIGEN)
+	std::shared_ptr<LinearSolverEigen<Tx>> linearsolver;
+#endif
+#if defined(ENABLE_PETSC)
+	std::shared_ptr<LinearSolverPetsc<Tx>> linearsolver;
+#endif
+
 public:
 	Mesh(std::shared_ptr<Config<Tx>> config);
 
@@ -445,6 +458,20 @@ void Mesh<Tx>::setup(){
 	solution = std::make_shared<Solution<Tx>>(this->shared_from_this());
 	equation = std::make_shared<EulerEquation<Tx, adouble>>(this->shared_from_this(), config);
 	iomanager = std::make_shared<IOManager<Tx>>(this->shared_from_this(), config);
+	equation->initialize();
+
+#if defined(ENABLE_ARMA)
+	linearsolver = std::make_shared<LinearSolverArma<Tx>>(this->shared_from_this(), config);
+#endif
+	
+#if defined(ENABLE_EIGEN)
+	linearsolver = std::make_shared<LinearSolverEigen<Tx>>(this->shared_from_this(), config);
+#endif
+	
+#if defined(ENABLE_PETSC)
+	linearsolver = std::make_shared<LinearSolverPetsc<Tx>>(this->shared_from_this(), config);
+#endif
+
 }
 
 template<class Tx>
