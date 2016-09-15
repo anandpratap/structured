@@ -1,28 +1,56 @@
 #ifndef __RECONSTRUCTION__H
 #define __RECONSTRUCTION__H
 #include "common.h"
+
+/*!
+  \brief Base class for classes used to reconstruct/interpolate left and right state for a riemann solver.
+*/
 template<class Tx, class Tad>
 class Reconstruction{
 public:
+	//! Reconstruct left and right state for all the chi direction faces.
+	/*!
+	  @param[in] q cell centered variable, includes ghost points. `size: (nic + nhalo) x (njc + nhalo)`
+	  @param[out] ql reconstructed left state. `size: ni x njc`
+	  @param[out] qr reconstructed right state. `size: ni x njc`
+	*/
 	virtual void evaluate_chi(Array2D<Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
 	};
-	
+
+	//! Reconstruct left and right state for all the eta direction faces.
+	/*!
+	  @param[in] q cell centered variable, includes ghost points. `size: (nic + nhalo) x (njc + nhalo)`
+	  @param[out] ql reconstructed left state. `size: nic x nj`
+	  @param[out] qr reconstructed right state. `size: nic x nj`
+	*/
+
 	virtual void evaluate_eta(Array2D<Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
 	};
 };
 
+/*!
+  \brief First order reconstruction
+
+  Simple first order reconstruction where left and right states are taken to be the values of 
+  left and right cell.
+ */
 template<class Tx, class Tad>
-class FirstOrder: public Reconstruction<Tx, Tad>{
+class ReconstructionFirstOrder: public Reconstruction<Tx, Tad>{
 	uint ni, nj;
 	uint nic, njc;
 public:
-	FirstOrder(const uint val_ni, const uint val_nj): Reconstruction<Tx, Tad>(){
+ ReconstructionFirstOrder(const uint val_ni, const uint val_nj): Reconstruction<Tx, Tad>(){
 		ni = val_ni;
 		nj = val_nj;
 		nic = ni - 1;
 		njc = nj - 1;
 	};
-	
+	/*!@copydoc
+	  \f{eqnarray*}{
+	  q_{left, i, j} = q_{i, j+1} \\
+	  q_{right, i, j} = q_{i+1, j+1} \\
+	  \f} 
+	 */	
 	void evaluate_chi(Array2D<Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
 #pragma omp parallel for
 		for(uint i=0; i<ni; i++){
@@ -45,8 +73,13 @@ public:
 };
 
 
+/*!
+  \brief Second order reconstruction
+
+  Simple second order reconstruction.
+ */
 template<class Tx, class Tad>
-class SecondOrder: public Reconstruction<Tx, Tad>{
+class ReconstructionSecondOrder: public Reconstruction<Tx, Tad>{
 	uint ni, nj;
 	uint nic, njc;
 	Tx thm = 2.0/3.0;
@@ -55,7 +88,7 @@ class SecondOrder: public Reconstruction<Tx, Tad>{
 	Array2D<Tad> f2_chi, a1_chi, a2_chi, f3qt_chi;
 	Array2D<Tad> f2_eta, a1_eta, a2_eta, f3qt_eta;
 public:
-	SecondOrder(const uint val_ni, const uint val_nj): Reconstruction<Tx, Tad>(){
+ ReconstructionSecondOrder(const uint val_ni, const uint val_nj): Reconstruction<Tx, Tad>(){
 		ni = val_ni;
 		nj = val_nj;
 		nic = ni - 1;

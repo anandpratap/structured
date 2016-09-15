@@ -11,7 +11,7 @@ public:
 };
 
 template<class Tx, class Tad>
-class GreeGaussFlux: public DiffusiveFlux<Tx, Tad>{
+class DiffusiveFluxGreenGauss: public DiffusiveFlux<Tx, Tad>{
 public:
 	virtual void evaluate(Array3D<Tx>& val_normal,
 						  Array3D<Tad>& val_grad_u, Array3D<Tad>& val_grad_v, Array3D<Tad>& val_grad_T,
@@ -62,7 +62,7 @@ public:
 };
 
 template<class Tx, class Tad>
-class RoeFlux: public ConvectiveFlux<Tx, Tad>{
+class ConvectiveFluxRoe: public ConvectiveFlux<Tx, Tad>{
  public:
 	void evaluate(Array3D<Tx>& normal,
 				  Array2D<Tad>& rlft_a, Array2D<Tad>& ulft_a, Array2D<Tad>& vlft_a, Array2D<Tad>& plft_a,
@@ -164,7 +164,7 @@ class RoeFlux: public ConvectiveFlux<Tx, Tad>{
 
 
 template<class Tx, class Tad>
-class AUSMFlux: public ConvectiveFlux<Tx, Tad>{
+class ConvectiveFluxAUSM: public ConvectiveFlux<Tx, Tad>{
  public:
 	Tad mach_p(Tad M){return fabs(M) <= 1.0 ? 0.25*(M+1.0)*(M+1.0): 0.5*(M + fabs(M));};
 	Tad mach_m(Tad M){return fabs(M) <= 1.0 ? -0.25*(M-1.0)*(M-1.0): 0.5*(M - fabs(M));};
