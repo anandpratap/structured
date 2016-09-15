@@ -14,6 +14,7 @@ class Solution;
 template <class Tx>
 class Mesh: public std::enable_shared_from_this<Mesh<Tx>>{
  public:
+	std::string label;
 	std::shared_ptr<Config<Tx>> config;
 	uint ni, nj;
 	uint nic, njc;

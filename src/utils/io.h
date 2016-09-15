@@ -9,6 +9,7 @@ class IOManager{
 public:
 	std::shared_ptr<Config<Tx>> config;
 	std::shared_ptr<Mesh<Tx>> mesh;
+	std::string label;
 	IOManager(std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
 		config = val_config;
 		mesh = val_mesh;
@@ -18,6 +19,13 @@ public:
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
 		const auto ntrans = mesh->solution->ntrans;
+
+		if(mesh->label == ""){
+			label = config->io->label;
+		}
+		else{
+			label = config->io->label + "_" + mesh->label;
+		}
 	};
 
 	~IOManager(){
@@ -32,7 +40,7 @@ public:
 	}
 	
 	void write_tecplot(){
-		std::string filename = config->io->label + ".tec";
+		std::string filename = label + ".tec";
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		auto q = mesh->solution->q;
@@ -88,7 +96,7 @@ public:
 	
 	
 	void write_npz(){
-		std::string filename = config->io->label + ".npz";
+		std::string filename = label + ".npz";
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		auto q = mesh->solution->q;
@@ -116,7 +124,7 @@ public:
 
 
 	void write_restart(){
-		std::string filename = config->io->label + ".out";
+		std::string filename = label + ".out";
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
@@ -135,7 +143,7 @@ public:
 	}
 
 	void read_restart(){
-		std::string filename = config->io->label + ".out";
+		std::string filename = label + ".out";
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
@@ -161,7 +169,7 @@ public:
 		
 	}
 	void write_surface(){
-		std::string filename = config->io->label + ".surface";
+		std::string filename = label + ".surface";
 		const auto nic = mesh->nic;
 		const auto njc = mesh->njc;
 		const auto nq = mesh->solution->nq;
