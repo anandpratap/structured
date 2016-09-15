@@ -6,6 +6,12 @@
 #include "common.h"
 #include "fluid.h"
 
+/*!
+  \brief Container for the model EulerEquation
+  
+  This is a container.
+*/
+
 template<class Tx, class Tad>
 class EulerEquation{
 public:
@@ -35,8 +41,14 @@ public:
 	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
 	std::unique_ptr<BoundaryContainer<Tx, Tad>> boundary_container;
 
-
+	//! calculate residual
+	/*!
+	  @param a_q[in] flow variable
+	  @param a_rhs[out] residual
+	*/
 	void calc_residual(Array3D<Tad>& a_q, Array3D<Tad>& a_rhs);
+	void calc_dt(Tx cfl);
+	void initialize();
 	void calc_convective_residual(Array3D<Tad>& a_rhs);
 	void calc_intermediates(Array3D<Tad>& a_q);
 	void calc_viscous_residual(Array3D<Tad>& a_rhs){
@@ -134,10 +146,10 @@ public:
 
 		
 		if(config->solver->order == 1){
-			reconstruction = std::make_unique<FirstOrder<Tx, Tad>>(ni, nj);
+			reconstruction = std::make_unique<ReconstructionFirstOrder<Tx, Tad>>(ni, nj);
 		}
 		else if(config->solver->order == 2){
-			reconstruction = std::make_unique<SecondOrder<Tx, Tad>>(ni, nj);
+			reconstruction = std::make_unique<ReconstructionSecondOrder<Tx, Tad>>(ni, nj);
 		}
 		else{
 			
@@ -146,14 +158,14 @@ public:
 
 		
 		if(config->solver->flux == "roe")
-			convective_flux = std::make_unique<RoeFlux<Tx, Tad>>();
+			convective_flux = std::make_unique<ConvectiveFluxRoe<Tx, Tad>>();
 		else if(config->solver->flux == "ausm")
-			convective_flux = std::make_unique<AUSMFlux<Tx, Tad>>();
+			convective_flux = std::make_unique<ConvectiveFluxAUSM<Tx, Tad>>();
 		else
 			spdlog::get("console")->critical("Flux not found.");
 
 
-		diffusive_flux = std::make_unique<GreeGaussFlux<Tx, Tad>>();
+		diffusive_flux = std::make_unique<DiffusiveFluxGreenGauss<Tx, Tad>>();
 		fluid_model = std::make_shared<FluidModel<Tx, Tad>>(config->freestream->p_inf, config->freestream->rho_inf,
 															config->freestream->T_inf, config->freestream->mu_inf,
 															config->freestream->pr_inf);
@@ -255,5 +267,64 @@ void EulerEquation<Tx, Tad>::calc_residual(Array3D<Tad>& a_q, Array3D<Tad>& a_rh
 	}
 
 };
+
+
+
+template <class Tx, class Tad>
+void EulerEquation<Tx, Tad>::calc_dt(Tx cfl){
+	uint nic = mesh->nic;
+	uint njc = mesh->njc;
+	uint nq = mesh->solution->nq;
+
+#pragma omp parallel for
+	for(uint i=0; i<mesh->nic; i++){
+		for(uint j=0; j<mesh->njc; j++){
+			Tx rho = mesh->solution->q[i][j][0];
+			Tx u = mesh->solution->q[i][j][1]/rho;
+			Tx v = mesh->solution->q[i][j][2]/rho;
+			Tx rhoE = mesh->solution->q[i][j][3];
+			Tx p = (rhoE - 0.5*rho*(u*u + v*v))*(GAMMA-1.0);
+			Tx lambda = sqrt(GAMMA*p/rho) + fabs(u) + fabs(v);
+			Tx len_min = std::min(mesh->ds_eta[i][j], mesh->ds_chi[i][j]);
+			Tx mu = config->freestream->mu_inf;
+			for(int k=0; k<nq; k++)
+				mesh->solution->dt[i][j][k] = cfl/(lambda/len_min + 2.0*mu/len_min/len_min);
+			//dt[i][j][4] = dt[i][j][0];
+		}
+	}
+
+}
+
+template <class Tx, class Tad>
+void EulerEquation<Tx, Tad>::initialize(){
+	uint nic = mesh->nic;
+	uint njc = mesh->njc;
+
+	for(uint i=0; i<nic; i++){
+		for(uint j=0; j<njc; j++){
+			auto rho_inf = config->freestream->rho_inf;
+			auto u_inf = config->freestream->u_inf;
+			auto v_inf = config->freestream->v_inf;
+			auto p_inf = config->freestream->p_inf;
+			mesh->solution->q[i][j][0] = rho_inf;
+			mesh->solution->q[i][j][1] = rho_inf*u_inf;
+			mesh->solution->q[i][j][2] = rho_inf*v_inf;
+			mesh->solution->q[i][j][3] = p_inf/(GAMMA-1.0) + 0.5*rho_inf*(u_inf*u_inf + v_inf*v_inf);
+		}
+	}
+	if(config->io->restart){
+		mesh->iomanager->read_restart();
+	}
+	uint nq = mesh->solution->nq;
+	uint ntrans = mesh->solution->ntrans;
+	for(uint i=0; i<nic; i++){
+		for(uint j=0; j<njc; j++){
+			for(uint k=0; k<nq+ntrans; k++){
+				mesh->solution->q_tmp[i][j][k] = mesh->solution->q[i][j][k];
+			}
+		}
+	}
+	
+}
 
 #endif

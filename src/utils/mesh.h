@@ -3,12 +3,14 @@
 #include "common.h"
 #include "solution.h"
 #include "config.h"
-
+#include "eulerequation.h"
+#include "io.h"
+#include <memory>
 template<class Tx>
 class Solution;
 
 template <class Tx>
-class Mesh{
+class Mesh: public std::enable_shared_from_this<Mesh<Tx>>{
  public:
 	std::shared_ptr<Config<Tx>> config;
 	uint ni, nj;
@@ -28,7 +30,8 @@ class Mesh{
 	Array2D<Tx> x_chi, y_chi, x_eta, y_eta;
 	
 	std::shared_ptr<Solution<Tx>> solution;
-	
+	std::shared_ptr<IOManager<Tx>> iomanager;
+	std::shared_ptr<EulerEquation<Tx, adouble>> equation;
 public:
 	Mesh(std::shared_ptr<Config<Tx>> config);
 
@@ -44,7 +47,8 @@ public:
 	void calc_gradient(Array2D<Tad>& q, Array3D<Tad>& grad_chi, Array3D<Tad>& grad_eta);
 
 	template<class Tad>
-	void calc_face(Array2D<Tad>& q, Array2D<Tad>& q_chi, Array2D<Tad>& q_eta);
+	void calc_face(Array2D<Tad>& q, Array2D<Tad>& q_chi, Array2D<Tad>& q_eta);	
+	void setup();
 
 	void simple_loader(std::string filename);
 	void plot3d_loader(std::string filename);
@@ -433,11 +437,15 @@ Mesh<Tx>::Mesh(std::shared_ptr<Config<Tx>> val_config){
 	y_chi = Array2D<Tx>(nic, njc);
 	y_eta = Array2D<Tx>(nic, njc);
 	
-	
-	solution = std::make_shared<Solution<Tx>>(this);
-	calc_metrics();
 };
 
+template<class Tx>
+void Mesh<Tx>::setup(){
+	calc_metrics();
+	solution = std::make_shared<Solution<Tx>>(this->shared_from_this());
+	equation = std::make_shared<EulerEquation<Tx, adouble>>(this->shared_from_this(), config);
+	iomanager = std::make_shared<IOManager<Tx>>(this->shared_from_this(), config);
+}
 
 template<class Tx>
 Mesh<Tx>::Mesh(std::shared_ptr<Mesh<Tx>> mesh, const uint nskipi, const uint nskipj, const uint refine){
