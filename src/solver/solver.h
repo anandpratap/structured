@@ -42,9 +42,6 @@ public:
 	std::string label;
 	std::shared_ptr<spdlog::logger> logger;
 	std::shared_ptr<spdlog::logger> logger_convergence;	
-	std::shared_ptr<IOManager<Tx>> iomanager;
-
-	std::shared_ptr<EulerEquation<Tx, Tad>> equation;
 
 #if defined(ENABLE_ARMA)
 	std::shared_ptr<LinearSolverArma<Tx>> linearsolver;
@@ -56,79 +53,16 @@ public:
 	std::shared_ptr<LinearSolverPetsc<Tx>> linearsolver;
 #endif
 
-	
+	void step(shared_ptr<Mesh<Tx>> mesh);
+
 	Solver(std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config);
 	~Solver();
-	void calc_dt();
-	void initialize();
 };
-template <class Tx, class Tad>
-void Solver<Tx, Tad>::calc_dt(){
-	uint nic = mesh->nic;
-	uint njc = mesh->njc;
-	uint nq = mesh->solution->nq;
-
-#pragma omp parallel for
-	for(uint i=0; i<mesh->nic; i++){
-		for(uint j=0; j<mesh->njc; j++){
-			Tx rho = mesh->solution->q[i][j][0];
-			Tx u = mesh->solution->q[i][j][1]/rho;
-			Tx v = mesh->solution->q[i][j][2]/rho;
-			Tx rhoE = mesh->solution->q[i][j][3];
-			Tx p = (rhoE - 0.5*rho*(u*u + v*v))*(GAMMA-1.0);
-			Tx lambda = sqrt(GAMMA*p/rho) + fabs(u) + fabs(v);
-			Tx len_min = std::min(mesh->ds_eta[i][j], mesh->ds_chi[i][j]);
-			Tx mu = config->freestream->mu_inf;
-			for(int k=0; k<nq; k++)
-				mesh->solution->dt[i][j][k] = CFL/(lambda/len_min + 2.0*mu/len_min/len_min);
-			//dt[i][j][4] = dt[i][j][0];
-		}
-	}
-
-}
-template <class Tx, class Tad>
-void Solver<Tx, Tad>::initialize(){
-	uint nic = mesh->nic;
-	uint njc = mesh->njc;
-
-	for(uint i=0; i<nic; i++){
-		for(uint j=0; j<njc; j++){
-			auto rho_inf = config->freestream->rho_inf;
-			auto u_inf = config->freestream->u_inf;
-			auto v_inf = config->freestream->v_inf;
-			auto p_inf = config->freestream->p_inf;
-			mesh->solution->q[i][j][0] = rho_inf;
-			mesh->solution->q[i][j][1] = rho_inf*u_inf;
-			mesh->solution->q[i][j][2] = rho_inf*v_inf;
-			mesh->solution->q[i][j][3] = p_inf/(GAMMA-1.0) + 0.5*rho_inf*(u_inf*u_inf + v_inf*v_inf);
-		}
-	}
-	if(config->io->restart){
-		iomanager->read_restart();
-	}
-	uint nq = mesh->solution->nq;
-	uint ntrans = mesh->solution->ntrans;
-	for(uint i=0; i<nic; i++){
-		for(uint j=0; j<njc; j++){
-			for(uint k=0; k<nq+ntrans; k++){
-				mesh->solution->q_tmp[i][j][k] = mesh->solution->q[i][j][k];
-			}
-		}
-	}
-	
-}
 
 template <class Tx, class Tad>
 Solver<Tx, Tad>::Solver(std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
 	config = val_config;
 	mesh = val_mesh;
-	uint ni = mesh->ni;
-	uint nj = mesh->nj;
-	uint nic = mesh->nic;
-	uint njc = mesh->njc;
-	uint nq = mesh->solution->nq;
-	uint ntrans = mesh->solution->ntrans;
-
 #if defined(ENABLE_ARMA)
 	linearsolver = std::make_shared<LinearSolverArma<Tx>>(mesh, config);
 #endif
@@ -151,20 +85,21 @@ Solver<Tx, Tad>::Solver(std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Conf
 	UNDER_RELAXATION = config->solver->under_relaxation;
 	
 
-	equation = std::make_shared<EulerEquation<Tx, Tad>>(mesh, config);
-	iomanager = std::make_shared<IOManager<Tx>>(mesh, config);
 }
 template <class Tx, class Tad>
 Solver<Tx, Tad>::~Solver(){
+}
+
+
+template <class Tx, class Tad>
+void Solver<Tx, Tad>::step(shared_ptr<Mesh<Tx>> mesh){
 	uint ni = mesh->ni;
 	uint nj = mesh->nj;
 	uint nic = mesh->nic;
 	uint njc = mesh->njc;
 	uint nq = mesh->solution->nq;
-	
+	uint ntrans = mesh->solution->ntrans;
 }
-
-
 template <class Tx, class Tad>
 void Solver<Tx, Tad>::solve(){
 	uint ni = mesh->ni;
@@ -178,14 +113,14 @@ void Solver<Tx, Tad>::solve(){
 
 	uint counter = 0;
 	Tx t = 0.0;
-	initialize();
+	mesh->equation->initialize();
 	logger->info("Welcome to structured!");
 
 
 	config->profiler->timer_main->reset();
 
 	while(1){
-		calc_dt();
+		mesh->equation->calc_dt(CFL);
 		config->profiler->reset_time_residual();
 
 #if defined(ENABLE_ADOLC)
@@ -199,7 +134,7 @@ void Solver<Tx, Tad>::solve(){
 				}
 			}
 		}
-		equation->calc_residual(mesh->solution->a_q, mesh->solution->a_rhs);
+		mesh->equation->calc_residual(mesh->solution->a_q, mesh->solution->a_rhs);
 		
 		for(uint i=0; i<nic; i++){
 			for(uint j=0; j<njc; j++){
@@ -212,13 +147,13 @@ void Solver<Tx, Tad>::solve(){
 		trace_off();
 #else
 		if(config->solver->scheme == "forward_euler"){
-			equation->calc_residual(q, mesh->solution->rhs);
+			mesh->equation->calc_residual(q, mesh->solution->rhs);
 			update_forward_euler(q.size(), q.data(), mesh->solution->rhs.data(), mesh->solution->dt.data());
 		}
 		else if(config->solver->scheme == "rk4_jameson"){
 
 			for(int order=0; order<4; order++){
-				equation->calc_residual(q_tmp, mesh->solution->rhs);
+				mesh->equation->calc_residual(q_tmp, mesh->solution->rhs);
 				update_rk4(q.size(), q_tmp.data(), q.data(), mesh->solution->rhs.data(), mesh->solution->dt.data(), order);
 			}
 
@@ -246,7 +181,7 @@ void Solver<Tx, Tad>::solve(){
 		
 		if(counter > config->solver->iteration_max){
 			logger->info("Max iteration reached!");
-			iomanager->write(counter);
+			mesh->iomanager->write(counter);
 			auto dt_main = config->profiler->current_time();
 			logger->info("Final:: Step: {:08d} Time: {:.2e} Wall Time: {:.2e} CFL: {:.2e} Density Norm: {:.2e}", counter, t, dt_main, CFL, l2norm[0]);
 			logger_convergence->info("{:08d} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e}", counter, t, dt_main, CFL, l2norm[0], l2norm[1], l2norm[2], l2norm[3]);
@@ -255,7 +190,7 @@ void Solver<Tx, Tad>::solve(){
 		//		logger->debug("transport l2 {}", l2norm[4]);
 		if(l2norm[0] < config->solver->tolerance && l2norm[1] < config->solver->tolerance && 0){
 			logger->info("Convergence reached!");
-			iomanager->write(counter);
+			mesh->iomanager->write(counter);
 			auto dt_main = config->profiler->current_time();
 			logger->info("Final:: Step: {:08d} Time: {:.2e} Wall Time: {:.2e} CFL: {:.2e} Density Norm: {:.2e}", counter, t, dt_main, CFL, l2norm[0]);
 			logger_convergence->info("{:08d} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e} {:.2e}", counter, t, dt_main, CFL, l2norm[0], l2norm[1], l2norm[2], l2norm[3]);
@@ -330,7 +265,7 @@ void Solver<Tx, Tad>::solve(){
 		}
 		
 		if(counter % config->io->fileout_frequency == 0){
-			iomanager->write(counter);
+			mesh->iomanager->write(counter);
 		}
 	}
 }
