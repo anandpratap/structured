@@ -35,6 +35,7 @@ class Mesh: public std::enable_shared_from_this<Mesh<Tx>>{
 	std::shared_ptr<Solution<Tx>> solution;
 	std::shared_ptr<IOManager<Tx>> iomanager;
 	std::shared_ptr<EulerEquation<Tx, adouble>> equation;
+	std::shared_ptr<FluidModel<Tx, adouble>> fluid_model;
 
 #if defined(ENABLE_ARMA)
 	std::shared_ptr<LinearSolverArma<Tx>> linearsolver;
@@ -456,6 +457,9 @@ Mesh<Tx>::Mesh(std::shared_ptr<Config<Tx>> val_config){
 template<class Tx>
 void Mesh<Tx>::setup(){
 	calc_metrics();
+	fluid_model = std::make_shared<FluidModel<Tx, adouble>>(config->freestream->p_inf, config->freestream->rho_inf,
+															config->freestream->T_inf, config->freestream->mu_inf,
+															config->freestream->pr_inf);
 	solution = std::make_shared<Solution<Tx>>(this->shared_from_this());
 	equation = std::make_shared<EulerEquation<Tx, adouble>>(this->shared_from_this(), config);
 	iomanager = std::make_shared<IOManager<Tx>>(this->shared_from_this(), config);

@@ -33,6 +33,7 @@ public:
 	}
 
 	void write(const uint iteration){
+		mesh->fluid_model->primvars(mesh->solution->q, mesh->solution->rho, mesh->solution->u, mesh->solution->v, mesh->solution->p, mesh->solution->T);
 		write_tecplot();
 		write_npz();
 		write_restart();

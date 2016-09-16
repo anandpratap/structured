@@ -38,7 +38,6 @@ public:
 	std::unique_ptr<Reconstruction<Tx, Tad>> reconstruction;
 	std::unique_ptr<ConvectiveFlux<Tx, Tad>> convective_flux;
 	std::unique_ptr<DiffusiveFlux<Tx, Tad>> diffusive_flux;
-	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
 	std::unique_ptr<BoundaryContainer<Tx, Tad>> boundary_container;
 
 	//! calculate residual
@@ -166,11 +165,7 @@ public:
 
 
 		diffusive_flux = std::make_unique<DiffusiveFluxGreenGauss<Tx, Tad>>();
-		fluid_model = std::make_shared<FluidModel<Tx, Tad>>(config->freestream->p_inf, config->freestream->rho_inf,
-															config->freestream->T_inf, config->freestream->mu_inf,
-															config->freestream->pr_inf);
-
-		boundary_container = std::make_unique<BoundaryContainer<Tx, Tad>>(config->filename, mesh, config, fluid_model);
+		boundary_container = std::make_unique<BoundaryContainer<Tx, Tad>>(config->filename, mesh, config, mesh->fluid_model);
 	};
 
 	~EulerEquation(){
@@ -199,7 +194,7 @@ void EulerEquation<Tx, Tad>::calc_convective_residual(Array3D<Tad>& a_rhs){
 
 template <class Tx, class Tad>
 void EulerEquation<Tx, Tad>::calc_primvars(Array3D<Tad>& a_q){
-	fluid_model->primvars(a_q, rho, u, v, p, T, 1U, 1U);
+	mesh->fluid_model->primvars(a_q, rho, u, v, p, T, 1U, 1U);
 }
 
 
@@ -226,8 +221,8 @@ void EulerEquation<Tx, Tad>::calc_intermediates(Array3D<Tad>& a_q){
 	if(config->freestream->if_viscous){
 		for(uint i=0; i<nic+2; i++){
 			for(uint j=0; j<njc+2; j++){
-				mu[i][j] = fluid_model->get_laminar_viscosity(T[i][j]);
-				k[i][j] = fluid_model->get_thermal_conductivity(T[i][j]);
+				mu[i][j] = mesh->fluid_model->get_laminar_viscosity(T[i][j]);
+				k[i][j] = mesh->fluid_model->get_thermal_conductivity(T[i][j]);
 			}
 		}
 		

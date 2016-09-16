@@ -19,23 +19,29 @@ public:
 		cp = gamma*R/(gamma-1.0);
 	};
 	~FluidModel(){};
-	inline Tad get_T_prho(Tad p, Tad rho){
+
+	template<class Tq>
+	inline Tq get_T_prho(Tq p, Tq rho){
 		return p/rho/R;
 	};
-	
-	inline Tad get_rho_pT(Tad p, Tad T){
+
+	template<class Tq>
+		inline Tq get_rho_pT(Tq p, Tq T){
 		return p/T/R;
 	};
 
-	inline Tad get_p_rhoT(Tad rho, Tad T){
+	template<class Tq>
+	inline Tq get_p_rhoT(Tq rho, Tq T){
 		return rho*R*T;
 	};
 
-	inline Tad get_laminar_viscosity(Tad T){
+	template<class Tq>
+	inline Tq get_laminar_viscosity(Tq T){
 		return mu_ref*pow(T/T_ref, 2.0/3.0);
 	};
 
-	inline Tad get_thermal_conductivity(Tad T){
+	template<class Tq>
+	inline Tq get_thermal_conductivity(Tq T){
 		return get_laminar_viscosity(T)*cp/pr;
 	};
 
