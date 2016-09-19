@@ -14,6 +14,13 @@ int main(int argc, char *argv[]){
 	using qtype = double;
 #endif
 
+#if defined(ENABLE_ADOLC)
+	using aqtype = adouble;
+#else
+	using aqtype = qtype;
+#endif
+
+	
 	cmdline::parser parser;
 	spdlog::set_pattern("%v");
 	parser.add<std::string>("config", 'c', "configuration file name", false, "config.inp");
@@ -25,15 +32,10 @@ int main(int argc, char *argv[]){
 	logger->set_level(spdlog::level::debug);
 
 	auto config = std::make_shared<Config<qtype>>(parser.get<std::string>("config"), argc, argv);
-	auto m = std::make_shared<Mesh<qtype>>(config);
+	auto m = std::make_shared<Mesh<qtype, aqtype>>(config);
 	m->label = "";
 	m->setup();
-
-#if defined(ENABLE_ADOLC)
-	auto s = std::make_shared<Solver<double, adouble>>(config);
-#else
-	auto s = std::make_shared<Solver<qtype, qtype>>(config);
-#endif
+	auto s = std::make_shared<Solver<qtype, aqtype>>(config);
 
 	s->add_mesh(m);
 	s->solve();

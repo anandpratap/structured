@@ -23,7 +23,7 @@ public:
 	uint ni, nj, nic, njc;
 	Tx rho_inf, u_inf, v_inf, p_inf;
 	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
- BoundaryConditionFreestream(std::string val_name, std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Config<Tx>> config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
+ BoundaryConditionFreestream(std::string val_name, std::shared_ptr<Mesh<Tx, Tad>> mesh, std::shared_ptr<Config<Tx>> config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
 								uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
 		fluid_model = val_fluid_model;
 		name = val_name;
@@ -84,9 +84,9 @@ public:
 	uint face;
 	uint start, end;
 	uint ni, nj, nic, njc;
-	std::shared_ptr<Mesh<Tx>> mesh;
+	std::shared_ptr<Mesh<Tx, Tad>> mesh;
 	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
- BoundaryConditionInviscidWall(std::string val_name, std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
+ BoundaryConditionInviscidWall(std::string val_name, std::shared_ptr<Mesh<Tx, Tad>> val_mesh, std::shared_ptr<Config<Tx>> config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
 								  uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
 		fluid_model = val_fluid_model;
 		name = val_name;
@@ -162,9 +162,9 @@ public:
 	uint ni, nj, nic, njc;
 	Tx rho_inf, u_inf, v_inf, p_inf;
 	double u_bc, v_bc;
-	std::shared_ptr<Mesh<Tx>> mesh;
+	std::shared_ptr<Mesh<Tx, Tad>> mesh;
 	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
- BoundaryConditionAdiabaticWall(std::string val_name, std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
+ BoundaryConditionAdiabaticWall(std::string val_name, std::shared_ptr<Mesh<Tx, Tad>> val_mesh, std::shared_ptr<Config<Tx>> config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
 								 uint val_face, uint val_start, uint val_end, double val_u_bc, double val_v_bc): BoundaryCondition<Tx, Tad>(){
 		fluid_model = val_fluid_model;
 		name = val_name;
@@ -247,8 +247,8 @@ public:
 	uint start, end;
 	uint ni, nj, nic, njc;
 	Tx rho_inf, u_inf, v_inf, p_inf;
-	std::shared_ptr<Mesh<Tx>> mesh;
- BoundaryConditionWake(std::string val_name, std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
+	std::shared_ptr<Mesh<Tx, Tad>> mesh;
+ BoundaryConditionWake(std::string val_name, std::shared_ptr<Mesh<Tx, Tad>> val_mesh, std::shared_ptr<Config<Tx>> config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
 						  uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
 	name = val_name;
 	mesh = val_mesh;
@@ -322,7 +322,7 @@ public:
 	uint ni, nj, nic, njc;
 	Tx rho_inf, u_inf, v_inf, p_inf;
 	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
- BoundaryConditionOutflow(std::string val_name, std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Config<Tx>> config,std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
+ BoundaryConditionOutflow(std::string val_name, std::shared_ptr<Mesh<Tx, Tad>> mesh, std::shared_ptr<Config<Tx>> config,std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
 								uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
 		fluid_model = val_fluid_model;
 		name = val_name;
@@ -378,7 +378,7 @@ public:
 	uint face;
 	uint start, end;
 	uint ni, nj, nic, njc;
- BoundaryConditionPeriodic(std::string val_name, std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Config<Tx>> config,std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
+ BoundaryConditionPeriodic(std::string val_name, std::shared_ptr<Mesh<Tx, Tad>> mesh, std::shared_ptr<Config<Tx>> config,std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
 								uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
 		name = val_name;
 		face = val_face;
@@ -438,9 +438,9 @@ public:
 	uint start, end;
 	uint ni, nj, nic, njc;
 	double u_bc, v_bc, T_bc;
-	std::shared_ptr<Mesh<Tx>> mesh;
+	std::shared_ptr<Mesh<Tx, Tad>> mesh;
 	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
- BoundaryConditionIsothermalWall(std::string val_name, std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> config,std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
+ BoundaryConditionIsothermalWall(std::string val_name, std::shared_ptr<Mesh<Tx, Tad>> val_mesh, std::shared_ptr<Config<Tx>> config,std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
 								 uint val_face, uint val_start, uint val_end, double val_u_bc, double val_v_bc, double val_T_bc): BoundaryCondition<Tx, Tad>(){
 		fluid_model = val_fluid_model;
 		name = val_name;
@@ -553,7 +553,7 @@ class BoundaryContainer{
 		for(auto&& bc : boundary_conditions)
 			delete bc;
 	};
-	BoundaryContainer(std::string filename, std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Config<Tx>> val_config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model){
+	BoundaryContainer(std::string filename, std::shared_ptr<Mesh<Tx, Tad>> mesh, std::shared_ptr<Config<Tx>> val_config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model){
 		ni = mesh->ni;
 		nj = mesh->nj;
 		nic = ni - 1;
