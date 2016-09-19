@@ -33,7 +33,7 @@ public:
 	Array2D<Tad> mu_bar_chi, mu_bar_eta;
 	Array2D<Tad> k_bar_chi, k_bar_eta;
 	
-	std::shared_ptr<Mesh<Tx>> mesh;
+	std::shared_ptr<Mesh<Tx, Tad>> mesh;
 	std::shared_ptr<Config<Tx>> config;
 	std::unique_ptr<Reconstruction<Tx, Tad>> reconstruction;
 	std::unique_ptr<ConvectiveFlux<Tx, Tad>> convective_flux;
@@ -74,7 +74,7 @@ public:
 	};
 	void calc_primvars(Array3D<Tad>& a_q);
 	void calc_boundary();
-	EulerEquation(std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
+	EulerEquation(std::shared_ptr<Mesh<Tx, Tad>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
 		mesh = val_mesh;
 		config = val_config;
 

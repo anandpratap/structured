@@ -8,11 +8,11 @@
 #include <memory>
 #include "linearsolver.h"
 
-template<class Tx>
+template<class Tx, class Tad>
 class Solution;
 
-template <class Tx>
-class Mesh: public std::enable_shared_from_this<Mesh<Tx>>{
+template <class Tx, class Tad>
+class Mesh: public std::enable_shared_from_this<Mesh<Tx, Tad>>{
  public:
 	std::string label;
 	std::shared_ptr<Config<Tx>> config;
@@ -32,37 +32,37 @@ class Mesh: public std::enable_shared_from_this<Mesh<Tx>>{
 	Array2D<Tx> chi_x, chi_y, eta_x, eta_y;
 	Array2D<Tx> x_chi, y_chi, x_eta, y_eta;
 	
-	std::shared_ptr<Solution<Tx>> solution;
-	std::shared_ptr<IOManager<Tx>> iomanager;
-	std::shared_ptr<EulerEquation<Tx, adouble>> equation;
-	std::shared_ptr<FluidModel<Tx, adouble>> fluid_model;
+	std::shared_ptr<Solution<Tx,Tad>> solution;
+	std::shared_ptr<IOManager<Tx, Tad>> iomanager;
+	std::shared_ptr<EulerEquation<Tx, Tad>> equation;
+	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
 
 #if defined(ENABLE_ARMA)
-	std::shared_ptr<LinearSolverArma<Tx>> linearsolver;
+	std::shared_ptr<LinearSolverArma<Tx, Tad>> linearsolver;
 #endif
 #if defined(ENABLE_EIGEN)
-	std::shared_ptr<LinearSolverEigen<Tx>> linearsolver;
+	std::shared_ptr<LinearSolverEigen<Tx, Tad>> linearsolver;
 #endif
 #if defined(ENABLE_PETSC)
-	std::shared_ptr<LinearSolverPetsc<Tx>> linearsolver;
+	std::shared_ptr<LinearSolverPetsc<Tx, Tad>> linearsolver;
 #endif
 
 public:
 	Mesh(std::shared_ptr<Config<Tx>> config);
 
-	Mesh(std::shared_ptr<Mesh<Tx>> mesh, const uint nskipi=0, const uint nskipj=0, const uint refine=0);
+	Mesh(std::shared_ptr<Mesh<Tx, Tad>> mesh, const uint nskipi=0, const uint nskipj=0, const uint refine=0);
 	~Mesh();
 
 	void calc_metrics();
 
-	template<class Tad>
-	void calc_gradient(Array2D<Tad>& q, Array3D<Tad> &grad_q, uint skipi=0, uint skipj=0);
+	template<class Tq>
+	void calc_gradient(Array2D<Tq>& q, Array3D<Tq> &grad_q, uint skipi=0, uint skipj=0);
 
-	template<class Tad>
-	void calc_gradient(Array2D<Tad>& q, Array3D<Tad>& grad_chi, Array3D<Tad>& grad_eta);
+	template<class Tq>
+	void calc_gradient(Array2D<Tq>& q, Array3D<Tq>& grad_chi, Array3D<Tq>& grad_eta);
 
-	template<class Tad>
-	void calc_face(Array2D<Tad>& q, Array2D<Tad>& q_chi, Array2D<Tad>& q_eta);	
+	template<class Tq>
+	void calc_face(Array2D<Tq>& q, Array2D<Tq>& q_chi, Array2D<Tq>& q_eta);	
 	void setup();
 
 	void simple_loader(std::string filename);
@@ -71,9 +71,9 @@ public:
 
 
 
-template<class Tx>
-template<class Tad>
-void Mesh<Tx>::calc_face(Array2D<Tad>& q, Array2D<Tad>& q_chi, Array2D<Tad>& q_eta){
+template<class Tx, class Tad>
+template<class Tq>
+void Mesh<Tx, Tad>::calc_face(Array2D<Tq>& q, Array2D<Tq>& q_chi, Array2D<Tq>& q_eta){
 	for(int i=0; i<ni; i++){
 		for(int j=0; j<njc; j++){
 			const uint b = 1;
@@ -97,9 +97,9 @@ void Mesh<Tx>::calc_face(Array2D<Tad>& q, Array2D<Tad>& q_chi, Array2D<Tad>& q_e
 	}
 }
 
-template<class Tx>
-template<class Tad>
-void Mesh<Tx>::calc_gradient(Array2D<Tad>& q, Array3D<Tad>& grad_chi, Array3D<Tad>& grad_eta){
+template<class Tx, class Tad>
+template<class Tq>
+void Mesh<Tx, Tad>::calc_gradient(Array2D<Tq>& q, Array3D<Tq>& grad_chi, Array3D<Tq>& grad_eta){
 	// chi
 	Tx normal_top[2];
 	Tx normal_bottom[2];
@@ -196,8 +196,8 @@ void Mesh<Tx>::calc_gradient(Array2D<Tad>& q, Array3D<Tad>& grad_chi, Array3D<Ta
 	}
 }
 
-template<class Tx>
-void Mesh<Tx>::simple_loader(std::string filename){
+template<class Tx, class Tad>
+void Mesh<Tx, Tad>::simple_loader(std::string filename){
 	std::ifstream infile(filename);
 	infile >> std::fixed >> std::setprecision(20);
 	for(uint j=0; j<nj; j++){
@@ -208,8 +208,8 @@ void Mesh<Tx>::simple_loader(std::string filename){
 	infile.close();
 }
 
-template<class Tx>
-void Mesh<Tx>::plot3d_loader(std::string filename){
+template<class Tx, class Tad>
+void Mesh<Tx, Tad>::plot3d_loader(std::string filename){
 	std::ifstream infile(filename);
 	infile >> std::fixed >> std::setprecision(20);
 	int nblock, ni_, nj_;
@@ -234,8 +234,8 @@ void Mesh<Tx>::plot3d_loader(std::string filename){
 	infile.close();
 }
 
-template<class Tx>
-void Mesh<Tx>::calc_metrics(){
+template<class Tx, class Tad>
+void Mesh<Tx, Tad>::calc_metrics(){
 	auto reta = Array3D<Tx>(nic, nj, 2U);
 	auto rchi = Array3D<Tx>(ni, njc, 2U);
 
@@ -344,9 +344,9 @@ void Mesh<Tx>::calc_metrics(){
 	}
 };
 
-template<class Tx>
-template<class Tad>
-void Mesh<Tx>::calc_gradient(Array2D<Tad>& q, Array3D<Tad> &grad_q, uint skipi, uint skipj){
+template<class Tx, class Tad>
+template<class Tq>
+void Mesh<Tx, Tad>::calc_gradient(Array2D<Tq>& q, Array3D<Tq> &grad_q, uint skipi, uint skipj){
 	Tad q_chi, q_eta;
 	for(uint i=1; i<nic-1; i++){
 		for(uint j=1; j<njc-1; j++){
@@ -407,8 +407,8 @@ void Mesh<Tx>::calc_gradient(Array2D<Tad>& q, Array3D<Tad> &grad_q, uint skipi, 
 	}
 }
 
-template<class Tx>
-Mesh<Tx>::Mesh(std::shared_ptr<Config<Tx>> val_config){
+template<class Tx, class Tad>
+Mesh<Tx, Tad>::Mesh(std::shared_ptr<Config<Tx>> val_config){
 	config = val_config;
 	ni = config->geometry->ni;
 	nj = config->geometry->nj;
@@ -454,33 +454,33 @@ Mesh<Tx>::Mesh(std::shared_ptr<Config<Tx>> val_config){
 	
 };
 
-template<class Tx>
-void Mesh<Tx>::setup(){
+template<class Tx, class Tad>
+	void Mesh<Tx, Tad>::setup(){
 	calc_metrics();
-	fluid_model = std::make_shared<FluidModel<Tx, adouble>>(config->freestream->p_inf, config->freestream->rho_inf,
+	fluid_model = std::make_shared<FluidModel<Tx, Tad>>(config->freestream->p_inf, config->freestream->rho_inf,
 															config->freestream->T_inf, config->freestream->mu_inf,
 															config->freestream->pr_inf);
-	solution = std::make_shared<Solution<Tx>>(this->shared_from_this());
-	equation = std::make_shared<EulerEquation<Tx, adouble>>(this->shared_from_this(), config);
-	iomanager = std::make_shared<IOManager<Tx>>(this->shared_from_this(), config);
+	solution = std::make_shared<Solution<Tx, Tad>>(this->shared_from_this());
+	equation = std::make_shared<EulerEquation<Tx, Tad>>(this->shared_from_this(), config);
+	iomanager = std::make_shared<IOManager<Tx, Tad>>(this->shared_from_this(), config);
 	equation->initialize();
 
 #if defined(ENABLE_ARMA)
-	linearsolver = std::make_shared<LinearSolverArma<Tx>>(this->shared_from_this(), config);
+	linearsolver = std::make_shared<LinearSolverArma<Tx, Tad>>(this->shared_from_this(), config);
 #endif
 	
 #if defined(ENABLE_EIGEN)
-	linearsolver = std::make_shared<LinearSolverEigen<Tx>>(this->shared_from_this(), config);
+	linearsolver = std::make_shared<LinearSolverEigen<Tx, Tad>>(this->shared_from_this(), config);
 #endif
 	
 #if defined(ENABLE_PETSC)
-	linearsolver = std::make_shared<LinearSolverPetsc<Tx>>(this->shared_from_this(), config);
+	linearsolver = std::make_shared<LinearSolverPetsc<Tx, Tad>>(this->shared_from_this(), config);
 #endif
 
 }
 
-template<class Tx>
-Mesh<Tx>::Mesh(std::shared_ptr<Mesh<Tx>> mesh, const uint nskipi, const uint nskipj, const uint refine){
+template<class Tx, class Tad>
+	Mesh<Tx, Tad>::Mesh(std::shared_ptr<Mesh<Tx, Tad>> mesh, const uint nskipi, const uint nskipj, const uint refine){
 	config = mesh->config;
 	if(!refine){
 		ni = std::ceil((float)mesh->ni/(nskipi+1U));
@@ -562,12 +562,12 @@ Mesh<Tx>::Mesh(std::shared_ptr<Mesh<Tx>> mesh, const uint nskipi, const uint nsk
 	y_chi = Array2D<Tx>(nic, njc);
 	y_eta = Array2D<Tx>(nic, njc);
 	
-	solution = std::make_shared<Solution<Tx>>(this);
+	solution = std::make_shared<Solution<Tx, Tad>>(this);
 	calc_metrics();
 };
 
-template<class Tx>
-Mesh<Tx>::~Mesh(){
+template<class Tx, class Tad>
+Mesh<Tx, Tad>::~Mesh(){
 	
 }
 

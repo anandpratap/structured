@@ -7,17 +7,20 @@ template<class Tq>
 Tq value(Tq x){
 	return x;
 }
+
+#if defined(ENABLE_ADOLC)
 double value(adouble x){
 	return x.value();
 }
+#endif
 
-template<class Tx>
+template<class Tx, class Tad>
 class IOManager{
 public:
 	std::shared_ptr<Config<Tx>> config;
-	std::shared_ptr<Mesh<Tx>> mesh;
+	std::shared_ptr<Mesh<Tx, Tad>> mesh;
 	std::string label;
-	IOManager(std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
+	IOManager(std::shared_ptr<Mesh<Tx, Tad>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
 		config = val_config;
 		mesh = val_mesh;
 

@@ -4,7 +4,7 @@
 /*!
   \brief High level linear solver wrapper to the Armadillo linear algebra library. 
  */
-template<class Tx>
+template<class Tx, class Tad>
 class LinearSolverArma{
  public:
 	uint n; //!< Size of the linear system, square matrix is assumed.
@@ -15,7 +15,7 @@ class LinearSolverArma{
 	uint number_lhs_update = 0; //!< Number of times the left hand side is updated.
 	uint number_rhs_update = 0; //!< Number of times the right hand side is updated.
 
-	LinearSolverArma(std::shared_ptr<Mesh<Tx>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
+	LinearSolverArma(std::shared_ptr<Mesh<Tx, Tad>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
 		const auto nic = val_mesh->nic;
 		const auto njc = val_mesh->njc;
 		const auto nq = val_mesh->solution->nq;

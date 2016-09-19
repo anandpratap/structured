@@ -34,7 +34,7 @@ template<class Tx, class To>
 template<class Tx, class Tad>
 class Solver{
 public:
-	std::vector<std::shared_ptr<Mesh<Tx>>> mesh_list;
+	std::vector<std::shared_ptr<Mesh<Tx,Tad>>> mesh_list;
 	void solve();
 	Tx UNDER_RELAXATION;
 	Tx CFL;
@@ -43,12 +43,12 @@ public:
 	std::shared_ptr<spdlog::logger> logger;
 	std::shared_ptr<spdlog::logger> logger_convergence;	
 	
-	bool step(std::shared_ptr<Mesh<Tx>> mesh, size_t counter, Tx t);
+	bool step(std::shared_ptr<Mesh<Tx,Tad>> mesh, size_t counter, Tx t);
 
 	Solver(std::shared_ptr<Config<Tx>> config);
 	~Solver();
 
-	void add_mesh(std::shared_ptr<Mesh<Tx>> mesh){
+	void add_mesh(std::shared_ptr<Mesh<Tx,Tad>> mesh){
 		mesh_list.push_back(mesh);
 	}
 };
@@ -73,7 +73,7 @@ Solver<Tx, Tad>::~Solver(){
 
 
 template <class Tx, class Tad>
-bool Solver<Tx, Tad>::step(std::shared_ptr<Mesh<Tx>> mesh, size_t counter, Tx t){
+	bool Solver<Tx, Tad>::step(std::shared_ptr<Mesh<Tx,Tad>> mesh, size_t counter, Tx t){
 	auto ni = mesh->ni;
 	auto nj = mesh->nj;
 	auto nic = mesh->nic;
@@ -113,17 +113,17 @@ bool Solver<Tx, Tad>::step(std::shared_ptr<Mesh<Tx>> mesh, size_t counter, Tx t)
 		trace_off();
 #else
 		if(config->solver->scheme == "forward_euler"){
-			equation->calc_residual(q, solution->rhs);
-			update_forward_euler(q.size(), q.data(), solution->rhs.data(), solution->dt.data());
+			equation->calc_residual(solution->q, solution->rhs);
+			update_forward_euler(solution->q.size(), solution->q.data(), solution->rhs.data(), solution->dt.data());
 		}
 		else if(config->solver->scheme == "rk4_jameson"){
 
 			for(size_t order=0; order<4; order++){
-				equation->calc_residual(q_tmp, solution->rhs);
-				update_rk4(q.size(), q_tmp.data(), q.data(), solution->rhs.data(), solution->dt.data(), order);
+				equation->calc_residual(solution->q_tmp, solution->rhs);
+				update_rk4(solution->q.size(), solution->q_tmp.data(), solution->q.data(), solution->rhs.data(), solution->dt.data(), order);
 			}
 
-			set_rarray(q.size(), q.data(), q_tmp.data());
+			set_rarray(solution->q.size(), solution->q.data(), solution->q_tmp.data());
 			
 		}
 		

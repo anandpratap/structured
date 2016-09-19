@@ -2,13 +2,13 @@
 #define _SOLUTION_H
 
 #include "common.h"
-template<class T>
+template<class Tx, class Tad>
 class Mesh;
 
 #include "mesh.h"
 
 
-template<class Tx>
+template<class Tx, class Tad>
 class Solution{
  public:
 	uint nic, njc, nq, naux, ntrans;
@@ -31,15 +31,15 @@ class Solution{
 	Tx **lhs;
 	Array3D<Tx> dt;
 	Array3D<Tx> q_tmp;
-	Array3D<adouble> a_q, a_rhs;
+	Array3D<Tad> a_q, a_rhs;
  public:
 	Solution(auto mesh);
 	//	Solution(std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Mesh<Tx>> old_mesh, const uint nskipi=0, const uint nskipj=0, const uint refine=0);
 	~Solution();
 };
 
-template<class Tx>
-Solution<Tx>::Solution(auto mesh){
+template<class Tx, class Tad>
+Solution<Tx, Tad>::Solution(auto mesh){
 	nq = 4;
 	ntrans = 0;
 	naux = 10;
@@ -86,20 +86,20 @@ Solution<Tx>::Solution(auto mesh){
 	dt = Array3D<Tx>(nic, njc, nq+ntrans);
 	rhs = Array3D<Tx>(nic, njc, nq+ntrans);
 	q_tmp = Array3D<Tx>(nic, njc, nq+ntrans);
-	a_q = Array3D<adouble>(nic, njc, nq+ntrans);
-	a_rhs = Array3D<adouble>(nic, njc, nq+ntrans);
+	a_q = Array3D<Tad>(nic, njc, nq+ntrans);
+	a_rhs = Array3D<Tad>(nic, njc, nq+ntrans);
 }
 
 
-//template<class Tx>
+//template<class Tx, class Tad>
 //Solution<Tx>::Solution(std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Mesh<Tx>> old_mesh, const uint nskipi, const uint nskipj, const uint refine): Solution<Tx>(mesh){
 //	std::cout<<nq<<std::endl;
 	// interpolate
 //}
 
 
-template<class Tx>
-Solution<Tx>::~Solution(){
+template<class Tx, class Tad>
+Solution<Tx, Tad>::~Solution(){
 }
 
 
