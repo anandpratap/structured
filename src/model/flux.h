@@ -1,18 +1,70 @@
 #ifndef _FLUX_H
 #define _FLUX_H
-template <class T, class Tad>
+template <class Tx, class Tad>
+class DiffusiveFlux{
+public:
+	virtual void evaluate(Array3D<Tx>& val_normal,
+						  Array3D<Tad>& val_grad_u, Array3D<Tad>& val_grad_v, Array3D<Tad>& val_grad_T,
+						  Array2D<Tad>& val_ubar, Array2D<Tad>& val_vbar,
+						  Array2D<Tad>& val_mubar, Array2D<Tad>& val_kbar,
+						  Array3D<Tad>& val_flux){};
+};
+
+template<class Tx, class Tad>
+class DiffusiveFluxGreenGauss: public DiffusiveFlux<Tx, Tad>{
+public:
+	virtual void evaluate(Array3D<Tx>& val_normal,
+						  Array3D<Tad>& val_grad_u, Array3D<Tad>& val_grad_v, Array3D<Tad>& val_grad_T,
+						  Array2D<Tad>& val_ubar, Array2D<Tad>& val_vbar,
+						  Array2D<Tad>& val_mubar, Array2D<Tad>& val_kbar,
+						  Array3D<Tad>& val_flux){
+		for(uint i=0; i<val_normal.extent(0); i++){
+			for(uint j=0; j<val_normal.extent(1); j++){
+				const Tx nx = val_normal[i][j][0];
+				const Tx ny = val_normal[i][j][1];
+				const Tad dudx = val_grad_u[i][j][0];
+				const Tad dudy = val_grad_u[i][j][1];
+
+				const Tad dvdx = val_grad_v[i][j][0];
+				const Tad dvdy = val_grad_v[i][j][1];
+
+				const Tad dTdx = val_grad_T[i][j][0];
+				const Tad dTdy = val_grad_T[i][j][1];
+
+				const Tad ubar = val_ubar[i][j];
+				const Tad vbar = val_vbar[i][j];
+
+				const Tad mu = val_mubar[i][j];
+				const Tad k = val_kbar[i][j];
+				
+				const Tad tau_xy = mu*(dudy + dvdx);
+				const Tad tau_xx = mu*(2.0*dudx - 2.0/3.0*(dudx + dvdy));
+				const Tad tau_yy = mu*(2.0*dvdy - 2.0/3.0*(dudx + dvdy));
+				const Tad q_x = -k*dTdx;
+				const Tad q_y = -k*dTdy;
+
+				val_flux[i][j][0] = 0.0;
+				val_flux[i][j][1] = tau_xx*nx + tau_xy*ny;
+				val_flux[i][j][2] = tau_xy*nx + tau_yy*ny;
+				val_flux[i][j][3] = (ubar*tau_xx + vbar*tau_xy - q_x)*nx + (ubar*tau_xy + vbar*tau_yy - q_y)*ny;
+			}
+		}
+	};
+};
+
+template <class Tx, class Tad>
 class ConvectiveFlux{
 public:
-	virtual void evaluate(Array3D<T>& normal,
+	virtual void evaluate(Array3D<Tx>& normal,
 				  Array2D<Tad>& rlft_a, Array2D<Tad>& ulft_a, Array2D<Tad>& vlft_a, Array2D<Tad>& plft_a,
 				  Array2D<Tad>& rrht_a, Array2D<Tad>& urht_a, Array2D<Tad>& vrht_a, Array2D<Tad>& prht_a,
 				  Array3D<Tad>& f_a){};
 };
 
-template<class T, class Tad>
-class RoeFlux: public ConvectiveFlux<T, Tad>{
+template<class Tx, class Tad>
+class ConvectiveFluxRoe: public ConvectiveFlux<Tx, Tad>{
  public:
-	void evaluate(Array3D<T>& normal,
+	void evaluate(Array3D<Tx>& normal,
 				  Array2D<Tad>& rlft_a, Array2D<Tad>& ulft_a, Array2D<Tad>& vlft_a, Array2D<Tad>& plft_a,
 				  Array2D<Tad>& rrht_a, Array2D<Tad>& urht_a, Array2D<Tad>& vrht_a, Array2D<Tad>& prht_a,
 				  Array3D<Tad>& f_a){
@@ -24,8 +76,8 @@ class RoeFlux: public ConvectiveFlux<T, Tad>{
 #pragma omp parallel for		
 		for(int i=0; i<ni; i++){
 			for(int j=0; j<nj; j++){
-				const T nx = normal[i][j][0];
-				const T ny = normal[i][j][1];
+				const Tx nx = normal[i][j][0];
+				const Tx ny = normal[i][j][1];
 				const Tad rlft = rlft_a[i][j];
 				const Tad ulft = ulft_a[i][j];
 				const Tad vlft = vlft_a[i][j];
@@ -111,10 +163,15 @@ class RoeFlux: public ConvectiveFlux<T, Tad>{
 };
 
 
-template<class T, class Tad>
-class AUSMFlux: public ConvectiveFlux<T, Tad>{
+template<class Tx, class Tad>
+class ConvectiveFluxAUSM: public ConvectiveFlux<Tx, Tad>{
  public:
-	void evaluate(Array3D<T>& normal,
+	Tad mach_p(Tad M){return fabs(M) <= 1.0 ? 0.25*(M+1.0)*(M+1.0): 0.5*(M + fabs(M));};
+	Tad mach_m(Tad M){return fabs(M) <= 1.0 ? -0.25*(M-1.0)*(M-1.0): 0.5*(M - fabs(M));};
+	Tad pres_p(Tad M, Tad p){return fabs(M) <= 1.0 ? 0.25*p*(M+1.0)*(M+1.0)*(2.0-M): 0.5*p*(M+fabs(M))/M;};
+	Tad pres_m(Tad M, Tad p){return fabs(M) <= 1.0 ? 0.25*p*(M-1.0)*(M-1.0)*(2.0+M): 0.5*p*(M-fabs(M))/M;};
+			
+	void evaluate(Array3D<Tx>& normal,
 				  Array2D<Tad>& rlft_a, Array2D<Tad>& ulft_a, Array2D<Tad>& vlft_a, Array2D<Tad>& plft_a,
 				  Array2D<Tad>& rrht_a, Array2D<Tad>& urht_a, Array2D<Tad>& vrht_a, Array2D<Tad>& prht_a,
 				  Array3D<Tad>& f_a){
@@ -126,8 +183,8 @@ class AUSMFlux: public ConvectiveFlux<T, Tad>{
 #pragma omp parallel for		
 		for(int i=0; i<ni; i++){
 			for(int j=0; j<nj; j++){
-				const T nx = normal[i][j][0];
-				const T ny = normal[i][j][1];
+				const Tx nx = normal[i][j][0];
+				const Tx ny = normal[i][j][1];
 				const Tad rlft = rlft_a[i][j];
 				const Tad ulft = ulft_a[i][j];
 				const Tad vlft = vlft_a[i][j];
@@ -138,12 +195,12 @@ class AUSMFlux: public ConvectiveFlux<T, Tad>{
 				const Tad vrht = vrht_a[i][j];
 				const Tad prht = prht_a[i][j];
 				
-				const T ds = std::sqrt(nx*nx + ny*ny);
+				const Tx ds = sqrt(nx*nx + ny*ny);
 				const Tad ulft_normal = (ulft*nx + vlft*ny)/ds;
 				const Tad urht_normal = (urht*nx + vrht*ny)/ds;
 
-				const Tad alft = std::sqrt(GAMMA*plft/rlft);
-				const Tad arht = std::sqrt(GAMMA*prht/rrht);
+				const Tad alft = sqrt(GAMMA*plft/rlft);
+				const Tad arht = sqrt(GAMMA*prht/rrht);
 
 				const Tad machlft = ulft_normal/alft;
 				const Tad machrht = urht_normal/arht;
@@ -160,13 +217,8 @@ class AUSMFlux: public ConvectiveFlux<T, Tad>{
 				const Tad erht = prht*ogm1 + rrht*uvr;
 				const Tad hrht = (erht + prht)*rrhti;
 				
-				auto mach_p = [](Tad M){return std::abs(M) <= 1.0 ? 0.25*(M+1.0)*(M+1.0): 0.5*(M + fabs(M));};
-				auto mach_m = [](Tad M){return std::abs(M) <= 1.0 ? -0.25*(M-1.0)*(M-1.0): 0.5*(M - fabs(M));};
 
 				const Tad mach_half = mach_p(machlft) + mach_m(machrht);
-
-				auto pres_p = [](Tad M, Tad p){return std::abs(M) <= 1.0 ? 0.25*p*(M+1.0)*(M+1.0)*(2.0-M): 0.5*p*(M+fabs(M))/M;};
-				auto pres_m = [](Tad M, Tad p){return std::abs(M) <= 1.0 ? 0.25*p*(M-1.0)*(M-1.0)*(2.0+M): 0.5*p*(M-fabs(M))/M;};
 				const Tad p_half = pres_p(machlft, plft) + pres_m(machrht, prht);
 
 				if(mach_half >= 0.0){

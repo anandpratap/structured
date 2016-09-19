@@ -1,22 +1,7 @@
 #ifndef _CONFIG_H
 #define _CONFIG_H
 #include "common.h"
-class Boundary{
- public:
-	std::string name;
-	std::string type;
-	std::string face;
-	uint start, end;
-	
-	Boundary(std::string val_name, std::string val_type, std::string val_face, uint val_start, uint val_end){
-		name = val_name;
-		type = val_type;
-		face = val_face;
-		start = val_start;
-		end = val_end;
-		spdlog::get("console")->info("type: {} face: {}", type, face);
-	}
-};
+
 class Profiler{
  public:
 	std::shared_ptr<Timer> timer_main;
@@ -32,14 +17,14 @@ class Profiler{
 		timer_jacobian = std::make_shared<Timer>();
 		timer_linearsolver = std::make_shared<Timer>();
 	}
-
-	void update_time_residual(){t_residual += timer_residual->diff();}
+	float current_time(){return timer_main->diff();}
+	float update_time_residual(){t_residual += timer_residual->diff(); return timer_residual->diff();}
 	void reset_time_residual(){timer_residual->reset();}
 
-	void update_time_jacobian(){t_jacobian += timer_jacobian->diff();}
+	float update_time_jacobian(){t_jacobian += timer_jacobian->diff();return timer_jacobian->diff();}
 	void reset_time_jacobian(){timer_jacobian->reset();}
 
-	void update_time_linearsolver(){t_linearsolver += timer_linearsolver->diff();}
+	float update_time_linearsolver(){t_linearsolver += timer_linearsolver->diff();return timer_linearsolver->diff();}
 	void reset_time_linearsolver(){timer_linearsolver->reset();}
 	void print(){
 		float t_total = timer_main->diff();
@@ -53,31 +38,40 @@ class Profiler{
 	}
 };
 
-template<class T>
+template<class Tx>
 class ConfigFreestream{
  public:
-	T rho_inf, u_inf, v_inf, p_inf;
+	Tx rho_inf, u_inf, v_inf, p_inf, mu_inf, pr_inf, T_inf, aoa;
+	bool if_viscous;
 	void set(std::shared_ptr<cpptoml::table> config){
 		rho_inf =  config->get_qualified_as<double>("freestream.rho_inf").value_or(1.0);
 		u_inf =  config->get_qualified_as<double>("freestream.u_inf").value_or(0.0);
 		v_inf =  config->get_qualified_as<double>("freestream.v_inf").value_or(0.0);
 		p_inf =  config->get_qualified_as<double>("freestream.p_inf").value_or(1.0/1.4);
+		T_inf =  config->get_qualified_as<double>("freestream.T_inf").value_or(1.0/1.4);
+		mu_inf =  config->get_qualified_as<double>("freestream.mu_inf").value_or(0.0);
+		pr_inf =  config->get_qualified_as<double>("freestream.pr_inf").value_or(0.7);
+		aoa =  config->get_qualified_as<double>("freestream.aoa").value_or(0.0)*M_PI/180.0;
+		if_viscous = (mu_inf > 1e-15) ? true : false;
 	};
 };
-template<class T>
+template<class Tx>
 class ConfigSolver{
  public:
-	int order, cfl_ramp_iteration, under_relaxation_ramp_iteration;
+	int order, cfl_ramp_iteration, under_relaxation_ramp_iteration, lhs_order;
 	std::string scheme, flux;
 	bool time_accurate, cfl_ramp, under_relaxation_ramp;
-	T cfl, under_relaxation, cfl_ramp_exponent, under_relaxation_ramp_exponent;
-	T tolerance;
+	Tx cfl, under_relaxation, cfl_ramp_exponent, under_relaxation_ramp_exponent;
+	Tx tolerance;
 	int iteration_max;
+	Tx dpdx, dpdy;
 	
 	void set(std::shared_ptr<cpptoml::table> config){
 		iteration_max = config->get_qualified_as<int64_t>("solver.iteration_max").value_or(1);
 
 		order = config->get_qualified_as<int64_t>("solver.order").value_or(1);
+		lhs_order = config->get_qualified_as<int64_t>("solver.lhs_order").value_or(order);
+		
 		time_accurate =  config->get_qualified_as<bool>("solver.time_accurate").value_or(false);
 		scheme = config->get_qualified_as<std::string>("solver.scheme").value_or("forward_euler");
 
@@ -95,10 +89,12 @@ class ConfigSolver{
 		under_relaxation_ramp =  config->get_qualified_as<bool>("solver.under_relaxation_ramp").value_or(false);
 		under_relaxation_ramp_iteration = config->get_qualified_as<int64_t>("solver.under_relaxation_ramp_iteration").value_or(20);
 		under_relaxation_ramp_exponent = config->get_qualified_as<double>("solver.under_relaxation_ramp_exponent").value_or(1.1);
-		
+
+		dpdx = config->get_qualified_as<double>("source.dpdx").value_or(0.0);
+		dpdy = config->get_qualified_as<double>("source.dpdy").value_or(0.0);
 	};
 };
-template<class T>
+template<class Tx>
 class ConfigIO{
  public:
 	int stdout_frequency, fileout_frequency;
@@ -112,59 +108,47 @@ class ConfigIO{
 	};
 };
 
-template<class T>
+template<class Tx>
 class ConfigGeometry{
  public:
 	int ni, nj, tail;
 	std::string filename;
 	std::string format;
-	std::vector<Boundary*> boundary;
 	void set(std::shared_ptr<cpptoml::table> config){
 		filename = config->get_qualified_as<std::string>("geometry.filename").value_or("grid.unf2");
 		format = config->get_qualified_as<std::string>("geometry.format").value_or("grid.unf2");
 		ni= config->get_qualified_as<int64_t>("geometry.ni").value_or(0);
 		nj= config->get_qualified_as<int64_t>("geometry.nj").value_or(0);
 		tail= config->get_qualified_as<int64_t>("geometry.tail").value_or(0);
-		
-		auto bcs = config->get_table_array("boundary");
-		for (const auto& bc : *bcs){
-			std::string name = bc->get_qualified_as<std::string>("name").value_or("boundary");
-			std::string type = bc->get_qualified_as<std::string>("type").value_or("");
-			std::string face = bc->get_qualified_as<std::string>("face").value_or("");
-			int start = bc->get_qualified_as<int64_t>("start").value_or(0);
-			int end = bc->get_qualified_as<int64_t>("end").value_or(0);
-			boundary.push_back(new Boundary(name, type, face, (uint)start, (uint)end)); 
-		}
 	}
 	~ConfigGeometry(){
-		for(auto&& bc : boundary)
-			delete bc;
 	}
-	
 };
 
 
-template<class T>
+template<class Tx>
 class Config{
  public:
 	int argc;
 	char **argv;
-	std::shared_ptr<ConfigFreestream<T>> freestream;
-	std::shared_ptr<ConfigSolver<T>> solver;
-	std::shared_ptr<ConfigIO<T>> io;
-	std::shared_ptr<ConfigGeometry<T>> geometry;
+	std::shared_ptr<ConfigFreestream<Tx>> freestream;
+	std::shared_ptr<ConfigSolver<Tx>> solver;
+	std::shared_ptr<ConfigIO<Tx>> io;
+	std::shared_ptr<ConfigGeometry<Tx>> geometry;
 	std::shared_ptr<cpptoml::table> config;
 	std::shared_ptr<Profiler> profiler;
+	std::string filename;
 	
-	Config(std::string filename, int val_argc, char *val_argv[]){
+	Config(std::string val_filename, int val_argc, char *val_argv[]){
 		argc = val_argc;
 		argv = val_argv;
-		freestream = std::make_shared<ConfigFreestream<T>>();
-		solver = std::make_shared<ConfigSolver<T>>();
-		io = std::make_shared<ConfigIO<T>>();
-		geometry = std::make_shared<ConfigGeometry<T>>();
-		
-		config = cpptoml::parse_file(filename);
+		freestream = std::make_shared<ConfigFreestream<Tx>>();
+		solver = std::make_shared<ConfigSolver<Tx>>();
+		io = std::make_shared<ConfigIO<Tx>>();
+		geometry = std::make_shared<ConfigGeometry<Tx>>();
+
+		filename = val_filename;
+		config = cpptoml::parse_file(val_filename);
 		freestream->set(config);
 		solver->set(config);
 		io->set(config);
@@ -184,6 +168,9 @@ class Config{
 		PRINT_CONFIG(freestream->u_inf);
 		PRINT_CONFIG(freestream->v_inf);
 		PRINT_CONFIG(freestream->p_inf);
+		PRINT_CONFIG(freestream->T_inf);
+		PRINT_CONFIG(freestream->mu_inf);
+		PRINT_CONFIG(freestream->pr_inf);
 		
 		PRINT_CONFIG(solver->iteration_max);
 		PRINT_CONFIG(solver->order);
@@ -206,6 +193,9 @@ class Config{
 		PRINT_CONFIG(io->label);
 		PRINT_CONFIG(io->stdout_frequency);
 		PRINT_CONFIG(io->fileout_frequency);
+
+		PRINT_CONFIG(solver->dpdx);
+		PRINT_CONFIG(solver->dpdy);
 		
 		PRINT_CONFIG(geometry->filename);
 		PRINT_CONFIG(geometry->format);

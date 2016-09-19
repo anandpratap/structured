@@ -1,6 +1,6 @@
 CXX = g++
 MPICXX = mpicxx
-CFLAGS = -std=c++14 -O3 -fopenmp  -fstrict-aliasing   #-ftree-vectorize -ftree-vectorizer-verbose=1 -fopt-info-vec-all
+CFLAGS = -std=c++14 -O3 -fopenmp  -fstrict-aliasing -g -DRA_BOUNDSCHECK -g #-ftree-vectorize -ftree-vectorizer-verbose=1 -fopt-info-vec-all
 
 INC = -I$(PWD) -I$(PWD)/model -I$(PWD)/solver -I$(PWD)/linearsolver -I$(PWD)/utils
 INC += -I$(PWD)/thirdparty
@@ -19,6 +19,10 @@ make: arma eigen petsc explicit
 
 explicit:
 	$(CXX) main.cpp -o ../bin/main_explicit $(CFLAGS) $(INC) $(LIB)
+
+check:
+	cppcheck -j 4 --enable=all main.cpp -I$(PWD) -I$(PWD)/model -I$(PWD)/solver -I$(PWD)/linearsolver -I$(PWD)/utils
+
 eigen:
 	$(CXX) main.cpp -o ../bin/main_eigen $(CFLAGS) $(INC) $(LIB) $(INC_ADOLC) $(LIB_ADOLC)  -DENABLE_EIGEN
 arma:
