@@ -215,8 +215,23 @@ public:
 				iend = nic + 1;
 
 #pragma omp parallel for
+
 			for(uint j=start; j<=end; j++){
-				spdlog::get("console")->critical("Boundary condition not implemented!");
+				if(face == left){
+					T[iend][j] = 1.5*T[1][j] - 0.5*T[2][j];
+					rho[iend][j] = 1.5*rho[1][j] - 0.5*rho[2][j];
+					u[iend][j] = 2.0*u_bc - (1.5*u[1][j] - 0.5*u[2][j]);
+					v[iend][j] = 2.0*v_bc - (1.5*v[1][j] - 0.5*v[2][j]);
+					p[iend][j] = fluid_model->get_p_rhoT(rho[iend][j], T[iend][j]);
+				}
+				else{
+					T[iend][j] = 1.5*T[nic][j] - 0.5*T[nic-1][j];
+					rho[iend][j] = 1.5*rho[nic][j] - 0.5*rho[nic-1][j];
+					u[iend][j] = 2.0*u_bc - (1.5*u[nic][j] - 0.5*u[nic-1][j]);
+					v[iend][j] = 2.0*v_bc - (1.5*v[nic][j] - 0.5*v[nic-1][j]);
+					p[iend][j] = fluid_model->get_p_rhoT(rho[iend][j], T[iend][j]);
+				}
+				
 			}
 		}
 		
