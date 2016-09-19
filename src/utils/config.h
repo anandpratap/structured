@@ -58,7 +58,7 @@ class ConfigFreestream{
 template<class Tx>
 class ConfigSolver{
  public:
-	int order, cfl_ramp_iteration, under_relaxation_ramp_iteration;
+	int order, cfl_ramp_iteration, under_relaxation_ramp_iteration, lhs_order;
 	std::string scheme, flux;
 	bool time_accurate, cfl_ramp, under_relaxation_ramp;
 	Tx cfl, under_relaxation, cfl_ramp_exponent, under_relaxation_ramp_exponent;
@@ -70,6 +70,8 @@ class ConfigSolver{
 		iteration_max = config->get_qualified_as<int64_t>("solver.iteration_max").value_or(1);
 
 		order = config->get_qualified_as<int64_t>("solver.order").value_or(1);
+		lhs_order = config->get_qualified_as<int64_t>("solver.lhs_order").value_or(order);
+		
 		time_accurate =  config->get_qualified_as<bool>("solver.time_accurate").value_or(false);
 		scheme = config->get_qualified_as<std::string>("solver.scheme").value_or("forward_euler");
 
