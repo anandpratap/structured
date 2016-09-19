@@ -3,6 +3,13 @@
 #include "common.h"
 #include "mesh.h"
 #include "config.h"
+template<class Tq>
+Tq value(Tq x){
+	return x;
+}
+double value(adouble x){
+	return x.value();
+}
 
 template<class Tx>
 class IOManager{
@@ -180,9 +187,13 @@ public:
 		auto x = mesh->xv;
 		auto y = mesh->yv;
 
-		Tx p_inf = 1/1.4;
-		Tx rho_inf = 1.0;
-		Tx u_inf = 0.5;
+		auto p_inf = config->freestream->p_inf;
+		auto rho_inf = config->freestream->rho_inf;
+		auto u_inf = config->freestream->u_inf;
+		auto v_inf = config->freestream->v_inf;
+		auto mu_inf = config->freestream->mu_inf;
+		auto aoa = config->freestream->aoa;
+		
 		int j1 = mesh->j1-1;
 		Tx xw, cp;
 		std::ofstream outfile;
@@ -205,10 +216,9 @@ public:
 			
 		for(int i=j1; i<j1+mesh->nb; i++){
 			xw = xc[i][0];
-			auto qinf = (0.5*rho_inf*u_inf*u_inf);
+			auto qinf = (0.5*rho_inf*(u_inf*u_inf + v_inf*v_inf));
 			cp = (0.5*(p[i][0] + p[i][1]) - p_inf)/qinf;
-			auto mu = 1e-4;
-			auto tau = mu*(grad_u[i][0][1].value() - grad_v[i][0][0].value())/qinf;
+			auto tau = mu_inf*(value(grad_u[i][0][1]) - value(grad_v[i][0][0]))/qinf;
 			auto cf = tau;
 			outfile<<xw<<" "<<cp<<" "<<cf<<std::endl;
 			auto dx = (x[i+1][0] - x[i][0]);
@@ -216,14 +226,15 @@ public:
 			Fn_pressure = Fn_pressure - cp*dx;
 			Fc_pressure = Fc_pressure + cp*dy;
 
-			auto sfdiv = 2.0/3.0*(grad_u[i][0][0].value() + grad_v[i][0][1].value());
-			auto sxx = mu*(2.0*grad_u[i][0][0].value() - sfdiv)/qinf;
-			auto syy = mu*(2.0*grad_v[i][0][1].value() - sfdiv)/qinf;
+			auto sfdiv = 2.0/3.0*(value(grad_u[i][0][0]) + value(grad_v[i][0][1]));
+			auto sxx = mu_inf*(2.0*value(grad_u[i][0][0]) - sfdiv)/qinf;
+			auto syy = mu_inf*(2.0*value(grad_v[i][0][1]) - sfdiv)/qinf;
 			Fn_viscous = Fn_viscous - tau*dy + syy*dx;
 			Fc_viscous = Fc_viscous + tau*dx - sxx*dy;
 		}
-		auto ca = 1.0;
-		auto sa = 0.0;
+
+		auto ca = cos(aoa);
+		auto sa = sin(aoa);
 		auto cl_pressure = -Fc_pressure*sa + Fn_pressure*ca;
 		auto cd_pressure = Fc_pressure*ca + Fn_pressure*sa;
 

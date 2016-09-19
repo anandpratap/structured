@@ -41,7 +41,7 @@ class Profiler{
 template<class Tx>
 class ConfigFreestream{
  public:
-	Tx rho_inf, u_inf, v_inf, p_inf, mu_inf, pr_inf, T_inf;
+	Tx rho_inf, u_inf, v_inf, p_inf, mu_inf, pr_inf, T_inf, aoa;
 	bool if_viscous;
 	void set(std::shared_ptr<cpptoml::table> config){
 		rho_inf =  config->get_qualified_as<double>("freestream.rho_inf").value_or(1.0);
@@ -51,7 +51,7 @@ class ConfigFreestream{
 		T_inf =  config->get_qualified_as<double>("freestream.T_inf").value_or(1.0/1.4);
 		mu_inf =  config->get_qualified_as<double>("freestream.mu_inf").value_or(0.0);
 		pr_inf =  config->get_qualified_as<double>("freestream.pr_inf").value_or(0.7);
-		
+		aoa =  config->get_qualified_as<double>("freestream.aoa").value_or(0.0)*M_PI/180.0;
 		if_viscous = (mu_inf > 1e-15) ? true : false;
 	};
 };
