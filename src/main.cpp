@@ -26,12 +26,16 @@ int main(int argc, char *argv[]){
 
 	auto config = std::make_shared<Config<qtype>>(parser.get<std::string>("config"), argc, argv);
 	auto m = std::make_shared<Mesh<qtype>>(config);
+	m->label = "";
+	m->setup();
 
 #if defined(ENABLE_ADOLC)
-	auto s = std::make_shared<Solver<double, adouble>>(m, config);
+	auto s = std::make_shared<Solver<double, adouble>>(config);
 #else
-	auto s = std::make_shared<Solver<qtype, qtype>>(m, config);
+	auto s = std::make_shared<Solver<qtype, qtype>>(config);
 #endif
+
+	s->add_mesh(m);
 	s->solve();
 	config->profiler->print();
 	return 0;
