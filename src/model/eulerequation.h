@@ -35,7 +35,11 @@ public:
 	
 	std::shared_ptr<Mesh<Tx, Tad>> mesh;
 	std::shared_ptr<Config<Tx>> config;
-	std::unique_ptr<Reconstruction<Tx, Tad>> reconstruction;
+	std::shared_ptr<Reconstruction<Tx, Tad>> reconstruction;
+
+	std::shared_ptr<Reconstruction<Tx, Tad>> reconstruction_rhs;
+	std::shared_ptr<Reconstruction<Tx, Tad>> reconstruction_lhs;
+	
 	std::unique_ptr<ConvectiveFlux<Tx, Tad>> convective_flux;
 	std::unique_ptr<DiffusiveFlux<Tx, Tad>> diffusive_flux;
 	std::unique_ptr<BoundaryContainer<Tx, Tad>> boundary_container;
@@ -45,7 +49,7 @@ public:
 	  @param a_q[in] flow variable
 	  @param a_rhs[out] residual
 	*/
-	void calc_residual(Array3D<Tad>& a_q, Array3D<Tad>& a_rhs);
+	void calc_residual(Array3D<Tad>& a_q, Array3D<Tad>& a_rhs, bool lhs=false);
 	void calc_dt(Tx cfl);
 	void initialize();
 	void calc_convective_residual(Array3D<Tad>& a_rhs);
@@ -145,16 +149,26 @@ public:
 
 		
 		if(config->solver->order == 1){
-			reconstruction = std::make_unique<ReconstructionFirstOrder<Tx, Tad>>(ni, nj);
+			reconstruction_rhs = std::make_unique<ReconstructionFirstOrder<Tx, Tad>>(ni, nj);
 		}
 		else if(config->solver->order == 2){
-			reconstruction = std::make_unique<ReconstructionSecondOrder<Tx, Tad>>(ni, nj);
+			reconstruction_rhs = std::make_unique<ReconstructionSecondOrder<Tx, Tad>>(ni, nj);
 		}
 		else{
-			
+			spdlog::get("console")->critical("Reconstruction not found.");
 		}
 
+		if(config->solver->lhs_order == 1){
+			reconstruction_lhs = std::make_unique<ReconstructionFirstOrder<Tx, Tad>>(ni, nj);
+		}
+		else if(config->solver->lhs_order == 2){
+			reconstruction_lhs = std::make_unique<ReconstructionSecondOrder<Tx, Tad>>(ni, nj);
+		}
+		else{
+			spdlog::get("console")->critical("Reconstruction not found.");
+		}
 
+		
 		
 		if(config->solver->flux == "roe")
 			convective_flux = std::make_unique<ConvectiveFluxRoe<Tx, Tad>>();
@@ -238,7 +252,14 @@ void EulerEquation<Tx, Tad>::calc_intermediates(Array3D<Tad>& a_q){
 };
 
 template <class Tx, class Tad>
-void EulerEquation<Tx, Tad>::calc_residual(Array3D<Tad>& a_q, Array3D<Tad>& a_rhs){
+	void EulerEquation<Tx, Tad>::calc_residual(Array3D<Tad>& a_q, Array3D<Tad>& a_rhs, bool lhs){
+	if(lhs){
+		reconstruction = reconstruction_lhs;
+	}
+	else{
+		reconstruction = reconstruction_rhs;
+	}
+	
 	a_rhs.fill(0.0);
 
 	calc_intermediates(a_q);

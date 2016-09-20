@@ -100,7 +100,7 @@ template <class Tx, class Tad>
 				}
 			}
 		}
-		equation->calc_residual(solution->a_q, solution->a_rhs);
+		equation->calc_residual(solution->a_q, solution->a_rhs, true);
 		
 		for(size_t i=0; i<nic; i++){
 			for(size_t j=0; j<njc; j++){
@@ -111,6 +111,17 @@ template <class Tx, class Tad>
 		}
 		
 		trace_off();
+
+		if(config->solver->order != config->solver->lhs_order){
+			equation->calc_residual(solution->a_q, solution->a_rhs, false);
+			for(size_t i=0; i<nic; i++){
+				for(size_t j=0; j<njc; j++){
+					for(size_t k=0; k<nq+ntrans; k++){
+						solution->rhs[i][j][k] = value(solution->a_rhs[i][j][k]);
+					}
+				}
+			}
+		}
 #else
 		if(config->solver->scheme == "forward_euler"){
 			equation->calc_residual(solution->q, solution->rhs);
@@ -227,7 +238,7 @@ void Solver<Tx, Tad>::solve(){
 			if(counter > cfl_ramp_iteration){
 				auto cfl_ramp_exponent = config->solver->cfl_ramp_exponent;
 				CFL = pow(CFL, cfl_ramp_exponent);
-				CFL = std::min(CFL, static_cast<Tx>(1e6));
+				CFL = std::min(CFL, static_cast<Tx>(1e12));
 			}
 		}
 
