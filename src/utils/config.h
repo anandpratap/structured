@@ -161,8 +161,11 @@ public:
 
 	void print(){
 		auto logger = spdlog::get("console");
+		logger->info("Compiler: {}", __COMPILER__);
 		logger->info("Compiled on {} at time {}", __DATE__, __TIME__);
+
 		logger->info("---------------");
+		
 		logger->info("Configurations");
 		PRINT_CONFIG(freestream->rho_inf);
 		PRINT_CONFIG(freestream->u_inf);
