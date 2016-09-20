@@ -210,7 +210,7 @@ void EulerEquation<Tx, Tad>::calc_convective_residual(Array3D<Tad>& a_rhs){
 
 template <class Tx, class Tad>
 void EulerEquation<Tx, Tad>::calc_primvars(const Array3D<const Tad>& a_q){
-	mesh->fluid_model->primvars(a_q, rho, u, v, p, T, 1U, 1U);
+	mesh->fluid_model->primvars(a_q.const_ref(), rho, u, v, p, T, 1U, 1U);
 }
 
 
