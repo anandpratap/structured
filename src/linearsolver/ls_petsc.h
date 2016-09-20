@@ -8,7 +8,7 @@
 template <class Tx, class Tad>
 class LinearSolverPetsc{
  private:
-	uint n; //!< Size of the linear system, square matrix is assumed.
+	size_t n; //!< Size of the linear system, square matrix is assumed.
 	Vec rhs; //!< Vector container for the right hand side
 	Vec dq; //!< Vector container for the solution
 	Mat lhs; //!< Matrix container for the left hand side
@@ -16,8 +16,8 @@ class LinearSolverPetsc{
 	PC pc; //!< Petsc preconditioner
 	KSP ksp; //!< Petsc Krylov space solver
 
-	uint number_lhs_update = 0; //!< Number of times the left hand side is updated.
-	uint number_rhs_update = 0; //!< Number of times the right hand side is updated.
+	size_t number_lhs_update = 0; //!< Number of times the left hand side is updated.
+	size_t number_rhs_update = 0; //!< Number of times the right hand side is updated.
  public:
 	LinearSolverPetsc(std::shared_ptr<Mesh<Tx, Tad>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
 		const auto nic = val_mesh->nic;
@@ -62,7 +62,7 @@ class LinearSolverPetsc{
 		PetscScalar value_tmp;
 		PetscErrorCode ierr;
 		int row_idx, col_idx;
-		for(uint i=0; i<nnz; i++){
+		for(size_t i=0; i<nnz; i++){
 			value_tmp = values[i];
 			row_idx = rind[i];
 			col_idx = cind[i];
@@ -76,7 +76,7 @@ class LinearSolverPetsc{
 		number_rhs_update += 1;
 		PetscScalar value_tmp;
 		PetscErrorCode ierr;
-		for(int i=0; i<n; i++){
+		for(size_t i=0; i<n; i++){
 			value_tmp = val_rhs[i];
 			VecSetValue(rhs, i, value_tmp, INSERT_VALUES);
 		}
@@ -92,7 +92,7 @@ class LinearSolverPetsc{
 	void solve_and_update(Tx *q, Tx under_relaxation){
 		solve();
 		VecGetArray(dq, &dq_array);
-		for(int i=0; i<n; i++){
+		for(size_t i=0; i<n; i++){
 			q[i] = q[i] + dq_array[i]*under_relaxation;
 		}
 	};   

@@ -15,7 +15,7 @@
 template<class Tx, class Tad>
 class EulerEquation{
 public:
-	uint ni, nj, nic, njc, nq;
+	size_t ni, nj, nic, njc, nq;
 	Array2D<Tad> rho, u, v, p, T, mu, k;
 	Array3D<Tad> grad_u, grad_v, grad_T;
 	Array2D<Tad> rholft_chi, ulft_chi, vlft_chi, plft_chi;
@@ -58,9 +58,9 @@ public:
 		diffusive_flux->evaluate(mesh->normal_chi, grad_u_chi, grad_v_chi, grad_T_chi, u_bar_chi, v_bar_chi, mu_bar_chi, k_bar_chi, flux_chi);
 		diffusive_flux->evaluate(mesh->normal_eta, grad_u_eta, grad_v_eta, grad_T_eta, u_bar_eta, v_bar_eta, mu_bar_eta, k_bar_eta, flux_eta);
 
-		for(uint i=0; i< nic; i++){
-			for(uint j=0; j< njc; j++){
-				for(uint k=1; k<mesh->solution->nq; k++){
+		for(size_t i=0; i< nic; i++){
+			for(size_t j=0; j< njc; j++){
+				for(size_t k=1; k<mesh->solution->nq; k++){
 					a_rhs[i][j][k] += (flux_eta[i][j+1][k] - flux_eta[i][j][k]);
 					a_rhs[i][j][k] += (flux_chi[i+1][j][k] - flux_chi[i][j][k]);
 				}
@@ -69,8 +69,8 @@ public:
 
 	};
 	void calc_source_residual(Array3D<Tad>& a_q, Array3D<Tad>& a_rhs){
-		for(uint i=0; i< nic; i++){
-			for(uint j=0; j< njc; j++){
+		for(size_t i=0; i< nic; i++){
+			for(size_t j=0; j< njc; j++){
 				a_rhs[i][j][1] += -config->solver->dpdx*mesh->volume[i][j];
 				a_rhs[i][j][2] += -config->solver->dpdy*mesh->volume[i][j];
 			}
@@ -196,9 +196,9 @@ void EulerEquation<Tx, Tad>::calc_convective_residual(Array3D<Tad>& a_rhs){
 							  rhorht_eta, urht_eta, vrht_eta, prht_eta,
 							  flux_eta);
 #pragma omp parallel for
-	for(uint i=0; i< nic; i++){
-		for(uint j=0; j< njc; j++){
-			for(uint k=0; k<mesh->solution->nq; k++){
+	for(size_t i=0; i< nic; i++){
+		for(size_t j=0; j< njc; j++){
+			for(size_t k=0; k<mesh->solution->nq; k++){
 				a_rhs[i][j][k] -= (flux_eta[i][j+1][k] - flux_eta[i][j][k]);
 				a_rhs[i][j][k] -= (flux_chi[i+1][j][k] - flux_chi[i][j][k]);
 			}
@@ -233,8 +233,8 @@ void EulerEquation<Tx, Tad>::calc_intermediates(Array3D<Tad>& a_q){
 	reconstruction->evaluate_eta(p, plft_eta, prht_eta);
 
 	if(config->freestream->if_viscous){
-		for(uint i=0; i<nic+2; i++){
-			for(uint j=0; j<njc+2; j++){
+		for(size_t i=0; i<nic+2; i++){
+			for(size_t j=0; j<njc+2; j++){
 				mu[i][j] = mesh->fluid_model->get_laminar_viscosity(T[i][j]);
 				k[i][j] = mesh->fluid_model->get_thermal_conductivity(T[i][j]);
 			}
@@ -274,9 +274,9 @@ template <class Tx, class Tad>
 
 	// divide by volume
 #pragma omp parallel for
-	for(uint i=0; i< nic; i++){
-		for(uint j=0; j< njc; j++){
-			for(uint k=0; k<mesh->solution->nq+mesh->solution->ntrans; k++){
+	for(size_t i=0; i< nic; i++){
+		for(size_t j=0; j< njc; j++){
+			for(size_t k=0; k<mesh->solution->nq+mesh->solution->ntrans; k++){
 				a_rhs[i][j][k] /= mesh->volume[i][j];
 			}
 		}
@@ -288,13 +288,13 @@ template <class Tx, class Tad>
 
 template <class Tx, class Tad>
 void EulerEquation<Tx, Tad>::calc_dt(Tx cfl){
-	uint nic = mesh->nic;
-	uint njc = mesh->njc;
-	uint nq = mesh->solution->nq;
+	size_t nic = mesh->nic;
+	size_t njc = mesh->njc;
+	size_t nq = mesh->solution->nq;
 
 #pragma omp parallel for
-	for(uint i=0; i<mesh->nic; i++){
-		for(uint j=0; j<mesh->njc; j++){
+	for(size_t i=0; i<mesh->nic; i++){
+		for(size_t j=0; j<mesh->njc; j++){
 			Tx rho = mesh->solution->q[i][j][0];
 			Tx u = mesh->solution->q[i][j][1]/rho;
 			Tx v = mesh->solution->q[i][j][2]/rho;
@@ -303,7 +303,7 @@ void EulerEquation<Tx, Tad>::calc_dt(Tx cfl){
 			Tx lambda = sqrt(GAMMA*p/rho) + fabs(u) + fabs(v);
 			Tx len_min = std::min(mesh->ds_eta[i][j], mesh->ds_chi[i][j]);
 			Tx mu = config->freestream->mu_inf;
-			for(int k=0; k<nq; k++)
+			for(size_t k=0; k<nq; k++)
 				mesh->solution->dt[i][j][k] = cfl/(lambda/len_min + 2.0*mu/len_min/len_min);
 			//dt[i][j][4] = dt[i][j][0];
 		}
@@ -313,11 +313,11 @@ void EulerEquation<Tx, Tad>::calc_dt(Tx cfl){
 
 template <class Tx, class Tad>
 void EulerEquation<Tx, Tad>::initialize(){
-	uint nic = mesh->nic;
-	uint njc = mesh->njc;
+	size_t nic = mesh->nic;
+	size_t njc = mesh->njc;
 
-	for(uint i=0; i<nic; i++){
-		for(uint j=0; j<njc; j++){
+	for(size_t i=0; i<nic; i++){
+		for(size_t j=0; j<njc; j++){
 			auto rho_inf = config->freestream->rho_inf;
 			auto u_inf = config->freestream->u_inf;
 			auto v_inf = config->freestream->v_inf;
@@ -331,11 +331,11 @@ void EulerEquation<Tx, Tad>::initialize(){
 	if(config->io->restart){
 		mesh->iomanager->read_restart();
 	}
-	uint nq = mesh->solution->nq;
-	uint ntrans = mesh->solution->ntrans;
-	for(uint i=0; i<nic; i++){
-		for(uint j=0; j<njc; j++){
-			for(uint k=0; k<nq+ntrans; k++){
+	size_t nq = mesh->solution->nq;
+	size_t ntrans = mesh->solution->ntrans;
+	for(size_t i=0; i<nic; i++){
+		for(size_t j=0; j<njc; j++){
+			for(size_t k=0; k<nq+ntrans; k++){
 				mesh->solution->q_tmp[i][j][k] = mesh->solution->q[i][j][k];
 			}
 		}

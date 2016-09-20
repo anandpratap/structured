@@ -18,13 +18,13 @@ template<class Tx, class Tad>
 class BoundaryConditionFreestream: public BoundaryCondition<Tx, Tad>{
 public:
 	std::string name;
-	uint face;
-	uint start, end;
-	uint ni, nj, nic, njc;
+	size_t face;
+	size_t start, end;
+	size_t ni, nj, nic, njc;
 	Tx rho_inf, u_inf, v_inf, p_inf;
 	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
  BoundaryConditionFreestream(std::string val_name, std::shared_ptr<Mesh<Tx, Tad>> mesh, std::shared_ptr<Config<Tx>> config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
-								uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
+								size_t val_face, size_t val_start, size_t val_end): BoundaryCondition<Tx, Tad>(){
 		fluid_model = val_fluid_model;
 		name = val_name;
 		face = val_face;
@@ -41,7 +41,7 @@ public:
 	};
 	
 	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
-		uint iend, jend;
+		size_t iend, jend;
 		if(face == bottom || face == top){
 			if(face == bottom)
 				jend = 0;
@@ -49,7 +49,7 @@ public:
 				jend = njc + 1;
 
 #pragma omp parallel for
-			for(uint i=start; i<=end; i++){
+			for(size_t i=start; i<=end; i++){
 				rho[i][jend] = rho_inf;
 				u[i][jend] = u_inf;
 				v[i][jend] = v_inf;
@@ -65,7 +65,7 @@ public:
 				iend = nic + 1;
 
 #pragma omp parallel for
-			for(uint j=start; j<=end; j++){
+			for(size_t j=start; j<=end; j++){
 				rho[iend][j] = rho_inf;
 				u[iend][j] = u_inf;
 				v[iend][j] = v_inf;
@@ -81,13 +81,13 @@ template<class Tx, class Tad>
 class BoundaryConditionInviscidWall: public BoundaryCondition<Tx, Tad>{
 public:
 	std::string name;
-	uint face;
-	uint start, end;
-	uint ni, nj, nic, njc;
+	size_t face;
+	size_t start, end;
+	size_t ni, nj, nic, njc;
 	std::shared_ptr<Mesh<Tx, Tad>> mesh;
 	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
  BoundaryConditionInviscidWall(std::string val_name, std::shared_ptr<Mesh<Tx, Tad>> val_mesh, std::shared_ptr<Config<Tx>> config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
-								  uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
+								  size_t val_face, size_t val_start, size_t val_end): BoundaryCondition<Tx, Tad>(){
 		fluid_model = val_fluid_model;
 		name = val_name;
 		mesh = val_mesh;
@@ -101,7 +101,7 @@ public:
 	};
 	
 	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
-		uint iend, jend;
+		size_t iend, jend;
 		if(face == bottom || face == top){
 			if(face == bottom)
 				jend = 0;
@@ -109,7 +109,7 @@ public:
 				jend = njc + 1;
 
 #pragma omp parallel for
-			for(uint i=start; i<=end; i++){
+			for(size_t i=start; i<=end; i++){
 				Tad un, ds;
 				if(jend == 0) {
 					auto nx =  mesh->normal_eta[i-1][jend][0];
@@ -145,7 +145,7 @@ public:
 				iend = nic + 1;
 
 #pragma omp parallel for
-			for(uint j=start; j<=end; j++){
+			for(size_t j=start; j<=end; j++){
 				spdlog::get("console")->critical("Boundary condition not implemented!");
 			}
 		}
@@ -157,15 +157,15 @@ template<class Tx, class Tad>
 class BoundaryConditionAdiabaticWall: public BoundaryCondition<Tx, Tad>{
 public:
 	std::string name;
-	uint face;
-	uint start, end;
-	uint ni, nj, nic, njc;
+	size_t face;
+	size_t start, end;
+	size_t ni, nj, nic, njc;
 	Tx rho_inf, u_inf, v_inf, p_inf;
 	double u_bc, v_bc;
 	std::shared_ptr<Mesh<Tx, Tad>> mesh;
 	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
  BoundaryConditionAdiabaticWall(std::string val_name, std::shared_ptr<Mesh<Tx, Tad>> val_mesh, std::shared_ptr<Config<Tx>> config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
-								 uint val_face, uint val_start, uint val_end, double val_u_bc, double val_v_bc): BoundaryCondition<Tx, Tad>(){
+								 size_t val_face, size_t val_start, size_t val_end, double val_u_bc, double val_v_bc): BoundaryCondition<Tx, Tad>(){
 		fluid_model = val_fluid_model;
 		name = val_name;
 		mesh = val_mesh;
@@ -182,7 +182,7 @@ public:
 	};
 	
 	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
-		uint iend, jend;
+		size_t iend, jend;
 		if(face == bottom || face == top){
 			if(face == bottom)
 				jend = 0;
@@ -190,7 +190,7 @@ public:
 				jend = njc + 1;
 
 #pragma omp parallel for
-			for(uint i=start; i<=end; i++){
+			for(size_t i=start; i<=end; i++){
 				if(face == bottom){
 					T[i][jend] = 1.5*T[i][1] - 0.5*T[i][2];
 					rho[i][jend] = 1.5*rho[i][1] - 0.5*rho[i][2];
@@ -216,7 +216,7 @@ public:
 
 #pragma omp parallel for
 
-			for(uint j=start; j<=end; j++){
+			for(size_t j=start; j<=end; j++){
 				if(face == left){
 					T[iend][j] = 1.5*T[1][j] - 0.5*T[2][j];
 					rho[iend][j] = 1.5*rho[1][j] - 0.5*rho[2][j];
@@ -243,13 +243,13 @@ template<class Tx, class Tad>
 class BoundaryConditionWake: public BoundaryCondition<Tx, Tad>{
 public:
 	std::string name;
-	uint face;
-	uint start, end;
-	uint ni, nj, nic, njc;
+	size_t face;
+	size_t start, end;
+	size_t ni, nj, nic, njc;
 	Tx rho_inf, u_inf, v_inf, p_inf;
 	std::shared_ptr<Mesh<Tx, Tad>> mesh;
  BoundaryConditionWake(std::string val_name, std::shared_ptr<Mesh<Tx, Tad>> val_mesh, std::shared_ptr<Config<Tx>> config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
-						  uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
+						  size_t val_face, size_t val_start, size_t val_end): BoundaryCondition<Tx, Tad>(){
 	name = val_name;
 	mesh = val_mesh;
 	face = val_face;
@@ -263,7 +263,7 @@ public:
 	};
 	
 	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
-		uint iend, jend;
+		size_t iend, jend;
 		if(face == bottom || face == top){
 			if(face == bottom)
 				jend = 0;
@@ -271,7 +271,7 @@ public:
 				jend = njc + 1;
 
 #pragma omp parallel for
-			for(uint i=start; i<=end; i++){
+			for(size_t i=start; i<=end; i++){
 				rho[i][jend] = rho[nic+1-i][1];
 				u[i][jend] = u[nic+1-i][1];
 				v[i][jend] = v[nic+1-i][1];
@@ -280,7 +280,7 @@ public:
 			}	
 
 #pragma omp parallel for
-			for(uint i=start; i<=end; i++){
+			for(size_t i=start; i<=end; i++){
 				rho[nic+1-i][jend] = rho[i][1];
 				u[nic+1-i][jend] = u[i][1];
 				v[nic+1-i][jend] = v[i][1];
@@ -296,7 +296,7 @@ public:
 				iend = nic + 1;
 
 #pragma omp parallel for
-			for(uint j=start; j<=end; j++){
+			for(size_t j=start; j<=end; j++){
 				spdlog::get("console")->critical("Boundary condition not implemented!");
 			}
 		}
@@ -317,13 +317,13 @@ template<class Tx, class Tad>
 class BoundaryConditionOutflow: public BoundaryCondition<Tx, Tad>{
 public:
 	std::string name;
-	uint face;
-	uint start, end;
-	uint ni, nj, nic, njc;
+	size_t face;
+	size_t start, end;
+	size_t ni, nj, nic, njc;
 	Tx rho_inf, u_inf, v_inf, p_inf;
 	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
  BoundaryConditionOutflow(std::string val_name, std::shared_ptr<Mesh<Tx, Tad>> mesh, std::shared_ptr<Config<Tx>> config,std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
-								uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
+								size_t val_face, size_t val_start, size_t val_end): BoundaryCondition<Tx, Tad>(){
 		fluid_model = val_fluid_model;
 		name = val_name;
 		face = val_face;
@@ -340,7 +340,7 @@ public:
 	};
 	
 	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
-		uint iend, jend;
+		size_t iend, jend;
 		if(face == bottom || face == top){
 			if(face == bottom)
 				jend = 0;
@@ -357,7 +357,7 @@ public:
 				iend = nic + 1;
 
 #pragma omp parallel for
-			for(uint j=start; j<=end; j++){
+			for(size_t j=start; j<=end; j++){
 				rho[iend][j] = rho[iend-1][j];
 				u[iend][j] = u[iend-1][j];
 				v[iend][j] = v[iend-1][j];
@@ -375,11 +375,11 @@ template<class Tx, class Tad>
 class BoundaryConditionPeriodic: public BoundaryCondition<Tx, Tad>{
 public:
 	std::string name;
-	uint face;
-	uint start, end;
-	uint ni, nj, nic, njc;
+	size_t face;
+	size_t start, end;
+	size_t ni, nj, nic, njc;
  BoundaryConditionPeriodic(std::string val_name, std::shared_ptr<Mesh<Tx, Tad>> mesh, std::shared_ptr<Config<Tx>> config,std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
-								uint val_face, uint val_start, uint val_end): BoundaryCondition<Tx, Tad>(){
+								size_t val_face, size_t val_start, size_t val_end): BoundaryCondition<Tx, Tad>(){
 		name = val_name;
 		face = val_face;
 		start = val_start;
@@ -391,10 +391,10 @@ public:
 	};
 	
 	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
-		uint iend, jend;
+		size_t iend, jend;
 		if(face == bottom || face == top){
 #pragma omp parallel for
-			for(uint i=start; i<=end; i++){
+			for(size_t i=start; i<=end; i++){
 				rho[i][0] = rho[i][njc];
 				u[i][0] = u[i][njc];
 				v[i][0] = v[i][njc];
@@ -411,7 +411,7 @@ public:
 
 		if(face == left || face == right){
 #pragma omp parallel for
-			for(uint j=start; j<=end; j++){
+			for(size_t j=start; j<=end; j++){
 				rho[0][j] = rho[nic][j];
 				u[0][j] = u[nic][j];
 				v[0][j] = v[nic][j];
@@ -434,14 +434,14 @@ template<class Tx, class Tad>
 class BoundaryConditionIsothermalWall: public BoundaryCondition<Tx, Tad>{
 public:
 	std::string name;
-	uint face;
-	uint start, end;
-	uint ni, nj, nic, njc;
+	size_t face;
+	size_t start, end;
+	size_t ni, nj, nic, njc;
 	double u_bc, v_bc, T_bc;
 	std::shared_ptr<Mesh<Tx, Tad>> mesh;
 	std::shared_ptr<FluidModel<Tx, Tad>> fluid_model;
  BoundaryConditionIsothermalWall(std::string val_name, std::shared_ptr<Mesh<Tx, Tad>> val_mesh, std::shared_ptr<Config<Tx>> config,std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
-								 uint val_face, uint val_start, uint val_end, double val_u_bc, double val_v_bc, double val_T_bc): BoundaryCondition<Tx, Tad>(){
+								 size_t val_face, size_t val_start, size_t val_end, double val_u_bc, double val_v_bc, double val_T_bc): BoundaryCondition<Tx, Tad>(){
 		fluid_model = val_fluid_model;
 		name = val_name;
 		mesh = val_mesh;
@@ -460,7 +460,7 @@ public:
 	};
 	
 	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
-		uint iend, jend;
+		size_t iend, jend;
 		if(face == bottom || face == top){
 			if(face == bottom)
 				jend = 0;
@@ -468,7 +468,7 @@ public:
 				jend = njc + 1;
 
 #pragma omp parallel for
-			for(uint i=start; i<=end; i++){
+			for(size_t i=start; i<=end; i++){
 				if(face == bottom){
 					p[i][jend] = 1.5*p[i][1] - 0.5*p[i][2];
 					u[i][jend] = 2.0*u_bc - (1.5*u[i][1] - 0.5*u[i][2]);
@@ -493,7 +493,7 @@ public:
 				iend = nic + 1;
 
 #pragma omp parallel for
-			for(uint j=start; j<=end; j++){
+			for(size_t j=start; j<=end; j++){
 				spdlog::get("console")->critical("Boundary condition not implemented!");
 			}
 		}
@@ -518,7 +518,7 @@ public:
 template<class Tx, class Tad>
 class BoundaryContainer{
  public:
-	uint nic, njc, ni, nj;
+	size_t nic, njc, ni, nj;
 	std::vector<BoundaryCondition<Tx, Tad>*> boundary_conditions;
 	
 	void apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
@@ -526,7 +526,7 @@ class BoundaryContainer{
 			bc->apply(rho, u, v, p, T);
 	};
 
-	int get_index(int idx, int face){
+	size_t get_index(size_t idx, size_t face){
 		if(idx >= 0){
 			return idx;
 		}
@@ -564,10 +564,10 @@ class BoundaryContainer{
 			std::string name = bc->get_qualified_as<std::string>("name").value_or("boundary");
 			std::string type = bc->get_qualified_as<std::string>("type").value_or("");
 			std::string face = bc->get_qualified_as<std::string>("face").value_or("");
-			int start = bc->get_qualified_as<int64_t>("start").value_or(0);
-			int end = bc->get_qualified_as<int64_t>("end").value_or(0);
+			size_t start = bc->get_qualified_as<int64_t>("start").value_or(0);
+			size_t end = bc->get_qualified_as<int64_t>("end").value_or(0);
 
-			uint facei;
+			size_t facei;
 			if(face=="left") facei = left;
 			if(face=="right") facei = right;
 			if(face=="bottom") facei = bottom;

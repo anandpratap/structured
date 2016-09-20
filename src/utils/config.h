@@ -58,12 +58,12 @@ class ConfigFreestream{
 template<class Tx>
 class ConfigSolver{
  public:
-	int order, cfl_ramp_iteration, under_relaxation_ramp_iteration, lhs_order;
+	size_t order, cfl_ramp_iteration, under_relaxation_ramp_iteration, lhs_order;
 	std::string scheme, flux;
 	bool time_accurate, cfl_ramp, under_relaxation_ramp;
 	Tx cfl, under_relaxation, cfl_ramp_exponent, under_relaxation_ramp_exponent;
 	Tx tolerance;
-	int iteration_max;
+	size_t iteration_max;
 	Tx dpdx, dpdy;
 	
 	void set(std::shared_ptr<cpptoml::table> config){
@@ -97,7 +97,7 @@ class ConfigSolver{
 template<class Tx>
 class ConfigIO{
  public:
-	int stdout_frequency, fileout_frequency;
+	size_t stdout_frequency, fileout_frequency;
 	bool restart;
 	std::string label;
 	void set(std::shared_ptr<cpptoml::table> config){
@@ -111,7 +111,7 @@ class ConfigIO{
 template<class Tx>
 class ConfigGeometry{
  public:
-	int ni, nj, tail;
+	size_t ni, nj, tail;
 	std::string filename;
 	std::string format;
 	void set(std::shared_ptr<cpptoml::table> config){

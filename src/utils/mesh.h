@@ -16,9 +16,9 @@ class Mesh: public std::enable_shared_from_this<Mesh<Tx, Tad>>{
  public:
 	std::string label;
 	std::shared_ptr<Config<Tx>> config;
-	uint ni, nj;
-	uint nic, njc;
-	uint j1, nb;
+	size_t ni, nj;
+	size_t nic, njc;
+	size_t j1, nb;
 	Array2D<Tx> xv, yv;
 	Array2D<Tx> xc, yc;
 
@@ -50,13 +50,13 @@ class Mesh: public std::enable_shared_from_this<Mesh<Tx, Tad>>{
 public:
 	Mesh(std::shared_ptr<Config<Tx>> config);
 
-	Mesh(std::shared_ptr<Mesh<Tx, Tad>> mesh, const uint nskipi=0, const uint nskipj=0, const uint refine=0);
+	Mesh(std::shared_ptr<Mesh<Tx, Tad>> mesh, const size_t nskipi=0, const size_t nskipj=0, const size_t refine=0);
 	~Mesh();
 
 	void calc_metrics();
 
 	template<class Tq>
-	void calc_gradient(Array2D<Tq>& q, Array3D<Tq> &grad_q, uint skipi=0, uint skipj=0);
+	void calc_gradient(Array2D<Tq>& q, Array3D<Tq> &grad_q, size_t skipi=0, size_t skipj=0);
 
 	template<class Tq>
 	void calc_gradient(Array2D<Tq>& q, Array3D<Tq>& grad_chi, Array3D<Tq>& grad_eta);
@@ -74,9 +74,9 @@ public:
 template<class Tx, class Tad>
 template<class Tq>
 void Mesh<Tx, Tad>::calc_face(Array2D<Tq>& q, Array2D<Tq>& q_chi, Array2D<Tq>& q_eta){
-	for(int i=0; i<ni; i++){
-		for(int j=0; j<njc; j++){
-			const uint b = 1;
+	for(size_t i=0; i<ni; i++){
+		for(size_t j=0; j<njc; j++){
+			const size_t b = 1;
 			const Tad qleft = q[i+b-1][j+b];
 			const Tad qright = q[i+b][j+b];
 			const Tad qtop = 0.25*(qleft+qright+q[i+b-1][j+b+1]+q[i+b][j+b+1]);
@@ -85,9 +85,9 @@ void Mesh<Tx, Tad>::calc_face(Array2D<Tq>& q, Array2D<Tq>& q_chi, Array2D<Tq>& q
 		}
 	}
 
-	for(int i=0; i<nic; i++){
-		for(int j=0; j<nj; j++){
-			const uint b = 1;
+	for(size_t i=0; i<nic; i++){
+		for(size_t j=0; j<nj; j++){
+			const size_t b = 1;
 			const Tad qtop = q[i+b][j+b];
 			const Tad qbottom = q[i+b][j+b-1];
 			const Tad qleft = 0.25*(qtop + qbottom + q[i+b-1][j+b] + q[i+b-1][j+b-1]);
@@ -107,11 +107,11 @@ void Mesh<Tx, Tad>::calc_gradient(Array2D<Tq>& q, Array3D<Tq>& grad_chi, Array3D
 	Tx normal_right[2];
 	Tx volume_;
 	
-	for(int i=0; i<ni; i++){
-		for(int j=0; j<njc; j++){
+	for(size_t i=0; i<ni; i++){
+		for(size_t j=0; j<njc; j++){
 			auto nx = normal_chi[i][j][0];
 			auto ny = normal_chi[i][j][1];
-			const uint b = 1;
+			const size_t b = 1;
 			const Tad qleft = q[i+b-1][j+b];
 			const Tad qright = q[i+b][j+b];
 			const Tad qtop = 0.25*(qleft+qright+q[i+b-1][j+b+1]+q[i+b][j+b+1]);
@@ -120,7 +120,7 @@ void Mesh<Tx, Tad>::calc_gradient(Array2D<Tq>& q, Array3D<Tq>& grad_chi, Array3D
 			if(i == 0){
 
 				volume_ = volume[i][j];
-				for(int k=0; k<2; k++){
+				for(size_t k=0; k<2; k++){
 					normal_top[k] = normal_eta[i][j+1][k];
 					normal_bottom[k] = normal_eta[i][j][k];
 					normal_right[k] = 0.5*(normal_chi[i][j][k] + normal_chi[i+1][j][k]);
@@ -130,7 +130,7 @@ void Mesh<Tx, Tad>::calc_gradient(Array2D<Tq>& q, Array3D<Tq>& grad_chi, Array3D
 			
 			else if(i == ni-1){
 				volume_ = volume[i-1][j];
-				for(int k=0; k<2; k++){
+				for(size_t k=0; k<2; k++){
 					normal_top[k] = normal_eta[i-1][j+1][k];
 					normal_bottom[k] = normal_eta[i-1][j][k];
 					normal_right[k] = normal_chi[i][j][k];
@@ -139,7 +139,7 @@ void Mesh<Tx, Tad>::calc_gradient(Array2D<Tq>& q, Array3D<Tq>& grad_chi, Array3D
 			}
 			else{
 				volume_ = 0.5*(volume[i][j] + volume[i-1][j]);
-				for(int k=0; k<2; k++){
+				for(size_t k=0; k<2; k++){
 					normal_top[k] = 0.5*(normal_eta[i][j+1][k] + normal_eta[i-1][j+1][k]);
 					normal_bottom[k] = 0.5*(normal_eta[i][j][k] + normal_eta[i-1][j][k]);
 					normal_right[k] = 0.5*(normal_chi[i][j][k] + normal_chi[i+1][j][k]);
@@ -151,11 +151,11 @@ void Mesh<Tx, Tad>::calc_gradient(Array2D<Tq>& q, Array3D<Tq>& grad_chi, Array3D
 		}
 	}
 
-	for(int i=0; i<nic; i++){
-			for(int j=0; j<nj; j++){
+	for(size_t i=0; i<nic; i++){
+			for(size_t j=0; j<nj; j++){
 				auto nx = normal_eta[i][j][0];
 				auto ny = normal_eta[i][j][1];
-				const uint b = 1;
+				const size_t b = 1;
 				const Tad qtop = q[i+b][j+b];
 				const Tad qbottom = q[i+b][j+b-1];
 				
@@ -164,7 +164,7 @@ void Mesh<Tx, Tad>::calc_gradient(Array2D<Tq>& q, Array3D<Tq>& grad_chi, Array3D
 				const Tad qbar = 0.25*(qleft+qright+qtop+qbottom);
 				if(j == 0){
 					volume_ = volume[i][j];
-					for(int k=0; k<2; k++){
+					for(size_t k=0; k<2; k++){
 						normal_top[k] = 0.5*(normal_eta[i][j][k] + normal_eta[i][j+1][k]);
 						normal_bottom[k] = normal_eta[i][j][k];
 						normal_left[k] = normal_chi[i][j][k];
@@ -172,7 +172,7 @@ void Mesh<Tx, Tad>::calc_gradient(Array2D<Tq>& q, Array3D<Tq>& grad_chi, Array3D
 					}
 				}
 				else if(j == nj-1){
-					for(int k=0; k<2; k++){
+					for(size_t k=0; k<2; k++){
 						normal_top[k] = normal_eta[i][j][k];
 						normal_bottom[k] = 0.5*(normal_eta[i][j][k] + normal_eta[i][j-1][k]);
 						normal_left[k] = normal_chi[i][j-1][k];
@@ -181,7 +181,7 @@ void Mesh<Tx, Tad>::calc_gradient(Array2D<Tq>& q, Array3D<Tq>& grad_chi, Array3D
 					volume_ = volume[i][j-1];
 				}
 				else{
-					for(int k=0; k<2; k++){
+					for(size_t k=0; k<2; k++){
 							normal_top[k] = 0.5*(normal_eta[i][j][k] + normal_eta[i][j+1][k]);
 							normal_bottom[k] = 0.5*(normal_eta[i][j][k] + normal_eta[i][j-1][k]);
 							normal_left[k] = 0.5*(normal_chi[i][j][k] + normal_chi[i][j-1][k]);
@@ -200,8 +200,8 @@ template<class Tx, class Tad>
 void Mesh<Tx, Tad>::simple_loader(std::string filename){
 	std::ifstream infile(filename);
 	infile >> std::fixed >> std::setprecision(20);
-	for(uint j=0; j<nj; j++){
-		for(uint i=0; i<ni; i++){  
+	for(size_t j=0; j<nj; j++){
+		for(size_t i=0; i<ni; i++){  
 			infile >> xv[i][j] >> yv[i][j];
 		}
 	}
@@ -212,7 +212,7 @@ template<class Tx, class Tad>
 void Mesh<Tx, Tad>::plot3d_loader(std::string filename){
 	std::ifstream infile(filename);
 	infile >> std::fixed >> std::setprecision(20);
-	int nblock, ni_, nj_;
+	size_t nblock, ni_, nj_;
 	infile >> nblock;
 	infile >> ni_ >> nj_;
 	assert(nblock == 1);
@@ -220,14 +220,14 @@ void Mesh<Tx, Tad>::plot3d_loader(std::string filename){
 	assert(ni == ni_);
 	assert(nj == nj_);
 
-	for(uint j=0; j<nj; j++){
-		for(uint i=0; i<ni; i++){  
+	for(size_t j=0; j<nj; j++){
+		for(size_t i=0; i<ni; i++){  
 			infile >> xv[i][j];
 		}
 	}
 	
-	for(uint j=0; j<nj; j++){
-		for(uint i=0; i<ni; i++){  
+	for(size_t j=0; j<nj; j++){
+		for(size_t i=0; i<ni; i++){  
 			infile >> yv[i][j];
 		}
 	}
@@ -239,8 +239,8 @@ void Mesh<Tx, Tad>::calc_metrics(){
 	auto reta = Array3D<Tx>(nic, nj, 2U);
 	auto rchi = Array3D<Tx>(ni, njc, 2U);
 
-	for(uint i=0; i<nic; i++){
-		for(uint j=0; j<nj; j++){
+	for(size_t i=0; i<nic; i++){
+		for(size_t j=0; j<nj; j++){
 			reta[i][j][0] = xv[i+1][j] - xv[i][j];
 			reta[i][j][1] = yv[i+1][j] - yv[i][j];
 			normal_eta[i][j][0] = -reta[i][j][1];
@@ -248,8 +248,8 @@ void Mesh<Tx, Tad>::calc_metrics(){
 		}
 	}
 
-	for(uint i=0; i<ni; i++){
-		for(uint j=0; j<njc; j++){
+	for(size_t i=0; i<ni; i++){
+		for(size_t j=0; j<njc; j++){
 			rchi[i][j][0] = xv[i][j+1] - xv[i][j];
 			rchi[i][j][1] = yv[i][j+1] - yv[i][j];
 			normal_chi[i][j][0] = rchi[i][j][1];
@@ -257,8 +257,8 @@ void Mesh<Tx, Tad>::calc_metrics(){
 		}
 	}
 
-	for(uint i=0; i<nic; i++){
-		for(uint j=0; j<njc; j++){
+	for(size_t i=0; i<nic; i++){
+		for(size_t j=0; j<njc; j++){
 			volume[i][j] = 0.5*(reta[i][j][0]*rchi[i][j][1] - rchi[i][j][0]*reta[i][j][1]
 								+ reta[i][j+1][0]*rchi[i+1][j][1] - rchi[i+1][j][0]*reta[i][j+1][1]);
 			
@@ -270,8 +270,8 @@ void Mesh<Tx, Tad>::calc_metrics(){
 		}
 	}
 
-	for(uint i=1; i<nic-1; i++){
-		for(uint j=1; j<njc-1; j++){
+	for(size_t i=1; i<nic-1; i++){
+		for(size_t j=1; j<njc-1; j++){
 			x_chi[i][j] = (xc[i][j+1] - xc[i][j-1])/2.0; 
 			y_chi[i][j] = (yc[i][j+1] - yc[i][j-1])/2.0;
 
@@ -280,8 +280,8 @@ void Mesh<Tx, Tad>::calc_metrics(){
 		}
 	}
 	
-	for(uint i=1; i<nic-1; i++){
-		uint j = 0;
+	for(size_t i=1; i<nic-1; i++){
+		size_t j = 0;
 		x_chi[i][j] = (xc[i][j+1] - xc[i][j]);
 		y_chi[i][j] = (yc[i][j+1] - yc[i][j]);
 		x_eta[i][j] = (xc[i+1][j] - xc[i-1][j])/2.0;
@@ -294,8 +294,8 @@ void Mesh<Tx, Tad>::calc_metrics(){
 		y_eta[i][j] = (yc[i+1][j] - yc[i-1][j])/2.0;
 	}
 
-	for(uint j=1; j<njc-1; j++){
-		uint i = 0;
+	for(size_t j=1; j<njc-1; j++){
+		size_t i = 0;
 		x_chi[i][j] = (xc[i][j+1] - xc[i][j-1])/2.0; 
 		y_chi[i][j] = (yc[i][j+1] - yc[i][j-1])/2.0;
 		x_eta[i][j] = (xc[i+1][j] - xc[i][j]);
@@ -309,7 +309,7 @@ void Mesh<Tx, Tad>::calc_metrics(){
 	}
 
 	{
-		uint i=0; uint j=0;
+		size_t i=0; size_t j=0;
 		x_chi[i][j] = (xc[i][j+1] - xc[i][j]);
 		y_chi[i][j] = (yc[i][j+1] - yc[i][j]);
 		x_eta[i][j] = (xc[i+1][j] - xc[i][j]);
@@ -333,8 +333,8 @@ void Mesh<Tx, Tad>::calc_metrics(){
 		x_eta[i][j] = (xc[i+1][j] - xc[i][j]);
 		y_eta[i][j] = (yc[i+1][j] - yc[i][j]);
 	}
-	for(int i=0; i<nic; i++){
-		for(int j=0; j<njc; j++){
+	for(size_t i=0; i<nic; i++){
+		for(size_t j=0; j<njc; j++){
 			Tx ijac = 1.0/(x_chi[i][j]*y_eta[i][j] - x_eta[i][j]*y_chi[i][j]); 
 			chi_x[i][j] = y_eta[i][j]*ijac;
 			eta_x[i][j] = -y_chi[i][j]*ijac;
@@ -346,10 +346,10 @@ void Mesh<Tx, Tad>::calc_metrics(){
 
 template<class Tx, class Tad>
 template<class Tq>
-void Mesh<Tx, Tad>::calc_gradient(Array2D<Tq>& q, Array3D<Tq> &grad_q, uint skipi, uint skipj){
+void Mesh<Tx, Tad>::calc_gradient(Array2D<Tq>& q, Array3D<Tq> &grad_q, size_t skipi, size_t skipj){
 	Tad q_chi, q_eta;
-	for(uint i=1; i<nic-1; i++){
-		for(uint j=1; j<njc-1; j++){
+	for(size_t i=1; i<nic-1; i++){
+		for(size_t j=1; j<njc-1; j++){
 			q_chi = (q[i+skipi][j+skipj+1] - q[i+skipi][j+skipj-1])/2.0; 
 			q_eta = (q[i+skipi+1][j+skipj] - q[i+skipi-1][j+skipj])/2.0;
 			grad_q[i][j][0] = chi_x[i][j]*q_chi + eta_x[i][j]*q_eta;
@@ -357,8 +357,8 @@ void Mesh<Tx, Tad>::calc_gradient(Array2D<Tq>& q, Array3D<Tq> &grad_q, uint skip
 		}
 	}
 	
-	for(uint i=1; i<nic-1; i++){
-		uint j = 0;
+	for(size_t i=1; i<nic-1; i++){
+		size_t j = 0;
 		q_chi = (q[i+skipi][j+skipj+1] - q[i+skipi][j+skipj]);
 		q_eta = (q[i+skipi+1][j+skipj] - q[i+skipi-1][j+skipj])/2.0;
 		grad_q[i][j][0] = chi_x[i][j]*q_chi + eta_x[i][j]*q_eta;
@@ -370,8 +370,8 @@ void Mesh<Tx, Tad>::calc_gradient(Array2D<Tq>& q, Array3D<Tq> &grad_q, uint skip
 		grad_q[i][j][1] = chi_y[i][j]*q_chi + eta_y[i][j]*q_eta;
 	}
 
-	for(uint j=1; j<njc-1; j++){
-		uint i = 0;
+	for(size_t j=1; j<njc-1; j++){
+		size_t i = 0;
 		q_chi = (q[i+skipi][j+skipj+1] - q[i+skipi][j+skipj-1])/2.0; 
 		q_eta = (q[i+skipi+1][j+skipj] - q[i+skipi][j+skipj]);
 		grad_q[i][j][0] = chi_x[i][j]*q_chi + eta_x[i][j]*q_eta;
@@ -384,7 +384,7 @@ void Mesh<Tx, Tad>::calc_gradient(Array2D<Tq>& q, Array3D<Tq> &grad_q, uint skip
 	}
 
 	{
-		uint i=0; uint j=0;
+		size_t i=0; size_t j=0;
 		q_chi = (q[i+skipi][j+skipj+1] - q[i+skipi][j+skipj]);
 		q_eta = (q[i+skipi+1][j+skipj] - q[i+skipi][j+skipj]);
 		grad_q[i][j][0] = chi_x[i][j]*q_chi + eta_x[i][j]*q_eta;
@@ -480,7 +480,7 @@ template<class Tx, class Tad>
 }
 
 template<class Tx, class Tad>
-	Mesh<Tx, Tad>::Mesh(std::shared_ptr<Mesh<Tx, Tad>> mesh, const uint nskipi, const uint nskipj, const uint refine){
+	Mesh<Tx, Tad>::Mesh(std::shared_ptr<Mesh<Tx, Tad>> mesh, const size_t nskipi, const size_t nskipj, const size_t refine){
 	config = mesh->config;
 	if(!refine){
 		ni = std::ceil((float)mesh->ni/(nskipi+1U));
@@ -505,11 +505,11 @@ template<class Tx, class Tad>
 	yv = Array2D<Tx>(ni, nj);
 
 	
-	for(uint i=0; i<ni; i++){
-		for(uint j=0; j<nj; j++){
+	for(size_t i=0; i<ni; i++){
+		for(size_t j=0; j<nj; j++){
 			if(!refine){
-				uint io = i*(nskipi + 1U);
-				uint jo = j*(nskipj + 1U);
+				size_t io = i*(nskipi + 1U);
+				size_t jo = j*(nskipj + 1U);
 				xv[i][j] = mesh->xv[io][jo];
 				yv[i][j] = mesh->yv[io][jo];
 			}
@@ -517,22 +517,22 @@ template<class Tx, class Tad>
 	}
 
 	if(refine){
-		for(uint i=0; i<ni; i+=2){
-			for(uint j=0; j<nj; j+=2){
+		for(size_t i=0; i<ni; i+=2){
+			for(size_t j=0; j<nj; j+=2){
 				xv[i][j] = mesh->xv[i/2][j/2];
 				yv[i][j] = mesh->yv[i/2][j/2];
 			}
 		}
 
-		for(uint i=1; i<ni; i+=2){
-			for(uint j=0; j<nj; j+=1){
+		for(size_t i=1; i<ni; i+=2){
+			for(size_t j=0; j<nj; j+=1){
 				xv[i][j] = 0.5*(xv[i+1][j] + xv[i-1][j]);
 				yv[i][j] = 0.5*(yv[i+1][j] + yv[i-1][j]);
 			}
 		}
 		
-		for(uint i=0; i<ni; i+=1){
-			for(uint j=1; j<nj; j+=2){
+		for(size_t i=0; i<ni; i+=1){
+			for(size_t j=1; j<nj; j+=2){
 				xv[i][j] = 0.5*(xv[i][j+1] + xv[i][j-1]);
 				yv[i][j] = 0.5*(yv[i][j+1] + yv[i][j-1]);
 			}

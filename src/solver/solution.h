@@ -11,7 +11,7 @@ class Mesh;
 template<class Tx, class Tad>
 class Solution{
  public:
-	uint nic, njc, nq, naux, ntrans;
+	size_t nic, njc, nq, naux, ntrans;
 	Array3D<Tx> q;
 	std::vector<std::string> q_name;
 	Array3D<Tx> q_aux;
@@ -26,7 +26,7 @@ class Solution{
 	double *values = nullptr;
 	int options[4] = {0,0,0,0};
 
-	uint nt;
+	size_t nt;
 	Array3D<Tx> rhs;
 	Tx **lhs;
 	Array3D<Tx> dt;
@@ -34,7 +34,7 @@ class Solution{
 	Array3D<Tad> a_q, a_rhs;
  public:
 	Solution(auto mesh);
-	//	Solution(std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Mesh<Tx>> old_mesh, const uint nskipi=0, const uint nskipj=0, const uint refine=0);
+	//	Solution(std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Mesh<Tx>> old_mesh, const size_t nskipi=0, const size_t nskipj=0, const size_t refine=0);
 	~Solution();
 };
 
@@ -53,7 +53,7 @@ Solution<Tx, Tad>::Solution(auto mesh){
 	q_name[2] = "rhov";
 	q_name[3] = "rhoE";
 
-	for(uint i=0; i<naux; i++){
+	for(size_t i=0; i<naux; i++){
 		q_aux_name[i] = "q_aux_" + std::to_string(i);
 	}
 	
@@ -69,13 +69,13 @@ Solution<Tx, Tad>::Solution(auto mesh){
 	p = Array2D<Tx>(nic, njc);
 	T = Array2D<Tx>(nic, njc);
 	
-	for(uint i=0; i<nic; i++){
-		for(uint j=0; j<njc; j++){
+	for(size_t i=0; i<nic; i++){
+		for(size_t j=0; j<njc; j++){
 			q[i][j][0] = 1.0;
 			q[i][j][1] = 0.8;
 			q[i][j][2] = 0.0;
 			q[i][j][3] = 2.1057142857142863;
-			for(uint tn=0; tn<ntrans; tn++){
+			for(size_t tn=0; tn<ntrans; tn++){
 				q[i][j][tn+4] = 1.0;
 			}
 		}
@@ -92,7 +92,7 @@ Solution<Tx, Tad>::Solution(auto mesh){
 
 
 //template<class Tx, class Tad>
-//Solution<Tx>::Solution(std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Mesh<Tx>> old_mesh, const uint nskipi, const uint nskipj, const uint refine): Solution<Tx>(mesh){
+//Solution<Tx>::Solution(std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Mesh<Tx>> old_mesh, const size_t nskipi, const size_t nskipj, const size_t refine): Solution<Tx>(mesh){
 //	std::cout<<nq<<std::endl;
 	// interpolate
 //}

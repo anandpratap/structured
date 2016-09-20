@@ -46,12 +46,12 @@ public:
 	};
 
 	template<class Tq>
-	void primvars(Array3D<Tq>& Q, Array2D<Tq>& rho, Array2D<Tq>& u, Array2D<Tq>& v, Array2D<Tq>& p, Array2D<Tq>& T, const uint shifti = 0, const uint shiftj = 0){
-		uint nic = Q.extent(0);
-		uint njc = Q.extent(1);
+	void primvars(Array3D<Tq>& Q, Array2D<Tq>& rho, Array2D<Tq>& u, Array2D<Tq>& v, Array2D<Tq>& p, Array2D<Tq>& T, const size_t shifti = 0, const size_t shiftj = 0){
+		size_t nic = Q.extent(0);
+		size_t njc = Q.extent(1);
 #pragma omp parallel for
-		for(uint i=0; i<nic; i++){
-			for(uint j=0; j<njc; j++){
+		for(size_t i=0; i<nic; i++){
+			for(size_t j=0; j<njc; j++){
 				Tq tmp_rho, tmp_u, tmp_v;
 				tmp_rho = Q[i][j][0];
 				tmp_u = Q[i][j][1]/tmp_rho;

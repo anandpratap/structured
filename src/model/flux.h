@@ -18,8 +18,8 @@ public:
 						  Array2D<Tad>& val_ubar, Array2D<Tad>& val_vbar,
 						  Array2D<Tad>& val_mubar, Array2D<Tad>& val_kbar,
 						  Array3D<Tad>& val_flux){
-		for(uint i=0; i<val_normal.extent(0); i++){
-			for(uint j=0; j<val_normal.extent(1); j++){
+		for(size_t i=0; i<val_normal.extent(0); i++){
+			for(size_t j=0; j<val_normal.extent(1); j++){
 				const Tx nx = val_normal[i][j][0];
 				const Tx ny = val_normal[i][j][1];
 				const Tad dudx = val_grad_u[i][j][0];
@@ -74,8 +74,8 @@ class ConvectiveFluxRoe: public ConvectiveFlux<Tx, Tad>{
 		auto nj = normal.extent(1);
 
 #pragma omp parallel for		
-		for(int i=0; i<ni; i++){
-			for(int j=0; j<nj; j++){
+		for(size_t i=0; i<ni; i++){
+			for(size_t j=0; j<nj; j++){
 				const Tx nx = normal[i][j][0];
 				const Tx ny = normal[i][j][1];
 				const Tad rlft = rlft_a[i][j];
@@ -181,8 +181,8 @@ class ConvectiveFluxAUSM: public ConvectiveFlux<Tx, Tad>{
 		auto nj = normal.extent(1);
 
 #pragma omp parallel for		
-		for(int i=0; i<ni; i++){
-			for(int j=0; j<nj; j++){
+		for(size_t i=0; i<ni; i++){
+			for(size_t j=0; j<nj; j++){
 				const Tx nx = normal[i][j][0];
 				const Tx ny = normal[i][j][1];
 				const Tad rlft = rlft_a[i][j];

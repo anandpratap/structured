@@ -42,7 +42,7 @@ public:
 		
 	}
 
-	void write(const uint iteration){
+	void write(const size_t iteration){
 		mesh->fluid_model->primvars(mesh->solution->q, mesh->solution->rho, mesh->solution->u, mesh->solution->v, mesh->solution->p, mesh->solution->T);
 		write_tecplot();
 		write_npz();
@@ -66,13 +66,13 @@ public:
 		char buffer [500];
 		outfile<<"title = \"Solution\""<<"\n";
 		outfile<<"variables = \"x\" \"y\"";
-		for(uint tn=0; tn<nq; tn++){
+		for(size_t tn=0; tn<nq; tn++){
 			outfile << " \""<<mesh->solution->q_name[tn]<<"\"";
 		}
-		for(uint tn=0; tn<ntrans; tn++){
+		for(size_t tn=0; tn<ntrans; tn++){
 			outfile << " \"psi_0\"";
 		}
-		for(uint tn=0; tn<mesh->solution->naux; tn++){
+		for(size_t tn=0; tn<mesh->solution->naux; tn++){
 			outfile << " \""<<mesh->solution->q_aux_name[tn]<<"\"";
 		}
 
@@ -80,20 +80,20 @@ public:
 
 		outfile<<"zone i="<<nic<<", j="<<njc<<", f=point\n";
 		
-		for(uint j=0; j<njc; j++){
-			for(uint i=0; i<nic; i++){
+		for(size_t j=0; j<njc; j++){
+			for(size_t i=0; i<nic; i++){
 				outfile << xc[i][j] << " ";
 				outfile << yc[i][j] << " ";
 
-				for(uint k=0; k<nq; k++){
+				for(size_t k=0; k<nq; k++){
 					outfile << q[i][j][k] << " ";
 				}
 
-				for(uint tn=0; tn<ntrans; tn++){
+				for(size_t tn=0; tn<ntrans; tn++){
 					outfile << q[i][j][4+tn] << " ";
 				}
 
-				for(uint tn=0; tn<mesh->solution->naux; tn++){
+				for(size_t tn=0; tn<mesh->solution->naux; tn++){
 					outfile << mesh->solution->q_aux[i][j][tn] << " ";
 				}
 		
@@ -144,8 +144,8 @@ public:
 		auto xc = mesh->xc;
 		auto yc = mesh->yc;
 		std::ofstream outfile(filename,std::ofstream::binary);
-		for(int i=0; i<nic; i++){
-			for(int j=0; j<njc; j++){
+		for(size_t i=0; i<nic; i++){
+			for(size_t j=0; j<njc; j++){
 				outfile.write(reinterpret_cast<const char*>(&q[i][j][0]), sizeof(Tx)*(nq+ntrans));
 			}
 		}
@@ -171,8 +171,8 @@ public:
 		infile.seekg (0);
 		assert(size == size_expected);
 		
-		for(int i=0; i<nic; i++){
-			for(int j=0; j<njc; j++){
+		for(size_t i=0; i<nic; i++){
+			for(size_t j=0; j<njc; j++){
 				infile.read(reinterpret_cast<char*>(&q[i][j][0]), sizeof(Tx)*(nq+ntrans));
 			}
 		}
@@ -197,7 +197,7 @@ public:
 		auto mu_inf = config->freestream->mu_inf;
 		auto aoa = config->freestream->aoa;
 		
-		int j1 = mesh->j1-1;
+		size_t j1 = mesh->j1-1;
 		Tx xw, cp;
 		std::ofstream outfile;
 		outfile.open(filename);
@@ -217,7 +217,7 @@ public:
 		auto grad_u = mesh->equation->grad_u_eta;
 		auto grad_v = mesh->equation->grad_v_eta;
 			
-		for(int i=j1; i<j1+mesh->nb; i++){
+		for(size_t i=j1; i<j1+mesh->nb; i++){
 			xw = xc[i][0];
 			auto qinf = (0.5*rho_inf*(u_inf*u_inf + v_inf*v_inf));
 			cp = (0.5*(p[i][0] + p[i][1]) - p_inf)/qinf;

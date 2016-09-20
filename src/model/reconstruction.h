@@ -36,10 +36,10 @@ public:
  */
 template<class Tx, class Tad>
 class ReconstructionFirstOrder: public Reconstruction<Tx, Tad>{
-	uint ni, nj;
-	uint nic, njc;
+	size_t ni, nj;
+	size_t nic, njc;
 public:
- ReconstructionFirstOrder(const uint val_ni, const uint val_nj): Reconstruction<Tx, Tad>(){
+ ReconstructionFirstOrder(const size_t val_ni, const size_t val_nj): Reconstruction<Tx, Tad>(){
 		ni = val_ni;
 		nj = val_nj;
 		nic = ni - 1;
@@ -53,8 +53,8 @@ public:
 	 */	
 	void evaluate_chi(Array2D<Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
 #pragma omp parallel for
-		for(uint i=0; i<ni; i++){
-			for(uint j=0; j<njc; j++){
+		for(size_t i=0; i<ni; i++){
+			for(size_t j=0; j<njc; j++){
 				ql[i][j] = q[i][j+1];
 				qr[i][j] = q[i+1][j+1];
 			}
@@ -63,8 +63,8 @@ public:
 	
 	void evaluate_eta(Array2D<Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
 #pragma omp parallel for
-		for(uint i=0; i<nic; i++){
-			for(uint j=0; j<nj; j++){
+		for(size_t i=0; i<nic; i++){
+			for(size_t j=0; j<nj; j++){
 				ql[i][j] = q[i+1][j];
 				qr[i][j] = q[i+1][j+1];
 			}
@@ -80,15 +80,15 @@ public:
  */
 template<class Tx, class Tad>
 class ReconstructionSecondOrder: public Reconstruction<Tx, Tad>{
-	uint ni, nj;
-	uint nic, njc;
+	size_t ni, nj;
+	size_t nic, njc;
 	Tx thm = 2.0/3.0;
 	Tx thp = 4.0/3.0;
 	Tx eps_chi, eps_eta;
 	Array2D<Tad> f2_chi, a1_chi, a2_chi, f3qt_chi;
 	Array2D<Tad> f2_eta, a1_eta, a2_eta, f3qt_eta;
 public:
- ReconstructionSecondOrder(const uint val_ni, const uint val_nj): Reconstruction<Tx, Tad>(){
+ ReconstructionSecondOrder(const size_t val_ni, const size_t val_nj): Reconstruction<Tx, Tad>(){
 		ni = val_ni;
 		nj = val_nj;
 		nic = ni - 1;
@@ -116,22 +116,22 @@ public:
 		auto f3qt = f3qt_chi;
 		auto eps = eps_chi;
 #pragma omp parallel  for
-		for(uint i=0; i<ni; i++){
-			for(uint j=0; j<njc; j++){
+		for(size_t i=0; i<ni; i++){
+			for(size_t j=0; j<njc; j++){
 				ql[i][j] = q[i][j+1];
 				qr[i][j] = q[i+1][j+1];
 			}
 		}
 #pragma omp parallel  for
-		for(uint i=0; i<ni; i++){
-			for(uint j=0; j<njc; j++){
+		for(size_t i=0; i<ni; i++){
+			for(size_t j=0; j<njc; j++){
 				f2[i][j] = q[i+1][j+1] - q[i][j+1];
 			}
 		}
 		
 #pragma omp parallel  for
-		for(uint i=0; i<nic; i++){
-			for(uint j=0; j<njc; j++){
+		for(size_t i=0; i<nic; i++){
+			for(size_t j=0; j<njc; j++){
 				a1[i][j] = 3.0*f2[i+1][j]*f2[i][j];
 				a2[i][j] = 2.0*(f2[i+1][j] - f2[i][j])*(f2[i+1][j] - f2[i][j]) + a1[i][j];
 				f3qt[i][j] = 0.25*(a1[i][j] + eps)/(a2[i][j] + eps);
@@ -139,8 +139,8 @@ public:
 		}
 		
 #pragma omp parallel  for
-		for(uint i=0; i<nic; i++){
-			for(uint j=0; j<njc; j++){
+		for(size_t i=0; i<nic; i++){
+			for(size_t j=0; j<njc; j++){
 				ql[i+1][j] = ql[i+1][j] + f3qt[i][j]*(thm*f2[i][j] + thp*f2[i+1][j]);
 				qr[i][j] = qr[i][j] - f3qt[i][j]*(thp*f2[i][j] + thm*f2[i+1][j]);
 			}
@@ -154,22 +154,22 @@ public:
 		auto f3qt = f3qt_eta;
 		auto eps = eps_eta;
 #pragma omp parallel  for
-		for(uint i=0; i<nic; i++){
-			for(uint j=0; j<nj; j++){
+		for(size_t i=0; i<nic; i++){
+			for(size_t j=0; j<nj; j++){
 				ql[i][j] = q[i+1][j];
 				qr[i][j] = q[i+1][j+1];
 			}
 		}
 #pragma omp parallel  for
-		for(uint i=0; i<nic; i++){
-			for(uint j=0; j<nj; j++){
+		for(size_t i=0; i<nic; i++){
+			for(size_t j=0; j<nj; j++){
 				f2[i][j] = q[i+1][j+1] - q[i+1][j];
 			}
 		}
 		
 #pragma omp parallel  for
-		for(uint i=0; i<nic; i++){
-			for(uint j=0; j<njc; j++){
+		for(size_t i=0; i<nic; i++){
+			for(size_t j=0; j<njc; j++){
 				a1[i][j] = 3.0*f2[i][j+1]*f2[i][j];
 				a2[i][j] = 2.0*(f2[i][j+1] - f2[i][j])*(f2[i][j+1] - f2[i][j]) + a1[i][j];
 				f3qt[i][j] = 0.25*(a1[i][j] + eps)/(a2[i][j] + eps);
@@ -177,8 +177,8 @@ public:
 		}
 		
 #pragma omp parallel  for
-		for(uint i=0; i<nic; i++){
-			for(uint j=0; j<njc; j++){
+		for(size_t i=0; i<nic; i++){
+			for(size_t j=0; j<njc; j++){
 				ql[i][j+1] = ql[i][j+1] + f3qt[i][j]*(thm*f2[i][j] + thp*f2[i][j+1]);
 				qr[i][j] = qr[i][j] - f3qt[i][j]*(thp*f2[i][j] + thm*f2[i][j+1]);
 			}
