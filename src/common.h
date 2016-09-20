@@ -32,7 +32,7 @@ using Array1D = rarray<T, 1>;
 constexpr auto GAMMA = 1.4;
 using uint = unsigned int;
 #define PRINT_CONFIG(x)	logger->info(#x": {}", x);
-#define MAX_NNZ 1000
+#define MAX_NNZ 150
 
 
 
