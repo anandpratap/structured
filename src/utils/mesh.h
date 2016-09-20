@@ -47,7 +47,7 @@ class Mesh: public std::enable_shared_from_this<Mesh<Tx, Tad>>{
 	std::shared_ptr<LinearSolverPetsc<Tx, Tad>> linearsolver;
 #endif
 
-public:
+ public:
 	Mesh(std::shared_ptr<Config<Tx>> config);
 
 	Mesh(std::shared_ptr<Mesh<Tx, Tad>> mesh, const size_t nskipi=0, const size_t nskipj=0, const size_t refine=0);
@@ -56,13 +56,13 @@ public:
 	void calc_metrics();
 
 	template<class Tq>
-	void calc_gradient(Array2D<Tq>& q, Array3D<Tq> &grad_q, size_t skipi=0, size_t skipj=0);
+		void calc_gradient(const Array2D<const Tq>& q, Array3D<Tq> &grad_q, size_t skipi=0, size_t skipj=0);
 
 	template<class Tq>
-	void calc_gradient(Array2D<Tq>& q, Array3D<Tq>& grad_chi, Array3D<Tq>& grad_eta);
+		void calc_gradient(const Array2D<const Tq>& q, Array3D<Tq>& grad_chi, Array3D<Tq>& grad_eta);
 
 	template<class Tq>
-	void calc_face(Array2D<Tq>& q, Array2D<Tq>& q_chi, Array2D<Tq>& q_eta);	
+		void calc_face(const Array2D<const Tq>& q, Array2D<Tq>& q_chi, Array2D<Tq>& q_eta);	
 	void setup();
 
 	void simple_loader(std::string filename);
@@ -73,7 +73,7 @@ public:
 
 template<class Tx, class Tad>
 template<class Tq>
-void Mesh<Tx, Tad>::calc_face(Array2D<Tq>& q, Array2D<Tq>& q_chi, Array2D<Tq>& q_eta){
+void Mesh<Tx, Tad>::calc_face(const Array2D<const Tq>& q, Array2D<Tq>& q_chi, Array2D<Tq>& q_eta){
 	for(size_t i=0; i<ni; i++){
 		for(size_t j=0; j<njc; j++){
 			const size_t b = 1;
@@ -99,7 +99,7 @@ void Mesh<Tx, Tad>::calc_face(Array2D<Tq>& q, Array2D<Tq>& q_chi, Array2D<Tq>& q
 
 template<class Tx, class Tad>
 template<class Tq>
-void Mesh<Tx, Tad>::calc_gradient(Array2D<Tq>& q, Array3D<Tq>& grad_chi, Array3D<Tq>& grad_eta){
+void Mesh<Tx, Tad>::calc_gradient(const Array2D<const Tq>& q, Array3D<Tq>& grad_chi, Array3D<Tq>& grad_eta){
 	// chi
 	Tx normal_top[2];
 	Tx normal_bottom[2];
@@ -152,47 +152,47 @@ void Mesh<Tx, Tad>::calc_gradient(Array2D<Tq>& q, Array3D<Tq>& grad_chi, Array3D
 	}
 
 	for(size_t i=0; i<nic; i++){
-			for(size_t j=0; j<nj; j++){
-				auto nx = normal_eta[i][j][0];
-				auto ny = normal_eta[i][j][1];
-				const size_t b = 1;
-				const Tad qtop = q[i+b][j+b];
-				const Tad qbottom = q[i+b][j+b-1];
+		for(size_t j=0; j<nj; j++){
+			auto nx = normal_eta[i][j][0];
+			auto ny = normal_eta[i][j][1];
+			const size_t b = 1;
+			const Tad qtop = q[i+b][j+b];
+			const Tad qbottom = q[i+b][j+b-1];
 				
-				const Tad qleft = 0.25*(qtop + qbottom + q[i+b-1][j+b] + q[i+b-1][j+b-1]);
-				const Tad qright = 0.25*(qtop + qbottom + q[i+b+1][j+b] + q[i+b+1][j+b-1]);
-				const Tad qbar = 0.25*(qleft+qright+qtop+qbottom);
-				if(j == 0){
-					volume_ = volume[i][j];
-					for(size_t k=0; k<2; k++){
-						normal_top[k] = 0.5*(normal_eta[i][j][k] + normal_eta[i][j+1][k]);
-						normal_bottom[k] = normal_eta[i][j][k];
-						normal_left[k] = normal_chi[i][j][k];
-						normal_right[k] = normal_chi[i+1][j][k];
-					}
+			const Tad qleft = 0.25*(qtop + qbottom + q[i+b-1][j+b] + q[i+b-1][j+b-1]);
+			const Tad qright = 0.25*(qtop + qbottom + q[i+b+1][j+b] + q[i+b+1][j+b-1]);
+			const Tad qbar = 0.25*(qleft+qright+qtop+qbottom);
+			if(j == 0){
+				volume_ = volume[i][j];
+				for(size_t k=0; k<2; k++){
+					normal_top[k] = 0.5*(normal_eta[i][j][k] + normal_eta[i][j+1][k]);
+					normal_bottom[k] = normal_eta[i][j][k];
+					normal_left[k] = normal_chi[i][j][k];
+					normal_right[k] = normal_chi[i+1][j][k];
 				}
-				else if(j == nj-1){
-					for(size_t k=0; k<2; k++){
-						normal_top[k] = normal_eta[i][j][k];
-						normal_bottom[k] = 0.5*(normal_eta[i][j][k] + normal_eta[i][j-1][k]);
-						normal_left[k] = normal_chi[i][j-1][k];
-						normal_right[k] = normal_chi[i+1][j-1][k];
-					}
-					volume_ = volume[i][j-1];
+			}
+			else if(j == nj-1){
+				for(size_t k=0; k<2; k++){
+					normal_top[k] = normal_eta[i][j][k];
+					normal_bottom[k] = 0.5*(normal_eta[i][j][k] + normal_eta[i][j-1][k]);
+					normal_left[k] = normal_chi[i][j-1][k];
+					normal_right[k] = normal_chi[i+1][j-1][k];
 				}
-				else{
-					for(size_t k=0; k<2; k++){
-							normal_top[k] = 0.5*(normal_eta[i][j][k] + normal_eta[i][j+1][k]);
-							normal_bottom[k] = 0.5*(normal_eta[i][j][k] + normal_eta[i][j-1][k]);
-							normal_left[k] = 0.5*(normal_chi[i][j][k] + normal_chi[i][j-1][k]);
-							normal_right[k] = 0.5*(normal_chi[i+1][j][k] + normal_chi[i+1][j-1][k]);
-					}
-					volume_ = 0.5*(volume[i][j] + volume[i][j-1]);
+				volume_ = volume[i][j-1];
+			}
+			else{
+				for(size_t k=0; k<2; k++){
+					normal_top[k] = 0.5*(normal_eta[i][j][k] + normal_eta[i][j+1][k]);
+					normal_bottom[k] = 0.5*(normal_eta[i][j][k] + normal_eta[i][j-1][k]);
+					normal_left[k] = 0.5*(normal_chi[i][j][k] + normal_chi[i][j-1][k]);
+					normal_right[k] = 0.5*(normal_chi[i+1][j][k] + normal_chi[i+1][j-1][k]);
+				}
+				volume_ = 0.5*(volume[i][j] + volume[i][j-1]);
 					
-				}
+			}
 			grad_eta[i][j][0] = (normal_top[0]*qtop - normal_bottom[0]*qbottom + normal_right[0]*qright - normal_left[0]*qleft)/volume_;
 			grad_eta[i][j][1] = (normal_top[1]*qtop - normal_bottom[1]*qbottom + normal_right[1]*qright - normal_left[1]*qleft)/volume_;	
-			}
+		}
 	}
 }
 
@@ -346,7 +346,7 @@ void Mesh<Tx, Tad>::calc_metrics(){
 
 template<class Tx, class Tad>
 template<class Tq>
-void Mesh<Tx, Tad>::calc_gradient(Array2D<Tq>& q, Array3D<Tq> &grad_q, size_t skipi, size_t skipj){
+void Mesh<Tx, Tad>::calc_gradient(const Array2D<const Tq>& q, Array3D<Tq> &grad_q, size_t skipi, size_t skipj){
 	Tad q_chi, q_eta;
 	for(size_t i=1; i<nic-1; i++){
 		for(size_t j=1; j<njc-1; j++){
@@ -455,11 +455,11 @@ Mesh<Tx, Tad>::Mesh(std::shared_ptr<Config<Tx>> val_config){
 };
 
 template<class Tx, class Tad>
-	void Mesh<Tx, Tad>::setup(){
+void Mesh<Tx, Tad>::setup(){
 	calc_metrics();
 	fluid_model = std::make_shared<FluidModel<Tx, Tad>>(config->freestream->p_inf, config->freestream->rho_inf,
-															config->freestream->T_inf, config->freestream->mu_inf,
-															config->freestream->pr_inf);
+														config->freestream->T_inf, config->freestream->mu_inf,
+														config->freestream->pr_inf);
 	solution = std::make_shared<Solution<Tx, Tad>>(this->shared_from_this());
 	equation = std::make_shared<EulerEquation<Tx, Tad>>(this->shared_from_this(), config);
 	iomanager = std::make_shared<IOManager<Tx, Tad>>(this->shared_from_this(), config);
@@ -480,7 +480,7 @@ template<class Tx, class Tad>
 }
 
 template<class Tx, class Tad>
-	Mesh<Tx, Tad>::Mesh(std::shared_ptr<Mesh<Tx, Tad>> mesh, const size_t nskipi, const size_t nskipj, const size_t refine){
+Mesh<Tx, Tad>::Mesh(std::shared_ptr<Mesh<Tx, Tad>> mesh, const size_t nskipi, const size_t nskipj, const size_t refine){
 	config = mesh->config;
 	if(!refine){
 		ni = std::ceil((float)mesh->ni/(nskipi+1U));

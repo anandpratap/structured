@@ -4,10 +4,10 @@
 #define CONFIG_PETSC_MAXITER 1000
 /*!
   \brief High level linear solver wrapper to the Petsc linear algebra library. 
- */
+*/
 template <class Tx, class Tad>
 class LinearSolverPetsc{
- private:
+private:
 	size_t n; //!< Size of the linear system, square matrix is assumed.
 	Vec rhs; //!< Vector container for the right hand side
 	Vec dq; //!< Vector container for the solution
@@ -18,7 +18,7 @@ class LinearSolverPetsc{
 
 	size_t number_lhs_update = 0; //!< Number of times the left hand side is updated.
 	size_t number_rhs_update = 0; //!< Number of times the right hand side is updated.
- public:
+public:
 	LinearSolverPetsc(std::shared_ptr<Mesh<Tx, Tad>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
 		const auto nic = val_mesh->nic;
 		const auto njc = val_mesh->njc;

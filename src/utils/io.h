@@ -4,12 +4,12 @@
 #include "mesh.h"
 #include "config.h"
 template<class Tq>
-Tq value(Tq x){
+Tq value(const Tq x){
 	return x;
 }
 
 #if defined(ENABLE_ADOLC)
-double value(adouble x){
+double value(const adouble x){
 	return x.value();
 }
 #endif
@@ -43,7 +43,7 @@ public:
 	}
 
 	void write(const size_t iteration){
-		mesh->fluid_model->primvars(mesh->solution->q, mesh->solution->rho, mesh->solution->u, mesh->solution->v, mesh->solution->p, mesh->solution->T);
+		mesh->fluid_model->primvars(mesh->solution->q.const_ref(), mesh->solution->rho, mesh->solution->u, mesh->solution->v, mesh->solution->p, mesh->solution->T);
 		write_tecplot();
 		write_npz();
 		write_restart();

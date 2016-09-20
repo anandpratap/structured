@@ -2,10 +2,10 @@
 #define _EIGEN_H
 /*!
   \brief High level linear solver wrapper to the Eigen linear algebra library. 
- */
+*/
 template <class Tx, class Tad>
 class LinearSolverEigen{
- private:
+private:
 	size_t n; //!< Size of the linear system, square matrix is assumed.
 	Eigen::MatrixXd rhs; //!< Matrix container for the right hand side
 	Eigen::MatrixXd dq; //!< Matrix container for the solution
@@ -15,7 +15,7 @@ class LinearSolverEigen{
 	bool pattern_analyzed = false; //!< To ensure that pattern is analyzed when the solver is called for the first time 
 	size_t number_lhs_update = 0; //!< Number of times the left hand side is updated.
 	size_t number_rhs_update = 0; //!< Number of times the right hand side is updated.
- public:
+public:
 	LinearSolverEigen(std::shared_ptr<Mesh<Tx, Tad>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
 		const auto nic = val_mesh->nic;
 		const auto njc = val_mesh->njc;

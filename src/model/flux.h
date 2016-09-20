@@ -3,20 +3,20 @@
 template <class Tx, class Tad>
 class DiffusiveFlux{
 public:
-	virtual void evaluate(Array3D<Tx>& val_normal,
-						  Array3D<Tad>& val_grad_u, Array3D<Tad>& val_grad_v, Array3D<Tad>& val_grad_T,
-						  Array2D<Tad>& val_ubar, Array2D<Tad>& val_vbar,
-						  Array2D<Tad>& val_mubar, Array2D<Tad>& val_kbar,
+	virtual void evaluate(const Array3D<const Tx>& val_normal,
+						  const Array3D<const Tad>& val_grad_u, const Array3D<const Tad>& val_grad_v, const Array3D<const Tad>& val_grad_T,
+						  const Array2D<const Tad>& val_ubar, const Array2D<const Tad>& val_vbar,
+						  const Array2D<const Tad>& val_mubar, const Array2D<const Tad>& val_kbar,
 						  Array3D<Tad>& val_flux){};
 };
 
 template<class Tx, class Tad>
 class DiffusiveFluxGreenGauss: public DiffusiveFlux<Tx, Tad>{
 public:
-	virtual void evaluate(Array3D<Tx>& val_normal,
-						  Array3D<Tad>& val_grad_u, Array3D<Tad>& val_grad_v, Array3D<Tad>& val_grad_T,
-						  Array2D<Tad>& val_ubar, Array2D<Tad>& val_vbar,
-						  Array2D<Tad>& val_mubar, Array2D<Tad>& val_kbar,
+	virtual void evaluate(const Array3D<const Tx>& val_normal,
+						  const Array3D<const Tad>& val_grad_u, const Array3D<const Tad>& val_grad_v, const Array3D<const Tad>& val_grad_T,
+						  const Array2D<const Tad>& val_ubar, const Array2D<const Tad>& val_vbar,
+						  const Array2D<const Tad>& val_mubar, const Array2D<const Tad>& val_kbar,
 						  Array3D<Tad>& val_flux){
 		for(size_t i=0; i<val_normal.extent(0); i++){
 			for(size_t j=0; j<val_normal.extent(1); j++){
@@ -55,18 +55,18 @@ public:
 template <class Tx, class Tad>
 class ConvectiveFlux{
 public:
-	virtual void evaluate(Array3D<Tx>& normal,
-				  Array2D<Tad>& rlft_a, Array2D<Tad>& ulft_a, Array2D<Tad>& vlft_a, Array2D<Tad>& plft_a,
-				  Array2D<Tad>& rrht_a, Array2D<Tad>& urht_a, Array2D<Tad>& vrht_a, Array2D<Tad>& prht_a,
-				  Array3D<Tad>& f_a){};
+	virtual void evaluate(const Array3D<const Tx>& normal,
+						  const Array2D<const Tad>& rlft_a, const Array2D<const Tad>& ulft_a, const Array2D<const Tad>& vlft_a, const Array2D<const Tad>& plft_a,
+						  const Array2D<const Tad>& rrht_a, const Array2D<const Tad>& urht_a, const Array2D<const Tad>& vrht_a, const Array2D<const Tad>& prht_a,
+						  Array3D<Tad>& f_a){};
 };
 
 template<class Tx, class Tad>
 class ConvectiveFluxRoe: public ConvectiveFlux<Tx, Tad>{
- public:
-	void evaluate(Array3D<Tx>& normal,
-				  Array2D<Tad>& rlft_a, Array2D<Tad>& ulft_a, Array2D<Tad>& vlft_a, Array2D<Tad>& plft_a,
-				  Array2D<Tad>& rrht_a, Array2D<Tad>& urht_a, Array2D<Tad>& vrht_a, Array2D<Tad>& prht_a,
+public:
+	void evaluate(const Array3D<const Tx>& normal,
+				  const Array2D<const Tad>& rlft_a, const Array2D<const Tad>& ulft_a, const Array2D<const Tad>& vlft_a, const Array2D<const Tad>& plft_a,
+				  const Array2D<const Tad>& rrht_a, const Array2D<const Tad>& urht_a, const Array2D<const Tad>& vrht_a, const Array2D<const Tad>& prht_a,
 				  Array3D<Tad>& f_a){
 		constexpr auto gm1 = GAMMA - 1.0;
 		constexpr auto ogm1 = 1.0/gm1;
@@ -165,15 +165,15 @@ class ConvectiveFluxRoe: public ConvectiveFlux<Tx, Tad>{
 
 template<class Tx, class Tad>
 class ConvectiveFluxAUSM: public ConvectiveFlux<Tx, Tad>{
- public:
-	Tad mach_p(Tad M){return fabs(M) <= 1.0 ? 0.25*(M+1.0)*(M+1.0): 0.5*(M + fabs(M));};
-	Tad mach_m(Tad M){return fabs(M) <= 1.0 ? -0.25*(M-1.0)*(M-1.0): 0.5*(M - fabs(M));};
-	Tad pres_p(Tad M, Tad p){return fabs(M) <= 1.0 ? 0.25*p*(M+1.0)*(M+1.0)*(2.0-M): 0.5*p*(M+fabs(M))/M;};
-	Tad pres_m(Tad M, Tad p){return fabs(M) <= 1.0 ? 0.25*p*(M-1.0)*(M-1.0)*(2.0+M): 0.5*p*(M-fabs(M))/M;};
+public:
+	Tad mach_p(const Tad M){return fabs(M) <= 1.0 ? 0.25*(M+1.0)*(M+1.0): 0.5*(M + fabs(M));};
+	Tad mach_m(const Tad M){return fabs(M) <= 1.0 ? -0.25*(M-1.0)*(M-1.0): 0.5*(M - fabs(M));};
+	Tad pres_p(const Tad M, const Tad p){return fabs(M) <= 1.0 ? 0.25*p*(M+1.0)*(M+1.0)*(2.0-M): 0.5*p*(M+fabs(M))/M;};
+	Tad pres_m(const Tad M, const Tad p){return fabs(M) <= 1.0 ? 0.25*p*(M-1.0)*(M-1.0)*(2.0+M): 0.5*p*(M-fabs(M))/M;};
 			
-	void evaluate(Array3D<Tx>& normal,
-				  Array2D<Tad>& rlft_a, Array2D<Tad>& ulft_a, Array2D<Tad>& vlft_a, Array2D<Tad>& plft_a,
-				  Array2D<Tad>& rrht_a, Array2D<Tad>& urht_a, Array2D<Tad>& vrht_a, Array2D<Tad>& prht_a,
+	void evaluate(const Array3D<const Tx>& normal,
+				  const Array2D<const Tad>& rlft_a, const Array2D<const Tad>& ulft_a, const Array2D<const Tad>& vlft_a, const Array2D<const Tad>& plft_a,
+				  const Array2D<const Tad>& rrht_a, const Array2D<const Tad>& urht_a, const Array2D<const Tad>& vrht_a, const Array2D<const Tad>& prht_a,
 				  Array3D<Tad>& f_a){
 		constexpr auto gm1 = GAMMA - 1.0;
 		constexpr auto ogm1 = 1.0/gm1;

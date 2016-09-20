@@ -3,7 +3,7 @@
 #include "common.h"
 
 class Profiler{
- public:
+public:
 	std::shared_ptr<Timer> timer_main;
 	std::shared_ptr<Timer> timer_residual;
 	std::shared_ptr<Timer> timer_jacobian;
@@ -40,7 +40,7 @@ class Profiler{
 
 template<class Tx>
 class ConfigFreestream{
- public:
+public:
 	Tx rho_inf, u_inf, v_inf, p_inf, mu_inf, pr_inf, T_inf, aoa;
 	bool if_viscous;
 	void set(std::shared_ptr<cpptoml::table> config){
@@ -57,7 +57,7 @@ class ConfigFreestream{
 };
 template<class Tx>
 class ConfigSolver{
- public:
+public:
 	size_t order, cfl_ramp_iteration, under_relaxation_ramp_iteration, lhs_order;
 	std::string scheme, flux;
 	bool time_accurate, cfl_ramp, under_relaxation_ramp;
@@ -96,7 +96,7 @@ class ConfigSolver{
 };
 template<class Tx>
 class ConfigIO{
- public:
+public:
 	size_t stdout_frequency, fileout_frequency;
 	bool restart;
 	std::string label;
@@ -110,7 +110,7 @@ class ConfigIO{
 
 template<class Tx>
 class ConfigGeometry{
- public:
+public:
 	size_t ni, nj, tail;
 	std::string filename;
 	std::string format;
@@ -128,7 +128,7 @@ class ConfigGeometry{
 
 template<class Tx>
 class Config{
- public:
+public:
 	int argc;
 	char **argv;
 	std::shared_ptr<ConfigFreestream<Tx>> freestream;

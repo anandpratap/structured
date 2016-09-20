@@ -10,7 +10,7 @@ class Mesh;
 
 template<class Tx, class Tad>
 class Solution{
- public:
+public:
 	size_t nic, njc, nq, naux, ntrans;
 	Array3D<Tx> q;
 	std::vector<std::string> q_name;
@@ -32,7 +32,7 @@ class Solution{
 	Array3D<Tx> dt;
 	Array3D<Tx> q_tmp;
 	Array3D<Tad> a_q, a_rhs;
- public:
+public:
 	Solution(auto mesh);
 	//	Solution(std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Mesh<Tx>> old_mesh, const size_t nskipi=0, const size_t nskipj=0, const size_t refine=0);
 	~Solution();
@@ -94,7 +94,7 @@ Solution<Tx, Tad>::Solution(auto mesh){
 //template<class Tx, class Tad>
 //Solution<Tx>::Solution(std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Mesh<Tx>> old_mesh, const size_t nskipi, const size_t nskipj, const size_t refine): Solution<Tx>(mesh){
 //	std::cout<<nq<<std::endl;
-	// interpolate
+// interpolate
 //}
 
 

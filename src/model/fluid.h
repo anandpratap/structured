@@ -21,34 +21,34 @@ public:
 	~FluidModel(){};
 
 	template<class Tq>
-	inline Tq get_T_prho(Tq p, Tq rho){
+	inline Tq get_T_prho(const Tq p, const Tq rho){
 		return p/rho/R;
 	};
 
 	template<class Tq>
-		inline Tq get_rho_pT(Tq p, Tq T){
+	inline Tq get_rho_pT(const Tq p, const Tq T){
 		return p/T/R;
 	};
 
 	template<class Tq>
-	inline Tq get_p_rhoT(Tq rho, Tq T){
+	inline Tq get_p_rhoT(const Tq rho, const Tq T){
 		return rho*R*T;
 	};
 
 	template<class Tq>
-	inline Tq get_laminar_viscosity(Tq T){
+	inline Tq get_laminar_viscosity(const Tq T){
 		return mu_ref*pow(T/T_ref, 2.0/3.0);
 	};
 
 	template<class Tq>
-	inline Tq get_thermal_conductivity(Tq T){
+	inline Tq get_thermal_conductivity(const Tq T){
 		return get_laminar_viscosity(T)*cp/pr;
 	};
 
 	template<class Tq>
-	void primvars(Array3D<Tq>& Q, Array2D<Tq>& rho, Array2D<Tq>& u, Array2D<Tq>& v, Array2D<Tq>& p, Array2D<Tq>& T, const size_t shifti = 0, const size_t shiftj = 0){
-		size_t nic = Q.extent(0);
-		size_t njc = Q.extent(1);
+	void primvars(const Array3D<const Tq>& Q, Array2D<Tq>& rho, Array2D<Tq>& u, Array2D<Tq>& v, Array2D<Tq>& p, Array2D<Tq>& T, const size_t shifti = 0, const size_t shiftj = 0){
+		auto nic = Q.extent(0);
+		auto njc = Q.extent(1);
 #pragma omp parallel for
 		for(size_t i=0; i<nic; i++){
 			for(size_t j=0; j<njc; j++){

@@ -14,7 +14,7 @@ public:
 	  @param[out] ql reconstructed left state. `size: ni x njc`
 	  @param[out] qr reconstructed right state. `size: ni x njc`
 	*/
-	virtual void evaluate_chi(Array2D<Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
+	virtual void evaluate_chi(const Array2D<const Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
 	};
 
 	//! Reconstruct left and right state for all the eta direction faces.
@@ -24,7 +24,7 @@ public:
 	  @param[out] qr reconstructed right state. `size: nic x nj`
 	*/
 
-	virtual void evaluate_eta(Array2D<Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
+	virtual void evaluate_eta(const Array2D<const Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
 	};
 };
 
@@ -33,13 +33,13 @@ public:
 
   Simple first order reconstruction where left and right states are taken to be the values of 
   left and right cell.
- */
+*/
 template<class Tx, class Tad>
 class ReconstructionFirstOrder: public Reconstruction<Tx, Tad>{
 	size_t ni, nj;
 	size_t nic, njc;
 public:
- ReconstructionFirstOrder(const size_t val_ni, const size_t val_nj): Reconstruction<Tx, Tad>(){
+	ReconstructionFirstOrder(const size_t val_ni, const size_t val_nj): Reconstruction<Tx, Tad>(){
 		ni = val_ni;
 		nj = val_nj;
 		nic = ni - 1;
@@ -50,8 +50,8 @@ public:
 	  q_{left, i, j} = q_{i, j+1} \\
 	  q_{right, i, j} = q_{i+1, j+1} \\
 	  \f} 
-	 */	
-	void evaluate_chi(Array2D<Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
+	*/	
+	void evaluate_chi(const Array2D<const Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
 #pragma omp parallel for
 		for(size_t i=0; i<ni; i++){
 			for(size_t j=0; j<njc; j++){
@@ -61,7 +61,7 @@ public:
 		}
 	};
 	
-	void evaluate_eta(Array2D<Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
+	void evaluate_eta(const Array2D<const Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
 #pragma omp parallel for
 		for(size_t i=0; i<nic; i++){
 			for(size_t j=0; j<nj; j++){
@@ -77,7 +77,7 @@ public:
   \brief Second order reconstruction
 
   Simple second order reconstruction.
- */
+*/
 template<class Tx, class Tad>
 class ReconstructionSecondOrder: public Reconstruction<Tx, Tad>{
 	size_t ni, nj;
@@ -88,7 +88,7 @@ class ReconstructionSecondOrder: public Reconstruction<Tx, Tad>{
 	Array2D<Tad> f2_chi, a1_chi, a2_chi, f3qt_chi;
 	Array2D<Tad> f2_eta, a1_eta, a2_eta, f3qt_eta;
 public:
- ReconstructionSecondOrder(const size_t val_ni, const size_t val_nj): Reconstruction<Tx, Tad>(){
+	ReconstructionSecondOrder(const size_t val_ni, const size_t val_nj): Reconstruction<Tx, Tad>(){
 		ni = val_ni;
 		nj = val_nj;
 		nic = ni - 1;
@@ -109,7 +109,7 @@ public:
 		f3qt_eta = Array2D<Tad>(nic, njc);
 
 	};
-	void evaluate_chi(Array2D<Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
+	void evaluate_chi(const Array2D<const Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
 		auto f2 = f2_chi;
 		auto a1 = a1_chi;
 		auto a2 = a2_chi;
@@ -147,7 +147,7 @@ public:
 		}
 	};
 	
-	void evaluate_eta(Array2D<Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
+	void evaluate_eta(const Array2D<const Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){
 		auto f2 = f2_eta;
 		auto a1 = a1_eta;
 		auto a2 = a2_eta;

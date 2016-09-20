@@ -49,14 +49,16 @@ public:
 	  @param a_q[in] flow variable
 	  @param a_rhs[out] residual
 	*/
-	void calc_residual(Array3D<Tad>& a_q, Array3D<Tad>& a_rhs, bool lhs=false);
-	void calc_dt(Tx cfl);
+	void calc_residual(const Array3D<const Tad>& a_q, Array3D<Tad>& a_rhs, bool lhs=false);
+	void calc_dt(const Tx cfl);
 	void initialize();
 	void calc_convective_residual(Array3D<Tad>& a_rhs);
-	void calc_intermediates(Array3D<Tad>& a_q);
+	void calc_intermediates(const Array3D<const Tad>& a_q);
 	void calc_viscous_residual(Array3D<Tad>& a_rhs){
-		diffusive_flux->evaluate(mesh->normal_chi, grad_u_chi, grad_v_chi, grad_T_chi, u_bar_chi, v_bar_chi, mu_bar_chi, k_bar_chi, flux_chi);
-		diffusive_flux->evaluate(mesh->normal_eta, grad_u_eta, grad_v_eta, grad_T_eta, u_bar_eta, v_bar_eta, mu_bar_eta, k_bar_eta, flux_eta);
+		diffusive_flux->evaluate(mesh->normal_chi.const_ref(), grad_u_chi.const_ref(), grad_v_chi.const_ref(), grad_T_chi.const_ref(),
+								 u_bar_chi.const_ref(), v_bar_chi.const_ref(), mu_bar_chi.const_ref(), k_bar_chi.const_ref(), flux_chi);
+		diffusive_flux->evaluate(mesh->normal_eta.const_ref(), grad_u_eta.const_ref(), grad_v_eta.const_ref(), grad_T_eta.const_ref(),
+								 u_bar_eta.const_ref(), v_bar_eta.const_ref(), mu_bar_eta.const_ref(), k_bar_eta.const_ref(), flux_eta);
 
 		for(size_t i=0; i< nic; i++){
 			for(size_t j=0; j< njc; j++){
@@ -68,7 +70,7 @@ public:
 		}
 
 	};
-	void calc_source_residual(Array3D<Tad>& a_q, Array3D<Tad>& a_rhs){
+	void calc_source_residual(const Array3D<const Tad>& a_q, Array3D<Tad>& a_rhs){
 		for(size_t i=0; i< nic; i++){
 			for(size_t j=0; j< njc; j++){
 				a_rhs[i][j][1] += -config->solver->dpdx*mesh->volume[i][j];
@@ -76,7 +78,7 @@ public:
 			}
 		}
 	};
-	void calc_primvars(Array3D<Tad>& a_q);
+	void calc_primvars(const Array3D<const Tad>& a_q);
 	void calc_boundary();
 	EulerEquation(std::shared_ptr<Mesh<Tx, Tad>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
 		mesh = val_mesh;
@@ -187,13 +189,13 @@ public:
 };
 template <class Tx, class Tad>
 void EulerEquation<Tx, Tad>::calc_convective_residual(Array3D<Tad>& a_rhs){
-	convective_flux->evaluate(mesh->normal_chi,
-							  rholft_chi, ulft_chi, vlft_chi, plft_chi,
-							  rhorht_chi, urht_chi, vrht_chi, prht_chi,
+	convective_flux->evaluate(mesh->normal_chi.const_ref(),
+							  rholft_chi.const_ref(), ulft_chi.const_ref(), vlft_chi.const_ref(), plft_chi.const_ref(),
+							  rhorht_chi.const_ref(), urht_chi.const_ref(), vrht_chi.const_ref(), prht_chi.const_ref(),
 							  flux_chi);
-	convective_flux->evaluate(mesh->normal_eta,
-							  rholft_eta, ulft_eta, vlft_eta, plft_eta,
-							  rhorht_eta, urht_eta, vrht_eta, prht_eta,
+	convective_flux->evaluate(mesh->normal_eta.const_ref(),
+							  rholft_eta.const_ref(), ulft_eta.const_ref(), vlft_eta.const_ref(), plft_eta.const_ref(),
+							  rhorht_eta.const_ref(), urht_eta.const_ref(), vrht_eta.const_ref(), prht_eta.const_ref(),
 							  flux_eta);
 #pragma omp parallel for
 	for(size_t i=0; i< nic; i++){
@@ -207,7 +209,7 @@ void EulerEquation<Tx, Tad>::calc_convective_residual(Array3D<Tad>& a_rhs){
 }
 
 template <class Tx, class Tad>
-void EulerEquation<Tx, Tad>::calc_primvars(Array3D<Tad>& a_q){
+void EulerEquation<Tx, Tad>::calc_primvars(const Array3D<const Tad>& a_q){
 	mesh->fluid_model->primvars(a_q, rho, u, v, p, T, 1U, 1U);
 }
 
@@ -218,19 +220,19 @@ void EulerEquation<Tx, Tad>::calc_boundary(){
 }
 
 template <class Tx, class Tad>
-void EulerEquation<Tx, Tad>::calc_intermediates(Array3D<Tad>& a_q){
-	calc_primvars(a_q);
+void EulerEquation<Tx, Tad>::calc_intermediates(const Array3D<const Tad>& a_q){
+	calc_primvars(a_q.const_ref());
 	calc_boundary();
 	
-	reconstruction->evaluate_chi(rho, rholft_chi, rhorht_chi);
-	reconstruction->evaluate_chi(u, ulft_chi, urht_chi);
-	reconstruction->evaluate_chi(v, vlft_chi, vrht_chi);
-	reconstruction->evaluate_chi(p, plft_chi, prht_chi);
+	reconstruction->evaluate_chi(rho.const_ref(), rholft_chi, rhorht_chi);
+	reconstruction->evaluate_chi(u.const_ref(), ulft_chi, urht_chi);
+	reconstruction->evaluate_chi(v.const_ref(), vlft_chi, vrht_chi);
+	reconstruction->evaluate_chi(p.const_ref(), plft_chi, prht_chi);
 
-	reconstruction->evaluate_eta(rho, rholft_eta, rhorht_eta);
-	reconstruction->evaluate_eta(u, ulft_eta, urht_eta);
-	reconstruction->evaluate_eta(v, vlft_eta, vrht_eta);
-	reconstruction->evaluate_eta(p, plft_eta, prht_eta);
+	reconstruction->evaluate_eta(rho.const_ref(), rholft_eta, rhorht_eta);
+	reconstruction->evaluate_eta(u.const_ref(), ulft_eta, urht_eta);
+	reconstruction->evaluate_eta(v.const_ref(), vlft_eta, vrht_eta);
+	reconstruction->evaluate_eta(p.const_ref(), plft_eta, prht_eta);
 
 	if(config->freestream->if_viscous){
 		for(size_t i=0; i<nic+2; i++){
@@ -240,19 +242,19 @@ void EulerEquation<Tx, Tad>::calc_intermediates(Array3D<Tad>& a_q){
 			}
 		}
 		
-		mesh->calc_gradient(u, grad_u_chi, grad_u_eta);
-		mesh->calc_gradient(v, grad_v_chi, grad_v_eta);
-		mesh->calc_gradient(T, grad_T_chi, grad_T_eta);
-		mesh->calc_face(u, u_bar_chi, u_bar_eta);
-		mesh->calc_face(v, v_bar_chi, v_bar_eta);
-		mesh->calc_face(T, T_bar_chi, T_bar_eta);
-		mesh->calc_face(mu, mu_bar_chi, mu_bar_eta);
-		mesh->calc_face(k, k_bar_chi, k_bar_eta);
+		mesh->calc_gradient(u.const_ref(), grad_u_chi, grad_u_eta);
+		mesh->calc_gradient(v.const_ref(), grad_v_chi, grad_v_eta);
+		mesh->calc_gradient(T.const_ref(), grad_T_chi, grad_T_eta);
+		mesh->calc_face(u.const_ref(), u_bar_chi, u_bar_eta);
+		mesh->calc_face(v.const_ref(), v_bar_chi, v_bar_eta);
+		mesh->calc_face(T.const_ref(), T_bar_chi, T_bar_eta);
+		mesh->calc_face(mu.const_ref(), mu_bar_chi, mu_bar_eta);
+		mesh->calc_face(k.const_ref(), k_bar_chi, k_bar_eta);
 	}
 };
 
 template <class Tx, class Tad>
-	void EulerEquation<Tx, Tad>::calc_residual(Array3D<Tad>& a_q, Array3D<Tad>& a_rhs, bool lhs){
+void EulerEquation<Tx, Tad>::calc_residual(const Array3D<const Tad>& a_q, Array3D<Tad>& a_rhs, const bool lhs){
 	if(lhs){
 		reconstruction = reconstruction_lhs;
 	}
@@ -262,7 +264,7 @@ template <class Tx, class Tad>
 	
 	a_rhs.fill(0.0);
 
-	calc_intermediates(a_q);
+	calc_intermediates(a_q.const_ref());
 
 	calc_convective_residual(a_rhs);
 
@@ -270,7 +272,7 @@ template <class Tx, class Tad>
 		calc_viscous_residual(a_rhs);
 	}
 
-	calc_source_residual(a_q, a_rhs);
+	calc_source_residual(a_q.const_ref(), a_rhs);
 
 	// divide by volume
 #pragma omp parallel for
@@ -287,7 +289,7 @@ template <class Tx, class Tad>
 
 
 template <class Tx, class Tad>
-void EulerEquation<Tx, Tad>::calc_dt(Tx cfl){
+void EulerEquation<Tx, Tad>::calc_dt(const Tx cfl){
 	size_t nic = mesh->nic;
 	size_t njc = mesh->njc;
 	size_t nq = mesh->solution->nq;

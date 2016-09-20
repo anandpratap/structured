@@ -3,10 +3,10 @@
 
 /*!
   \brief High level linear solver wrapper to the Armadillo linear algebra library. 
- */
+*/
 template<class Tx, class Tad>
 class LinearSolverArma{
- public:
+public:
 	size_t n; //!< Size of the linear system, square matrix is assumed.
 	arma::Mat<Tx> rhs; //!< Matrix container for the right hand side
 	arma::Mat<Tx> dq; //!< Matrix container for the solution
