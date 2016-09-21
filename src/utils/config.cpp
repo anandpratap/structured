@@ -1,7 +1,7 @@
-#ifndef _CONFIG_H
-#define _CONFIG_H
+#ifndef _CONFIG_CPP
+#define _CONFIG_CPP
 #include "common.h"
-#include "def_config.h"
+#include "config.h"
 Profiler::Profiler(){
 		timer_main = std::make_shared<Timer>();
 		timer_residual = std::make_shared<Timer>();

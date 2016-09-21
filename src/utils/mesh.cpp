@@ -1,8 +1,8 @@
-#ifndef _MESH_H
-#define _MESH_H
-#include "def_mesh.h"
-#include "def_eulerequation.h"
-#include "def_solution.h"
+#ifndef _MESH_CPP
+#define _MESH_CPP
+#include "mesh.h"
+#include "eulerequation.h"
+#include "solution.h"
 #include "linearsolver.h"
 
 template<class Tx, class Tad>

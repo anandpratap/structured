@@ -1,5 +1,5 @@
-#ifndef __DEF_RECONSTRUCTION__H
-#define __DEF_RECONSTRUCTION__H
+#ifndef _RECONSTRUCTION_H
+#define _RECONSTRUCTION_H
 #include "common.h"
 
 /*!

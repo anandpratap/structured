@@ -1,7 +1,7 @@
-#ifndef _DEF_SOLUTION_H
-#define _DEF_SOLUTION_H
+#ifndef _SOLUTION_H
+#define _SOLUTION_H
 #include "common.h"
-#include "def_mesh.h"
+#include "mesh.h"
 template<class Tx, class Tad>
 class Solution{
 public:

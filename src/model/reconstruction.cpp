@@ -1,7 +1,7 @@
-#ifndef __RECONSTRUCTION__H
-#define __RECONSTRUCTION__H
+#ifndef __RECONSTRUCTION__CPP
+#define __RECONSTRUCTION__CPP
 #include "common.h"
-#include "def_reconstruction.h"
+#include "reconstruction.h"
 template<class Tx, class Tad>
 void Reconstruction<Tx, Tad>::evaluate_chi(const Array2D<const Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){};
 template<class Tx, class Tad>

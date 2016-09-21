@@ -1,6 +1,6 @@
-#ifndef _EULEREQUATION_H
-#define _EULEREQUATION_H
-#include "def_eulerequation.h"
+#ifndef _EULEREQUATION_CPP
+#define _EULEREQUATION_CPP
+#include "eulerequation.h"
 template <class Tx, class Tad>
 void EulerEquation<Tx, Tad>::calc_viscous_residual(Array3D<Tad>& a_rhs){
 	diffusive_flux->evaluate(mesh->normal_chi.const_ref(), grad_u_chi.const_ref(), grad_v_chi.const_ref(), grad_T_chi.const_ref(),

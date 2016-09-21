@@ -1,8 +1,8 @@
-#ifndef _BC_H
-#define _BC_H
+#ifndef _BC_CPP
+#define _BC_CPP
 #include "common.h"
-#include "def_fluid.h"
-#include "def_bc.h"
+#include "fluid.h"
+#include "bc.h"
 
 template<class Tx, class Tad>
 BoundaryConditionFreestream<Tx, Tad>::BoundaryConditionFreestream(std::string val_name, std::shared_ptr<Mesh<Tx, Tad>> mesh, std::shared_ptr<Config<Tx>> config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,

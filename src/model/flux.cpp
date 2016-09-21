@@ -1,6 +1,6 @@
-#ifndef _FLUX_H
-#define _FLUX_H
-#include "def_flux.h"
+#ifndef _FLUX_CPP
+#define _FLUX_CPP
+#include "flux.h"
 
 template<class Tx, class Tad>
 void DiffusiveFlux<Tx, Tad>::evaluate(const Array3D<const Tx>& val_normal,

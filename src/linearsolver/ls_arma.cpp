@@ -1,6 +1,6 @@
-#ifndef _ARMA_H
-#define _ARMA_H
-#include "def_ls_arma.h"
+#ifndef _LS_ARMA_CPP
+#define _LS_ARMA_CPP
+#include "ls_arma.h"
 /*!
   \brief High level linear solver wrapper to the Armadillo linear algebra library. 
 */

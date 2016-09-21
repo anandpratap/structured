@@ -1,11 +1,11 @@
-#ifndef _DEF_SOLVER_H
-#define _DEF_SOLVER_H
+#ifndef _SOLVER_H
+#define _SOLVER_H
 #include "common.h"
-#include "def_mesh.h"
+#include "mesh.h"
 #include "linearsolver.h"
-#include "def_config.h"
-#include "def_io.h"
-#include "def_eulerequation.h"
+#include "config.h"
+#include "io.h"
+#include "eulerequation.h"
 
 template<class Tx>
 void set_rarray(size_t size, Tx* __restrict__ dest, Tx* __restrict__ src);

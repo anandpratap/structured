@@ -1,6 +1,6 @@
-#ifndef _EIGEN_H
-#define _EIGEN_H
-#include "def_ls_eigen.h"
+#ifndef _LS_EIGEN_CPP
+#define _LS_EIGEN_CPP
+#include "ls_eigen.h"
 /*!
   \brief High level linear solver wrapper to the Eigen linear algebra library. 
 */

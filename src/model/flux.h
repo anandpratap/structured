@@ -1,5 +1,5 @@
-#ifndef _DEF_FLUX_H
-#define _DEF_FLUX_H
+#ifndef _FLUX_H
+#define _FLUX_H
 #include "common.h"
 
 template <class Tx, class Tad>

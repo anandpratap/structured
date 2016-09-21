@@ -1,6 +1,6 @@
-#ifndef _SOLVER_H
-#define _SOLVER_H
-#include "def_solver.h"
+#ifndef _SOLVER_CPP
+#define _SOLVER_CPP
+#include "solver.h"
 template<class Tx>
 void set_rarray(size_t size, Tx* __restrict__ dest, Tx* __restrict__ src){
 #pragma omp parallel for

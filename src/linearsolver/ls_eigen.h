@@ -1,10 +1,10 @@
-#ifndef _DEF_EIGEN_H
-#define _DEF_EIGEN_H
+#ifndef _LS_EIGEN_H
+#define _LS_EIGEN_H
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
-#include "def_mesh.h"
-#include "def_config.h"
-#include "def_solution.h"
+#include "mesh.h"
+#include "config.h"
+#include "solution.h"
 #include "common.h"
 /*!
   \brief High level linear solver wrapper to the Eigen linear algebra library. 

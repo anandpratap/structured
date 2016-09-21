@@ -1,9 +1,9 @@
-#ifndef _DEF_MESH_H
-#define _DEF_MESH_H
+#ifndef _MESH_H
+#define _MESH_H
 #include "common.h"
-#include "def_config.h"
+#include "config.h"
 #include <memory>
-#include "def_fluid.h"
+#include "fluid.h"
 template<class Tx, class Tad>
 class EulerEquation;
 template<class Tx, class Tad>

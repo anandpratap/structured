@@ -1,5 +1,5 @@
-#ifndef _DEF_CONFIG_H
-#define _DEF_CONFIG_H
+#ifndef _CONFIG_H
+#define _CONFIG_H
 #include "common.h"
 class Profiler{
 public:

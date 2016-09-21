@@ -1,5 +1,5 @@
-#ifndef _DEF_FLUID_H
-#define _DEF_FLUID_H
+#ifndef _FLUID_H
+#define _FLUID_H
 #include "common.h"
 
 template<class Tx, class Tad>

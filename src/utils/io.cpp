@@ -1,6 +1,6 @@
-#ifndef _IO_H
-#define _IO_H
-#include "def_io.h"
+#ifndef _IO_CPP
+#define _IO_CPP
+#include "io.h"
 
 template<class Tq>
 Tq value(const Tq x){

@@ -1,6 +1,6 @@
-#ifndef _FLUID_H
-#define _FLUID_H
-#include "def_fluid.h"
+#ifndef _FLUID_CPP
+#define _FLUID_CPP
+#include "fluid.h"
 template<class Tx, class Tad>
 FluidModel<Tx, Tad>::FluidModel(Tx val_p_ref, Tx val_rho_ref, Tx val_T_ref, Tx val_mu_ref, Tx val_pr){
 	p_ref = val_p_ref;

@@ -1,10 +1,10 @@
-#ifndef _ARMA_H
-#define _ARMA_H
+#ifndef _LS_ARMA_H
+#define _LS_ARMA_H
 #include <armadillo>
 #include "common.h"
-#include "def_mesh.h"
-#include "def_config.h"
-#include "def_solution.h"
+#include "mesh.h"
+#include "config.h"
+#include "solution.h"
 
 /*!
   \brief High level linear solver wrapper to the Armadillo linear algebra library. 

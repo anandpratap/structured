@@ -1,8 +1,8 @@
-#ifndef _SOLUTION_H
-#define _SOLUTION_H
-#include "def_solution.h"
+#ifndef _SOLUTION_CPP
+#define _SOLUTION_CPP
+#include "solution.h"
 #include "common.h"
-#include "def_mesh.h"
+#include "mesh.h"
 template<class Tx, class Tad>
 Solution<Tx, Tad>::Solution(std::shared_ptr<Mesh<Tx,Tad>> mesh){
 	nq = 4;

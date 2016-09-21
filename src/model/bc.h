@@ -1,9 +1,9 @@
-#ifndef _DEF_BC_H
-#define _DEF_BC_H
+#ifndef _BC_H
+#define _BC_H
 #include "common.h"
-#include "def_config.h"
-#include "def_fluid.h"
-#include "def_mesh.h"
+#include "config.h"
+#include "fluid.h"
+#include "mesh.h"
 
 #define global_bottom 0
 #define global_right 1
