@@ -2,6 +2,10 @@
 #define __RECONSTRUCTION__H
 #include "common.h"
 #include "def_reconstruction.h"
+template<class Tx, class Tad>
+void Reconstruction<Tx, Tad>::evaluate_chi(const Array2D<const Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){};
+template<class Tx, class Tad>
+void Reconstruction<Tx, Tad>::evaluate_eta(const Array2D<const Tad>& q, Array2D<Tad>& ql, Array2D<Tad>& qr){};
 /*!
   \brief First order reconstruction
 
@@ -148,4 +152,14 @@ void ReconstructionSecondOrder<Tx, Tad>::evaluate_eta(const Array2D<const Tad>& 
 	}
 		
 };
+
+#if defined(ENABLE_ADOLC)
+template class Reconstruction<double, adouble>;
+template class ReconstructionFirstOrder<double, adouble>;
+template class ReconstructionSecondOrder<double, adouble>;
+#else
+template class Reconstruction<double, double>;
+template class ReconstructionFirstOrder<double, double>;
+template class ReconstructionSecondOrder<double, double>;
+#endif
 #endif

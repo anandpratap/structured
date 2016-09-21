@@ -1,9 +1,7 @@
 #ifndef _DEF_SOLUTION_H
 #define _DEF_SOLUTION_H
 #include "common.h"
-template<class Tx, class Tad>
-class Mesh;
-#include "mesh.h"
+#include "def_mesh.h"
 template<class Tx, class Tad>
 class Solution{
 public:
@@ -29,7 +27,7 @@ public:
 	Array3D<Tx> q_tmp;
 	Array3D<Tad> a_q, a_rhs;
 public:
-	Solution(auto mesh);
+	Solution(std::shared_ptr<Mesh<Tx,Tad>> mesh);
 	//	Solution(std::shared_ptr<Mesh<Tx>> mesh, std::shared_ptr<Mesh<Tx>> old_mesh, const size_t nskipi=0, const size_t nskipj=0, const size_t refine=0);
 	~Solution();
 };

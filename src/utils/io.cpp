@@ -1,8 +1,5 @@
 #ifndef _IO_H
 #define _IO_H
-#include "common.h"
-#include "mesh.h"
-#include "config.h"
 #include "def_io.h"
 
 template<class Tq>
@@ -256,5 +253,14 @@ void IOManager<Tx, Tad>::write_surface(){
 	outfile.close();
 	spdlog::get("console")->info("Wrote surface file {}.", filename);
 }
+
+#if defined(ENABLE_ADOLC)
+template class IOManager<double, adouble>;
+#else
+template class IOManager<double, double>;
+template double value<double>;
+template class IOManager<float, float>;
+template float value<float>;
+#endif
 
 #endif

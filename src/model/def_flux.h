@@ -1,5 +1,7 @@
 #ifndef _DEF_FLUX_H
 #define _DEF_FLUX_H
+#include "common.h"
+
 template <class Tx, class Tad>
 class DiffusiveFlux{
 public:

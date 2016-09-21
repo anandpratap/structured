@@ -1,14 +1,8 @@
 #ifndef _BC_H
 #define _BC_H
 #include "common.h"
-#include "fluid.h"
+#include "def_fluid.h"
 #include "def_bc.h"
-#define bottom 0
-#define right 1
-#define top 2
-#define left 3
-
-
 
 template<class Tx, class Tad>
 BoundaryConditionFreestream<Tx, Tad>::BoundaryConditionFreestream(std::string val_name, std::shared_ptr<Mesh<Tx, Tad>> mesh, std::shared_ptr<Config<Tx>> config, std::shared_ptr<FluidModel<Tx, Tad>> val_fluid_model,
@@ -31,8 +25,8 @@ BoundaryConditionFreestream<Tx, Tad>::BoundaryConditionFreestream(std::string va
 template<class Tx, class Tad>
 void BoundaryConditionFreestream<Tx, Tad>::apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
 	size_t iend, jend;
-	if(face == bottom || face == top){
-		if(face == bottom)
+	if(face == global_bottom || face == global_top){
+		if(face == global_bottom)
 			jend = 0;
 		else
 			jend = njc + 1;
@@ -47,8 +41,8 @@ void BoundaryConditionFreestream<Tx, Tad>::apply(Array2D<Tad>& rho, Array2D<Tad>
 		}
 	}
 
-	if(face == left || face == right){
-		if(face == left)
+	if(face == global_left || face == global_right){
+		if(face == global_left)
 			iend = 0;
 		else
 			iend = nic + 1;
@@ -83,8 +77,8 @@ BoundaryConditionInviscidWall<Tx, Tad>::BoundaryConditionInviscidWall(std::strin
 template<class Tx, class Tad>
 void BoundaryConditionInviscidWall<Tx, Tad>::apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
 	size_t iend, jend;
-	if(face == bottom || face == top){
-		if(face == bottom)
+	if(face == global_bottom || face == global_top){
+		if(face == global_bottom)
 			jend = 0;
 		else
 			jend = njc + 1;
@@ -119,8 +113,8 @@ void BoundaryConditionInviscidWall<Tx, Tad>::apply(Array2D<Tad>& rho, Array2D<Ta
 		}
 	}
 
-	if(face == left || face == right){
-		if(face == left)
+	if(face == global_left || face == global_right){
+		if(face == global_left)
 			iend = 0;
 		else
 			iend = nic + 1;
@@ -155,15 +149,15 @@ BoundaryConditionAdiabaticWall<Tx, Tad>::BoundaryConditionAdiabaticWall(std::str
 template<class Tx, class Tad>
 void BoundaryConditionAdiabaticWall<Tx, Tad>::apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
 	size_t iend, jend;
-	if(face == bottom || face == top){
-		if(face == bottom)
+	if(face == global_bottom || face == global_top){
+		if(face == global_bottom)
 			jend = 0;
 		else
 			jend = njc + 1;
 
 #pragma omp parallel for
 		for(size_t i=start; i<=end; i++){
-			if(face == bottom){
+			if(face == global_bottom){
 				T[i][jend] = 1.5*T[i][1] - 0.5*T[i][2];
 				rho[i][jend] = 1.5*rho[i][1] - 0.5*rho[i][2];
 				u[i][jend] = 2.0*u_bc - (1.5*u[i][1] - 0.5*u[i][2]);
@@ -180,8 +174,8 @@ void BoundaryConditionAdiabaticWall<Tx, Tad>::apply(Array2D<Tad>& rho, Array2D<T
 		}
 	}
 
-	if(face == left || face == right){
-		if(face == left)
+	if(face == global_left || face == global_right){
+		if(face == global_left)
 			iend = 0;
 		else
 			iend = nic + 1;
@@ -189,7 +183,7 @@ void BoundaryConditionAdiabaticWall<Tx, Tad>::apply(Array2D<Tad>& rho, Array2D<T
 #pragma omp parallel for
 
 		for(size_t j=start; j<=end; j++){
-			if(face == left){
+			if(face == global_left){
 				T[iend][j] = 1.5*T[1][j] - 0.5*T[2][j];
 				rho[iend][j] = 1.5*rho[1][j] - 0.5*rho[2][j];
 				u[iend][j] = 2.0*u_bc - (1.5*u[1][j] - 0.5*u[2][j]);
@@ -229,8 +223,8 @@ BoundaryConditionWake<Tx, Tad>::BoundaryConditionWake(std::string val_name, std:
 template<class Tx, class Tad>
 void BoundaryConditionWake<Tx, Tad>::apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
 	size_t iend, jend;
-	if(face == bottom || face == top){
-		if(face == bottom)
+	if(face == global_bottom || face == global_top){
+		if(face == global_bottom)
 			jend = 0;
 		else
 			jend = njc + 1;
@@ -254,8 +248,8 @@ void BoundaryConditionWake<Tx, Tad>::apply(Array2D<Tad>& rho, Array2D<Tad>& u, A
 		}
 	}
 
-	if(face == left || face == right){
-		if(face == left)
+	if(face == global_left || face == global_right){
+		if(face == global_left)
 			iend = 0;
 		else
 			iend = nic + 1;
@@ -289,8 +283,8 @@ BoundaryConditionOutflow<Tx, Tad>::BoundaryConditionOutflow(std::string val_name
 template<class Tx, class Tad>
 void BoundaryConditionOutflow<Tx, Tad>::apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
 	size_t iend, jend;
-	if(face == bottom || face == top){
-		if(face == bottom)
+	if(face == global_bottom || face == global_top){
+		if(face == global_bottom)
 			jend = 0;
 		else
 			jend = njc + 1;
@@ -298,8 +292,8 @@ void BoundaryConditionOutflow<Tx, Tad>::apply(Array2D<Tad>& rho, Array2D<Tad>& u
 		spdlog::get("console")->critical("Boundary not implemented!");
 	}
 
-	if(face == left || face == right){
-		if(face == left)
+	if(face == global_left || face == global_right){
+		if(face == global_left)
 			iend = 0;
 		else
 			iend = nic + 1;
@@ -334,7 +328,7 @@ BoundaryConditionPeriodic<Tx, Tad>::BoundaryConditionPeriodic(std::string val_na
 template<class Tx, class Tad>
 void BoundaryConditionPeriodic<Tx, Tad>::apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
 	size_t iend, jend;
-	if(face == bottom || face == top){
+	if(face == global_bottom || face == global_top){
 #pragma omp parallel for
 		for(size_t i=start; i<=end; i++){
 			rho[i][0] = rho[i][njc];
@@ -351,7 +345,7 @@ void BoundaryConditionPeriodic<Tx, Tad>::apply(Array2D<Tad>& rho, Array2D<Tad>& 
 		}
 	}
 
-	if(face == left || face == right){
+	if(face == global_left || face == global_right){
 #pragma omp parallel for
 		for(size_t j=start; j<=end; j++){
 			rho[0][j] = rho[nic][j];
@@ -393,15 +387,15 @@ BoundaryConditionIsothermalWall<Tx, Tad>::BoundaryConditionIsothermalWall(std::s
 template<class Tx, class Tad>
 void BoundaryConditionIsothermalWall<Tx, Tad>::apply(Array2D<Tad>& rho, Array2D<Tad>& u, Array2D<Tad>& v, Array2D<Tad>& p, Array2D<Tad>& T){
 	size_t iend, jend;
-	if(face == bottom || face == top){
-		if(face == bottom)
+	if(face == global_bottom || face == global_top){
+		if(face == global_bottom)
 			jend = 0;
 		else
 			jend = njc + 1;
 
 #pragma omp parallel for
 		for(size_t i=start; i<=end; i++){
-			if(face == bottom){
+			if(face == global_bottom){
 				p[i][jend] = 1.5*p[i][1] - 0.5*p[i][2];
 				u[i][jend] = 2.0*u_bc - (1.5*u[i][1] - 0.5*u[i][2]);
 				v[i][jend] = 2.0*v_bc - (1.5*v[i][1] - 0.5*v[i][2]);
@@ -418,8 +412,8 @@ void BoundaryConditionIsothermalWall<Tx, Tad>::apply(Array2D<Tad>& rho, Array2D<
 		}
 	}
 
-	if(face == left || face == right){
-		if(face == left)
+	if(face == global_left || face == global_right){
+		if(face == global_left)
 			iend = 0;
 		else
 			iend = nic + 1;
@@ -444,16 +438,16 @@ size_t BoundaryContainer<Tx, Tad>::get_index(int idx, size_t face){
 		return idx;
 	}
 	else{
-		if(face == bottom){
+		if(face == global_bottom){
 			return nic + 2 + idx;
 		}
-		else if(face == right){
+		else if(face == global_right){
 			return njc + 2 + idx;
 		}
-		else if(face == top){
+		else if(face == global_top){
 			return nic + 2 + idx;
 		}
-		else if(face == left){
+		else if(face == global_left){
 			return njc + 2 + idx;
 		}
 		else{
@@ -483,10 +477,10 @@ BoundaryContainer<Tx, Tad>::BoundaryContainer(std::string filename, std::shared_
 		size_t end = bc->get_qualified_as<int64_t>("end").value_or(0);
 
 		size_t facei;
-		if(face=="left") facei = left;
-		if(face=="right") facei = right;
-		if(face=="bottom") facei = bottom;
-		if(face=="top") facei = top;
+		if(face=="left") facei = global_left;
+		if(face=="right") facei = global_right;
+		if(face=="bottom") facei = global_bottom;
+		if(face=="top") facei = global_top;
 		end = get_index(end, facei);
 
 		auto u_bc = bc->get_qualified_as<double>("u").value_or(0.0);
@@ -530,4 +524,26 @@ BoundaryContainer<Tx, Tad>::BoundaryContainer(std::string filename, std::shared_
 		}
 	}
 }
+
+#if defined(ENABLE_ADOLC)
+template class BoundaryContainer<double,adouble>;
+template class BoundaryCondition<double,adouble>;
+template class BoundaryConditionFreestream<double,adouble>;
+template class BoundaryConditionOutflow<double,adouble>;
+template class BoundaryConditionPeriodic<double,adouble>;
+template class BoundaryConditionInviscidWall<double,adouble>;
+template class BoundaryConditionAdiabaticWall<double,adouble>;
+template class BoundaryConditionIsothermalWall<double,adouble>;
+template class BoundaryConditionWake<double,adouble>;
+#else
+template class BoundaryContainer<double,double>;
+template class BoundaryCondition<double,double>;
+template class BoundaryConditionFreestream<double,double>;
+template class BoundaryConditionOutflow<double,double>;
+template class BoundaryConditionPeriodic<double,double>;
+template class BoundaryConditionInviscidWall<double,double>;
+template class BoundaryConditionAdiabaticWall<double,double>;
+template class BoundaryConditionIsothermalWall<double,double>;
+template class BoundaryConditionWake<double,double>;
+#endif
 #endif

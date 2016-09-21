@@ -1,15 +1,24 @@
 #ifndef _DEF_MESH_H
 #define _DEF_MESH_H
 #include "common.h"
-#include "solution.h"
-#include "config.h"
-#include "eulerequation.h"
-#include "io.h"
+#include "def_config.h"
 #include <memory>
-#include "linearsolver.h"
-
+#include "def_fluid.h"
+template<class Tx, class Tad>
+class EulerEquation;
 template<class Tx, class Tad>
 class Solution;
+template<class Tx, class Tad>
+class IOManager;
+
+template<class Tx, class Tad>
+class LinearSolverArma;
+
+template<class Tx, class Tad>
+class LinearSolverEigen;
+
+template<class Tx, class Tad>
+class LinearSolverPetsc;
 
 template <class Tx, class Tad>
 class Mesh: public std::enable_shared_from_this<Mesh<Tx, Tad>>{

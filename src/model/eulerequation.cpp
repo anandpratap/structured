@@ -1,10 +1,5 @@
 #ifndef _EULEREQUATION_H
 #define _EULEREQUATION_H
-#include "flux.h"
-#include "reconstruction.h"
-#include "bc.h"
-#include "common.h"
-#include "fluid.h"
 #include "def_eulerequation.h"
 template <class Tx, class Tad>
 void EulerEquation<Tx, Tad>::calc_viscous_residual(Array3D<Tad>& a_rhs){
@@ -295,4 +290,10 @@ void EulerEquation<Tx, Tad>::initialize(){
 	
 }
 
+#if defined(ENABLE_ADOLC)
+template class EulerEquation<double, adouble>;
+#else
+template class EulerEquation<double, double>;
+template class EulerEquation<float, float>;
+#endif
 #endif

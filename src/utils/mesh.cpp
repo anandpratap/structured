@@ -1,13 +1,9 @@
 #ifndef _MESH_H
 #define _MESH_H
-#include "common.h"
-#include "solution.h"
-#include "config.h"
-#include "eulerequation.h"
-#include "io.h"
-#include <memory>
-#include "linearsolver.h"
 #include "def_mesh.h"
+#include "def_eulerequation.h"
+#include "def_solution.h"
+#include "linearsolver.h"
 
 template<class Tx, class Tad>
 template<class Tq>
@@ -15,10 +11,10 @@ void Mesh<Tx, Tad>::calc_face(const Array2D<const Tq>& q, Array2D<Tq>& q_chi, Ar
 	for(size_t i=0; i<ni; i++){
 		for(size_t j=0; j<njc; j++){
 			const size_t b = 1;
-			const Tad qleft = q[i+b-1][j+b];
-			const Tad qright = q[i+b][j+b];
-			const Tad qtop = 0.25*(qleft+qright+q[i+b-1][j+b+1]+q[i+b][j+b+1]);
-			const Tad qbottom = 0.25*(qleft+qright+q[i+b-1][j+b-1]+q[i+b][j+b-1]);
+			const Tq qleft = q[i+b-1][j+b];
+			const Tq qright = q[i+b][j+b];
+			const Tq qtop = 0.25*(qleft+qright+q[i+b-1][j+b+1]+q[i+b][j+b+1]);
+			const Tq qbottom = 0.25*(qleft+qright+q[i+b-1][j+b-1]+q[i+b][j+b-1]);
 			q_chi[i][j] = 0.25*(qleft+qright+qtop+qbottom);
 		}
 	}
@@ -26,10 +22,10 @@ void Mesh<Tx, Tad>::calc_face(const Array2D<const Tq>& q, Array2D<Tq>& q_chi, Ar
 	for(size_t i=0; i<nic; i++){
 		for(size_t j=0; j<nj; j++){
 			const size_t b = 1;
-			const Tad qtop = q[i+b][j+b];
-			const Tad qbottom = q[i+b][j+b-1];
-			const Tad qleft = 0.25*(qtop + qbottom + q[i+b-1][j+b] + q[i+b-1][j+b-1]);
-			const Tad qright = 0.25*(qtop + qbottom + q[i+b+1][j+b] + q[i+b+1][j+b-1]);
+			const Tq qtop = q[i+b][j+b];
+			const Tq qbottom = q[i+b][j+b-1];
+			const Tq qleft = 0.25*(qtop + qbottom + q[i+b-1][j+b] + q[i+b-1][j+b-1]);
+			const Tq qright = 0.25*(qtop + qbottom + q[i+b+1][j+b] + q[i+b+1][j+b-1]);
 			q_eta[i][j] = 0.25*(qleft+qright+qtop+qbottom);
 		}
 	}
@@ -50,11 +46,11 @@ void Mesh<Tx, Tad>::calc_gradient(const Array2D<const Tq>& q, Array3D<Tq>& grad_
 			auto nx = normal_chi[i][j][0];
 			auto ny = normal_chi[i][j][1];
 			const size_t b = 1;
-			const Tad qleft = q[i+b-1][j+b];
-			const Tad qright = q[i+b][j+b];
-			const Tad qtop = 0.25*(qleft+qright+q[i+b-1][j+b+1]+q[i+b][j+b+1]);
-			const Tad qbottom = 0.25*(qleft+qright+q[i+b-1][j+b-1]+q[i+b][j+b-1]);
-			const Tad qbar = 0.25*(qleft+qright+qtop+qbottom);
+			const Tq qleft = q[i+b-1][j+b];
+			const Tq qright = q[i+b][j+b];
+			const Tq qtop = 0.25*(qleft+qright+q[i+b-1][j+b+1]+q[i+b][j+b+1]);
+			const Tq qbottom = 0.25*(qleft+qright+q[i+b-1][j+b-1]+q[i+b][j+b-1]);
+			const Tq qbar = 0.25*(qleft+qright+qtop+qbottom);
 			if(i == 0){
 
 				volume_ = volume[i][j];
@@ -94,12 +90,12 @@ void Mesh<Tx, Tad>::calc_gradient(const Array2D<const Tq>& q, Array3D<Tq>& grad_
 			auto nx = normal_eta[i][j][0];
 			auto ny = normal_eta[i][j][1];
 			const size_t b = 1;
-			const Tad qtop = q[i+b][j+b];
-			const Tad qbottom = q[i+b][j+b-1];
+			const Tq qtop = q[i+b][j+b];
+			const Tq qbottom = q[i+b][j+b-1];
 				
-			const Tad qleft = 0.25*(qtop + qbottom + q[i+b-1][j+b] + q[i+b-1][j+b-1]);
-			const Tad qright = 0.25*(qtop + qbottom + q[i+b+1][j+b] + q[i+b+1][j+b-1]);
-			const Tad qbar = 0.25*(qleft+qright+qtop+qbottom);
+			const Tq qleft = 0.25*(qtop + qbottom + q[i+b-1][j+b] + q[i+b-1][j+b-1]);
+			const Tq qright = 0.25*(qtop + qbottom + q[i+b+1][j+b] + q[i+b+1][j+b-1]);
+			const Tq qbar = 0.25*(qleft+qright+qtop+qbottom);
 			if(j == 0){
 				volume_ = volume[i][j];
 				for(size_t k=0; k<2; k++){
@@ -285,7 +281,7 @@ void Mesh<Tx, Tad>::calc_metrics(){
 template<class Tx, class Tad>
 template<class Tq>
 void Mesh<Tx, Tad>::calc_gradient(const Array2D<const Tq>& q, Array3D<Tq> &grad_q, size_t skipi, size_t skipj){
-	Tad q_chi, q_eta;
+	Tq q_chi, q_eta;
 	for(size_t i=1; i<nic-1; i++){
 		for(size_t j=1; j<njc-1; j++){
 			q_chi = (q[i+skipi][j+skipj+1] - q[i+skipi][j+skipj-1])/2.0; 
@@ -500,8 +496,6 @@ Mesh<Tx, Tad>::Mesh(std::shared_ptr<Mesh<Tx, Tad>> mesh, const size_t nskipi, co
 	y_chi = Array2D<Tx>(nic, njc);
 	y_eta = Array2D<Tx>(nic, njc);
 	
-	solution = std::make_shared<Solution<Tx, Tad>>(this);
-	calc_metrics();
 };
 
 template<class Tx, class Tad>
@@ -509,5 +503,22 @@ Mesh<Tx, Tad>::~Mesh(){
 	
 }
 
+#if defined(ENABLE_ADOLC)
+template class Mesh<double, adouble>;
+
+template void Mesh<double,adouble>::calc_face<adouble>(const Array2D<const adouble>& q, Array2D<adouble>& q_chi, Array2D<adouble>& q_eta);
+template void Mesh<double,adouble>::calc_gradient<adouble>(const Array2D<const adouble>& q, Array3D<adouble> &grad_q, size_t skipi, size_t skipj);
+template void Mesh<double,adouble>::calc_gradient<adouble>(const Array2D<const adouble>& q, Array3D<adouble>& grad_chi, Array3D<adouble>& grad_eta);
+
+template void Mesh<double,adouble>::calc_face<double>(const Array2D<const double>& q, Array2D<double>& q_chi, Array2D<double>& q_eta);
+template void Mesh<double,adouble>::calc_gradient<double>(const Array2D<const double>& q, Array3D<double> &grad_q, size_t skipi, size_t skipj);
+template void Mesh<double,adouble>::calc_gradient<double>(const Array2D<const double>& q, Array3D<double>& grad_chi, Array3D<double>& grad_eta);
+
+#else
+template class Mesh<double, double>;
+template void Mesh<double,double>::calc_face<double>(const Array2D<const double>& q, Array2D<double>& q_chi, Array2D<double>& q_eta);
+template void Mesh<double,double>::calc_gradient<double>(const Array2D<const double>& q, Array3D<double> &grad_q, size_t skipi, size_t skipj);
+template void Mesh<double,double>::calc_gradient<double>(const Array2D<const double>& q, Array3D<double>& grad_chi, Array3D<double>& grad_eta);
+#endif
 
 #endif

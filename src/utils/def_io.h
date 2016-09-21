@@ -1,8 +1,10 @@
 #ifndef _DEF_IO_H
 #define _DEF_IO_H
 #include "common.h"
-#include "mesh.h"
-#include "config.h"
+#include "def_mesh.h"
+#include "def_config.h"
+#include "def_solution.h"
+#include "def_eulerequation.h"
 
 template<class Tq>
 Tq value(const Tq x);

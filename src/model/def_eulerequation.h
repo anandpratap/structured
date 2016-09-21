@@ -1,5 +1,12 @@
 #ifndef _DEF_EULEREQUATION_H
 #define _DEF_EULEREQUATION_H
+#include "def_mesh.h"
+#include "def_reconstruction.h"
+#include "def_flux.h"
+#include "def_fluid.h"
+#include "def_bc.h"
+#include "def_solution.h"
+#include "def_io.h"
 /*!
   \brief Container for the model EulerEquation
   

@@ -1,5 +1,7 @@
 #ifndef _DEF_FLUID_H
 #define _DEF_FLUID_H
+#include "common.h"
+
 template<class Tx, class Tad>
 class FluidModel{
 public:
@@ -11,19 +13,19 @@ public:
 	~FluidModel(){};
 
 	template<class Tq>
-	inline Tq get_T_prho(const Tq p, const Tq rho);
+	Tq get_T_prho(const Tq p, const Tq rho);
 
 	template<class Tq>
-	inline Tq get_rho_pT(const Tq p, const Tq T);
+	Tq get_rho_pT(const Tq p, const Tq T);
 
 	template<class Tq>
-	inline Tq get_p_rhoT(const Tq rho, const Tq T);
+	Tq get_p_rhoT(const Tq rho, const Tq T);
 
 	template<class Tq>
-	inline Tq get_laminar_viscosity(const Tq T);
+	Tq get_laminar_viscosity(const Tq T);
 
 	template<class Tq>
-	inline Tq get_thermal_conductivity(const Tq T);
+	Tq get_thermal_conductivity(const Tq T);
 
 	template<class Tq>
 	void primvars(const Array3D<const Tq>& Q, Array2D<Tq>& rho, Array2D<Tq>& u, Array2D<Tq>& v, Array2D<Tq>& p, Array2D<Tq>& T, const size_t shifti = 0, const size_t shiftj = 0);

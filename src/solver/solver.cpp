@@ -1,11 +1,5 @@
 #ifndef _SOLVER_H
 #define _SOLVER_H
-#include "common.h"
-#include "mesh.h"
-#include "linearsolver.h"
-#include "config.h"
-#include "io.h"
-#include "eulerequation.h"
 #include "def_solver.h"
 template<class Tx>
 void set_rarray(size_t size, Tx* __restrict__ dest, Tx* __restrict__ src){
@@ -241,5 +235,16 @@ void Solver<Tx, Tad>::solve(){
 	}
 }
 
-
+#if defined(ENABLE_ADOLC)
+template class Solver<double, adouble>;
+#else
+template class Solver<double, double>;
+template void set_rarray<double>;
+template void update_forward_euler<double>;
+template void update_rk4<double,size_t>;
+template class Solver<float, float>;
+template void set_rarray<float>;
+template void update_forward_euler<float>;
+template void update_rk4<float,size_t>;
+#endif
 #endif

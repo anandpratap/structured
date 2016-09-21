@@ -1,32 +1,23 @@
 #ifndef _CONFIG_H
 #define _CONFIG_H
 #include "common.h"
-
-class Profiler{
-public:
-	std::shared_ptr<Timer> timer_main;
-	std::shared_ptr<Timer> timer_residual;
-	std::shared_ptr<Timer> timer_jacobian;
-	std::shared_ptr<Timer> timer_linearsolver;
-	float t_residual = 0.0f;
-	float t_jacobian = 0.0f;
-	float t_linearsolver = 0.0f;
-	Profiler(){
+#include "def_config.h"
+Profiler::Profiler(){
 		timer_main = std::make_shared<Timer>();
 		timer_residual = std::make_shared<Timer>();
 		timer_jacobian = std::make_shared<Timer>();
 		timer_linearsolver = std::make_shared<Timer>();
-	}
-	float current_time(){return timer_main->diff();}
-	float update_time_residual(){t_residual += timer_residual->diff(); return timer_residual->diff();}
-	void reset_time_residual(){timer_residual->reset();}
+}
+float Profiler::current_time(){return timer_main->diff();}
+float Profiler::update_time_residual(){t_residual += timer_residual->diff(); return timer_residual->diff();}
+void Profiler::reset_time_residual(){timer_residual->reset();}
 
-	float update_time_jacobian(){t_jacobian += timer_jacobian->diff();return timer_jacobian->diff();}
-	void reset_time_jacobian(){timer_jacobian->reset();}
+float Profiler::update_time_jacobian(){t_jacobian += timer_jacobian->diff();return timer_jacobian->diff();}
+void Profiler::reset_time_jacobian(){timer_jacobian->reset();}
 
-	float update_time_linearsolver(){t_linearsolver += timer_linearsolver->diff();return timer_linearsolver->diff();}
-	void reset_time_linearsolver(){timer_linearsolver->reset();}
-	void print(){
+float Profiler::update_time_linearsolver(){t_linearsolver += timer_linearsolver->diff();return timer_linearsolver->diff();}
+void Profiler::reset_time_linearsolver(){timer_linearsolver->reset();}
+void Profiler::print(){
 		float t_total = timer_main->diff();
 		auto logger = spdlog::get("console");
 		logger->info("----------");
@@ -35,15 +26,10 @@ public:
 		logger->info("time calculating residual = {}% ({}s)", t_residual/t_total*100, t_residual);
 		logger->info("time calculating jacobian = {}% ({}s)", t_jacobian/t_total*100, t_jacobian);
 		logger->info("time calculating linearsolver = {}% ({}s)", t_linearsolver/t_total*100, t_linearsolver);
-	}
-};
+}
 
 template<class Tx>
-class ConfigFreestream{
-public:
-	Tx rho_inf, u_inf, v_inf, p_inf, mu_inf, pr_inf, T_inf, aoa;
-	bool if_viscous;
-	void set(std::shared_ptr<cpptoml::table> config){
+void ConfigFreestream<Tx>::set(std::shared_ptr<cpptoml::table> config){
 		rho_inf =  config->get_qualified_as<double>("freestream.rho_inf").value_or(1.0);
 		u_inf =  config->get_qualified_as<double>("freestream.u_inf").value_or(0.0);
 		v_inf =  config->get_qualified_as<double>("freestream.v_inf").value_or(0.0);
@@ -53,20 +39,10 @@ public:
 		pr_inf =  config->get_qualified_as<double>("freestream.pr_inf").value_or(0.7);
 		aoa =  config->get_qualified_as<double>("freestream.aoa").value_or(0.0)*M_PI/180.0;
 		if_viscous = (mu_inf > 1e-15) ? true : false;
-	};
 };
+
 template<class Tx>
-class ConfigSolver{
-public:
-	size_t order, cfl_ramp_iteration, under_relaxation_ramp_iteration, lhs_order;
-	std::string scheme, flux;
-	bool time_accurate, cfl_ramp, under_relaxation_ramp;
-	Tx cfl, under_relaxation, cfl_ramp_exponent, under_relaxation_ramp_exponent;
-	Tx tolerance;
-	size_t iteration_max;
-	Tx dpdx, dpdy;
-	
-	void set(std::shared_ptr<cpptoml::table> config){
+void ConfigSolver<Tx>::set(std::shared_ptr<cpptoml::table> config){
 		iteration_max = config->get_qualified_as<int64_t>("solver.iteration_max").value_or(1);
 
 		order = config->get_qualified_as<int64_t>("solver.order").value_or(1);
@@ -93,53 +69,26 @@ public:
 		dpdx = config->get_qualified_as<double>("source.dpdx").value_or(0.0);
 		dpdy = config->get_qualified_as<double>("source.dpdy").value_or(0.0);
 	};
-};
 template<class Tx>
-class ConfigIO{
-public:
-	size_t stdout_frequency, fileout_frequency;
-	bool restart;
-	std::string label;
-	void set(std::shared_ptr<cpptoml::table> config){
+void ConfigIO<Tx>::set(std::shared_ptr<cpptoml::table> config){
 		restart =  config->get_qualified_as<bool>("io.restart").value_or(false);
 		label = config->get_qualified_as<std::string>("io.label").value_or("flow");
 		stdout_frequency = config->get_qualified_as<int64_t>("io.stdout_frequency").value_or(1);
 		fileout_frequency = config->get_qualified_as<int64_t>("io.fileout_frequency").value_or(1);
-	};
 };
 
 template<class Tx>
-class ConfigGeometry{
-public:
-	size_t ni, nj, tail;
-	std::string filename;
-	std::string format;
-	void set(std::shared_ptr<cpptoml::table> config){
+void ConfigGeometry<Tx>::set(std::shared_ptr<cpptoml::table> config){
 		filename = config->get_qualified_as<std::string>("geometry.filename").value_or("grid.unf2");
 		format = config->get_qualified_as<std::string>("geometry.format").value_or("grid.unf2");
 		ni= config->get_qualified_as<int64_t>("geometry.ni").value_or(0);
 		nj= config->get_qualified_as<int64_t>("geometry.nj").value_or(0);
 		tail= config->get_qualified_as<int64_t>("geometry.tail").value_or(0);
-	}
-	~ConfigGeometry(){
-	}
-};
+}
 
 
 template<class Tx>
-class Config{
-public:
-	int argc;
-	char **argv;
-	std::shared_ptr<ConfigFreestream<Tx>> freestream;
-	std::shared_ptr<ConfigSolver<Tx>> solver;
-	std::shared_ptr<ConfigIO<Tx>> io;
-	std::shared_ptr<ConfigGeometry<Tx>> geometry;
-	std::shared_ptr<cpptoml::table> config;
-	std::shared_ptr<Profiler> profiler;
-	std::string filename;
-	
-	Config(std::string val_filename, int val_argc, char *val_argv[]){
+Config<Tx>::Config(std::string val_filename, int val_argc, char *val_argv[]){
 		argc = val_argc;
 		argv = val_argv;
 		freestream = std::make_shared<ConfigFreestream<Tx>>();
@@ -157,9 +106,9 @@ public:
 
 		profiler = std::make_shared<Profiler>();
 		
-	};
-
-	void print(){
+};
+template<class Tx>
+void Config<Tx>::print(){
 		auto logger = spdlog::get("console");
 		logger->info("Compiler: {}", __COMPILER__);
 		logger->info("Compiled on {} at time {}", __DATE__, __TIME__);
@@ -208,6 +157,18 @@ public:
 
 		logger->info("---------------");
 
-	};
 };
+
+template class Config<double>;
+template class ConfigFreestream<double>;
+template class ConfigIO<double>;
+template class ConfigGeometry<double>;
+template class ConfigSolver<double>;
+
+
+template class Config<float>;
+template class ConfigFreestream<float>;
+template class ConfigIO<float>;
+template class ConfigGeometry<float>;
+template class ConfigSolver<float>;
 #endif

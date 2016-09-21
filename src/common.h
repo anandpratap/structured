@@ -52,20 +52,6 @@ constexpr auto GAMMA = 1.4;
 #define ENABLE_ADOLC
 #endif
 
-#if defined(ENABLE_ARMA)
-#include <armadillo>
-#endif
-
-#if defined(ENABLE_EIGEN)
-#include <Eigen/Sparse>
-#include <Eigen/Dense>
-#endif
-
-#if defined(ENABLE_PETSC)
-#include "petsc.h"
-#include "petscksp.h"
-#endif
-
 #if defined(ENABLE_ADOLC)
 #include "adolc/adolc.h"
 #include "adolc/sparse/sparsedrivers.h"

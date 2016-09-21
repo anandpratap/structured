@@ -1,6 +1,13 @@
 #ifndef _FLUX_H
 #define _FLUX_H
 #include "def_flux.h"
+
+template<class Tx, class Tad>
+void DiffusiveFlux<Tx, Tad>::evaluate(const Array3D<const Tx>& val_normal,
+									  const Array3D<const Tad>& val_grad_u, const Array3D<const Tad>& val_grad_v, const Array3D<const Tad>& val_grad_T,
+									  const Array2D<const Tad>& val_ubar, const Array2D<const Tad>& val_vbar,
+									  const Array2D<const Tad>& val_mubar, const Array2D<const Tad>& val_kbar,
+									  Array3D<Tad>& val_flux){};
 template<class Tx, class Tad>
 void DiffusiveFluxGreenGauss<Tx, Tad>::evaluate(const Array3D<const Tx>& val_normal,
 									   const Array3D<const Tad>& val_grad_u, const Array3D<const Tad>& val_grad_v, const Array3D<const Tad>& val_grad_T,
@@ -216,4 +223,22 @@ void ConvectiveFluxAUSM<Tx, Tad>::evaluate(const Array3D<const Tx>& normal,
 	}
 };
 
+#if defined(ENABLE_ADOLC)
+template class DiffusiveFlux<double, adouble>;
+template class DiffusiveFluxGreenGauss<double, adouble>;
+template class ConvectiveFlux<double, adouble>;
+template class ConvectiveFluxRoe<double, adouble>;
+template class ConvectiveFluxAUSM<double, adouble>;
+#else
+template class DiffusiveFlux<double, double>;
+template class DiffusiveFluxGreenGauss<double, double>;
+template class ConvectiveFlux<double, double>;
+template class ConvectiveFluxRoe<double, double>;
+template class ConvectiveFluxAUSM<double, double>;
+template class DiffusiveFlux<float, float>;
+template class DiffusiveFluxGreenGauss<float, float>;
+template class ConvectiveFlux<float, float>;
+template class ConvectiveFluxRoe<float, float>;
+template class ConvectiveFluxAUSM<float, float>;
+#endif
 #endif

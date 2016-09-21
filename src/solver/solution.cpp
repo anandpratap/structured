@@ -2,9 +2,9 @@
 #define _SOLUTION_H
 #include "def_solution.h"
 #include "common.h"
-#include "mesh.h"
+#include "def_mesh.h"
 template<class Tx, class Tad>
-Solution<Tx, Tad>::Solution(auto mesh){
+Solution<Tx, Tad>::Solution(std::shared_ptr<Mesh<Tx,Tad>> mesh){
 	nq = 4;
 	ntrans = 0;
 	naux = 10;
@@ -67,5 +67,10 @@ template<class Tx, class Tad>
 Solution<Tx, Tad>::~Solution(){
 }
 
-
+#if defined(ENABLE_ADOLC)
+template class Solution<double, adouble>;
+#else
+template class Solution<double, double>;
+template class Solution<float, float>;
+#endif
 #endif

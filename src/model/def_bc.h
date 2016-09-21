@@ -1,12 +1,14 @@
 #ifndef _DEF_BC_H
 #define _DEF_BC_H
 #include "common.h"
-#include "fluid.h"
-#define bottom 0
-#define right 1
-#define top 2
-#define left 3
+#include "def_config.h"
+#include "def_fluid.h"
+#include "def_mesh.h"
 
+#define global_bottom 0
+#define global_right 1
+#define global_top 2
+#define global_left 3
 
 template<class Tx, class Tad>
 class BoundaryCondition{
