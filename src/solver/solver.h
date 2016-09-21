@@ -6,7 +6,7 @@
 #include "config.h"
 #include "io.h"
 #include "eulerequation.h"
-
+#include "def_solver.h"
 template<class Tx>
 void set_rarray(size_t size, Tx* __restrict__ dest, Tx* __restrict__ src){
 #pragma omp parallel for
@@ -32,26 +32,9 @@ void update_rk4(size_t size, Tx* __restrict__ q_i, Tx* __restrict__ q, Tx* __res
 }
 
 template<class Tx, class Tad>
-class Solver{
-public:
-	std::vector<std::shared_ptr<Mesh<Tx,Tad>>> mesh_list;
-	void solve();
-	Tx UNDER_RELAXATION;
-	Tx CFL;
-	std::shared_ptr<Config<Tx>> config;
-	std::string label;
-	std::shared_ptr<spdlog::logger> logger;
-	std::shared_ptr<spdlog::logger> logger_convergence;	
-	
-	bool step(std::shared_ptr<Mesh<Tx,Tad>> mesh, size_t counter, Tx t);
-
-	Solver(std::shared_ptr<Config<Tx>> config);
-	~Solver();
-
-	void add_mesh(std::shared_ptr<Mesh<Tx,Tad>> mesh){
+void Solver<Tx, Tad>::add_mesh(std::shared_ptr<Mesh<Tx,Tad>> mesh){
 		mesh_list.push_back(mesh);
-	}
-};
+}
 
 template <class Tx, class Tad>
 Solver<Tx, Tad>::Solver(std::shared_ptr<Config<Tx>> val_config){

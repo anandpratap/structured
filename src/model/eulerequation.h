@@ -5,188 +5,138 @@
 #include "bc.h"
 #include "common.h"
 #include "fluid.h"
-
-/*!
-  \brief Container for the model EulerEquation
-  
-  This is a container.
-*/
-
-template<class Tx, class Tad>
-class EulerEquation{
-public:
-	size_t ni, nj, nic, njc, nq;
-	Array2D<Tad> rho, u, v, p, T, mu, k;
-	Array3D<Tad> grad_u, grad_v, grad_T;
-	Array2D<Tad> rholft_chi, ulft_chi, vlft_chi, plft_chi;
-	Array2D<Tad> rhorht_chi, urht_chi, vrht_chi, prht_chi;
-	Array2D<Tad> rholft_eta, ulft_eta, vlft_eta, plft_eta;
-	Array2D<Tad> rhorht_eta, urht_eta, vrht_eta, prht_eta;
-	Array3D<Tad> flux_chi, flux_eta;
-
-	Array3D<Tad> grad_u_chi, grad_u_eta;
-	Array3D<Tad> grad_v_chi, grad_v_eta;
-	Array3D<Tad> grad_T_chi, grad_T_eta;
-	Array2D<Tad> u_bar_chi, u_bar_eta;
-	Array2D<Tad> v_bar_chi, v_bar_eta;
-	Array2D<Tad> T_bar_chi, T_bar_eta;
-	Array2D<Tad> mu_bar_chi, mu_bar_eta;
-	Array2D<Tad> k_bar_chi, k_bar_eta;
+#include "def_eulerequation.h"
+template <class Tx, class Tad>
+void EulerEquation<Tx, Tad>::calc_viscous_residual(Array3D<Tad>& a_rhs){
+	diffusive_flux->evaluate(mesh->normal_chi.const_ref(), grad_u_chi.const_ref(), grad_v_chi.const_ref(), grad_T_chi.const_ref(),
+							 u_bar_chi.const_ref(), v_bar_chi.const_ref(), mu_bar_chi.const_ref(), k_bar_chi.const_ref(), flux_chi);
+	diffusive_flux->evaluate(mesh->normal_eta.const_ref(), grad_u_eta.const_ref(), grad_v_eta.const_ref(), grad_T_eta.const_ref(),
+							 u_bar_eta.const_ref(), v_bar_eta.const_ref(), mu_bar_eta.const_ref(), k_bar_eta.const_ref(), flux_eta);
 	
-	std::shared_ptr<Mesh<Tx, Tad>> mesh;
-	std::shared_ptr<Config<Tx>> config;
-	std::shared_ptr<Reconstruction<Tx, Tad>> reconstruction;
-
-	std::shared_ptr<Reconstruction<Tx, Tad>> reconstruction_rhs;
-	std::shared_ptr<Reconstruction<Tx, Tad>> reconstruction_lhs;
-	
-	std::unique_ptr<ConvectiveFlux<Tx, Tad>> convective_flux;
-	std::unique_ptr<DiffusiveFlux<Tx, Tad>> diffusive_flux;
-	std::unique_ptr<BoundaryContainer<Tx, Tad>> boundary_container;
-
-	//! calculate residual
-	/*!
-	  @param a_q[in] flow variable
-	  @param a_rhs[out] residual
-	*/
-	void calc_residual(const Array3D<const Tad>& a_q, Array3D<Tad>& a_rhs, bool lhs=false);
-	void calc_dt(const Tx cfl);
-	void initialize();
-	void calc_convective_residual(Array3D<Tad>& a_rhs);
-	void calc_intermediates(const Array3D<const Tad>& a_q);
-	void calc_viscous_residual(Array3D<Tad>& a_rhs){
-		diffusive_flux->evaluate(mesh->normal_chi.const_ref(), grad_u_chi.const_ref(), grad_v_chi.const_ref(), grad_T_chi.const_ref(),
-								 u_bar_chi.const_ref(), v_bar_chi.const_ref(), mu_bar_chi.const_ref(), k_bar_chi.const_ref(), flux_chi);
-		diffusive_flux->evaluate(mesh->normal_eta.const_ref(), grad_u_eta.const_ref(), grad_v_eta.const_ref(), grad_T_eta.const_ref(),
-								 u_bar_eta.const_ref(), v_bar_eta.const_ref(), mu_bar_eta.const_ref(), k_bar_eta.const_ref(), flux_eta);
-
-		for(size_t i=0; i< nic; i++){
-			for(size_t j=0; j< njc; j++){
-				for(size_t k=1; k<mesh->solution->nq; k++){
-					a_rhs[i][j][k] += (flux_eta[i][j+1][k] - flux_eta[i][j][k]);
-					a_rhs[i][j][k] += (flux_chi[i+1][j][k] - flux_chi[i][j][k]);
-				}
+	for(size_t i=0; i< nic; i++){
+		for(size_t j=0; j< njc; j++){
+			for(size_t k=1; k<mesh->solution->nq; k++){
+				a_rhs[i][j][k] += (flux_eta[i][j+1][k] - flux_eta[i][j][k]);
+				a_rhs[i][j][k] += (flux_chi[i+1][j][k] - flux_chi[i][j][k]);
 			}
 		}
-
-	};
-	void calc_source_residual(const Array3D<const Tad>& a_q, Array3D<Tad>& a_rhs){
-		for(size_t i=0; i< nic; i++){
-			for(size_t j=0; j< njc; j++){
-				a_rhs[i][j][1] += -config->solver->dpdx*mesh->volume[i][j];
-				a_rhs[i][j][2] += -config->solver->dpdy*mesh->volume[i][j];
-			}
-		}
-	};
-	void calc_primvars(const Array3D<const Tad>& a_q);
-	void calc_boundary();
-	EulerEquation(std::shared_ptr<Mesh<Tx, Tad>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
-		mesh = val_mesh;
-		config = val_config;
-
-		ni = mesh->ni;
-		nj = mesh->nj;
-		nq = mesh->solution->nq;
-		nic = ni - 1;
-		njc = nj - 1;
-		
-		rho = Array2D<Tad>(nic+2, njc+2);
-		u = Array2D<Tad>(nic+2, njc+2);
-		v = Array2D<Tad>(nic+2, njc+2);
-		p = Array2D<Tad>(nic+2, njc+2);
-		T = Array2D<Tad>(nic+2, njc+2);
-		mu = Array2D<Tad>(nic+2, njc+2);
-		k = Array2D<Tad>(nic+2, njc+2);
-		
-		rholft_chi = Array2D<Tad>(ni, njc);
-		ulft_chi = Array2D<Tad>(ni, njc);
-		vlft_chi = Array2D<Tad>(ni, njc);
-		plft_chi = Array2D<Tad>(ni, njc);
-		
-		rhorht_chi = Array2D<Tad>(ni, njc);
-		urht_chi = Array2D<Tad>(ni, njc);
-		vrht_chi = Array2D<Tad>(ni, njc);
-		prht_chi = Array2D<Tad>(ni, njc);
-		
-		rholft_eta = Array2D<Tad>(nic, nj);
-		ulft_eta = Array2D<Tad>(nic, nj);
-		vlft_eta = Array2D<Tad>(nic, nj);
-		plft_eta = Array2D<Tad>(nic, nj);
-		
-		rhorht_eta = Array2D<Tad>(nic, nj);
-		urht_eta = Array2D<Tad>(nic, nj);
-		vrht_eta = Array2D<Tad>(nic, nj);
-		prht_eta = Array2D<Tad>(nic, nj);
-
-		grad_u_chi = Array3D<Tad>(ni, njc, 2);
-		grad_u_eta = Array3D<Tad>(nic, nj, 2);
-
-		grad_v_chi = Array3D<Tad>(ni, njc, 2);
-		grad_v_eta = Array3D<Tad>(nic, nj, 2);
-
-		grad_T_chi = Array3D<Tad>(ni, njc, 2);
-		grad_T_eta = Array3D<Tad>(nic, nj, 2);
-
-		mu_bar_chi = Array2D<Tad>(ni, njc);
-		k_bar_chi = Array2D<Tad>(ni, njc);
-		u_bar_chi = Array2D<Tad>(ni, njc);
-		v_bar_chi = Array2D<Tad>(ni, njc);
-		T_bar_chi = Array2D<Tad>(ni, njc);
-
-		mu_bar_eta = Array2D<Tad>(nic, nj);
-		k_bar_eta = Array2D<Tad>(nic, nj);
-		u_bar_eta = Array2D<Tad>(nic, nj);
-		v_bar_eta = Array2D<Tad>(nic, nj);
-		T_bar_eta = Array2D<Tad>(nic, nj);
-			
-		grad_u = Array3D<Tad>(nic, njc, 3);
-		grad_v = Array3D<Tad>(nic, njc, 3);
-		grad_T = Array3D<Tad>(nic, njc, 3);
-		
-
-		flux_chi = Array3D<Tad>(ni, njc, 4U);
-		flux_eta = Array3D<Tad>(nic, nj, 4U);
-
-		//transport = std::make_unique<TransportEquation<Tx, Tad>>(mesh, config);
-
-		
-		if(config->solver->order == 1){
-			reconstruction_rhs = std::make_unique<ReconstructionFirstOrder<Tx, Tad>>(ni, nj);
-		}
-		else if(config->solver->order == 2){
-			reconstruction_rhs = std::make_unique<ReconstructionSecondOrder<Tx, Tad>>(ni, nj);
-		}
-		else{
-			spdlog::get("console")->critical("Reconstruction not found.");
-		}
-
-		if(config->solver->lhs_order == 1){
-			reconstruction_lhs = std::make_unique<ReconstructionFirstOrder<Tx, Tad>>(ni, nj);
-		}
-		else if(config->solver->lhs_order == 2){
-			reconstruction_lhs = std::make_unique<ReconstructionSecondOrder<Tx, Tad>>(ni, nj);
-		}
-		else{
-			spdlog::get("console")->critical("Reconstruction not found.");
-		}
-
-		
-		
-		if(config->solver->flux == "roe")
-			convective_flux = std::make_unique<ConvectiveFluxRoe<Tx, Tad>>();
-		else if(config->solver->flux == "ausm")
-			convective_flux = std::make_unique<ConvectiveFluxAUSM<Tx, Tad>>();
-		else
-			spdlog::get("console")->critical("Flux not found.");
-
-
-		diffusive_flux = std::make_unique<DiffusiveFluxGreenGauss<Tx, Tad>>();
-		boundary_container = std::make_unique<BoundaryContainer<Tx, Tad>>(config->filename, mesh, config, mesh->fluid_model);
-	};
-
-	~EulerEquation(){
-	};
+	}
+	
 };
+template <class Tx, class Tad>
+void EulerEquation<Tx, Tad>::calc_source_residual(const Array3D<const Tad>& a_q, Array3D<Tad>& a_rhs){
+	for(size_t i=0; i< nic; i++){
+		for(size_t j=0; j< njc; j++){
+			a_rhs[i][j][1] += -config->solver->dpdx*mesh->volume[i][j];
+			a_rhs[i][j][2] += -config->solver->dpdy*mesh->volume[i][j];
+		}
+	}
+};
+template <class Tx, class Tad>
+EulerEquation<Tx, Tad>::EulerEquation(std::shared_ptr<Mesh<Tx, Tad>> val_mesh, std::shared_ptr<Config<Tx>> val_config){
+	mesh = val_mesh;
+	config = val_config;
+
+	ni = mesh->ni;
+	nj = mesh->nj;
+	nq = mesh->solution->nq;
+	nic = ni - 1;
+	njc = nj - 1;
+		
+	rho = Array2D<Tad>(nic+2, njc+2);
+	u = Array2D<Tad>(nic+2, njc+2);
+	v = Array2D<Tad>(nic+2, njc+2);
+	p = Array2D<Tad>(nic+2, njc+2);
+	T = Array2D<Tad>(nic+2, njc+2);
+	mu = Array2D<Tad>(nic+2, njc+2);
+	k = Array2D<Tad>(nic+2, njc+2);
+		
+	rholft_chi = Array2D<Tad>(ni, njc);
+	ulft_chi = Array2D<Tad>(ni, njc);
+	vlft_chi = Array2D<Tad>(ni, njc);
+	plft_chi = Array2D<Tad>(ni, njc);
+		
+	rhorht_chi = Array2D<Tad>(ni, njc);
+	urht_chi = Array2D<Tad>(ni, njc);
+	vrht_chi = Array2D<Tad>(ni, njc);
+	prht_chi = Array2D<Tad>(ni, njc);
+		
+	rholft_eta = Array2D<Tad>(nic, nj);
+	ulft_eta = Array2D<Tad>(nic, nj);
+	vlft_eta = Array2D<Tad>(nic, nj);
+	plft_eta = Array2D<Tad>(nic, nj);
+		
+	rhorht_eta = Array2D<Tad>(nic, nj);
+	urht_eta = Array2D<Tad>(nic, nj);
+	vrht_eta = Array2D<Tad>(nic, nj);
+	prht_eta = Array2D<Tad>(nic, nj);
+
+	grad_u_chi = Array3D<Tad>(ni, njc, 2);
+	grad_u_eta = Array3D<Tad>(nic, nj, 2);
+
+	grad_v_chi = Array3D<Tad>(ni, njc, 2);
+	grad_v_eta = Array3D<Tad>(nic, nj, 2);
+
+	grad_T_chi = Array3D<Tad>(ni, njc, 2);
+	grad_T_eta = Array3D<Tad>(nic, nj, 2);
+
+	mu_bar_chi = Array2D<Tad>(ni, njc);
+	k_bar_chi = Array2D<Tad>(ni, njc);
+	u_bar_chi = Array2D<Tad>(ni, njc);
+	v_bar_chi = Array2D<Tad>(ni, njc);
+	T_bar_chi = Array2D<Tad>(ni, njc);
+
+	mu_bar_eta = Array2D<Tad>(nic, nj);
+	k_bar_eta = Array2D<Tad>(nic, nj);
+	u_bar_eta = Array2D<Tad>(nic, nj);
+	v_bar_eta = Array2D<Tad>(nic, nj);
+	T_bar_eta = Array2D<Tad>(nic, nj);
+			
+	grad_u = Array3D<Tad>(nic, njc, 3);
+	grad_v = Array3D<Tad>(nic, njc, 3);
+	grad_T = Array3D<Tad>(nic, njc, 3);
+		
+
+	flux_chi = Array3D<Tad>(ni, njc, 4U);
+	flux_eta = Array3D<Tad>(nic, nj, 4U);
+
+	//transport = std::make_unique<TransportEquation<Tx, Tad>>(mesh, config);
+
+		
+	if(config->solver->order == 1){
+		reconstruction_rhs = std::make_unique<ReconstructionFirstOrder<Tx, Tad>>(ni, nj);
+	}
+	else if(config->solver->order == 2){
+		reconstruction_rhs = std::make_unique<ReconstructionSecondOrder<Tx, Tad>>(ni, nj);
+	}
+	else{
+		spdlog::get("console")->critical("Reconstruction not found.");
+	}
+
+	if(config->solver->lhs_order == 1){
+		reconstruction_lhs = std::make_unique<ReconstructionFirstOrder<Tx, Tad>>(ni, nj);
+	}
+	else if(config->solver->lhs_order == 2){
+		reconstruction_lhs = std::make_unique<ReconstructionSecondOrder<Tx, Tad>>(ni, nj);
+	}
+	else{
+		spdlog::get("console")->critical("Reconstruction not found.");
+	}
+
+		
+		
+	if(config->solver->flux == "roe")
+		convective_flux = std::make_unique<ConvectiveFluxRoe<Tx, Tad>>();
+	else if(config->solver->flux == "ausm")
+		convective_flux = std::make_unique<ConvectiveFluxAUSM<Tx, Tad>>();
+	else
+		spdlog::get("console")->critical("Flux not found.");
+
+
+	diffusive_flux = std::make_unique<DiffusiveFluxGreenGauss<Tx, Tad>>();
+	boundary_container = std::make_unique<BoundaryContainer<Tx, Tad>>(config->filename, mesh, config, mesh->fluid_model);
+};
+
 template <class Tx, class Tad>
 void EulerEquation<Tx, Tad>::calc_convective_residual(Array3D<Tad>& a_rhs){
 	convective_flux->evaluate(mesh->normal_chi.const_ref(),
