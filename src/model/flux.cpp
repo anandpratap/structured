@@ -235,6 +235,7 @@ template class DiffusiveFluxGreenGauss<double, double>;
 template class ConvectiveFlux<double, double>;
 template class ConvectiveFluxRoe<double, double>;
 template class ConvectiveFluxAUSM<double, double>;
+
 template class DiffusiveFlux<float, float>;
 template class DiffusiveFluxGreenGauss<float, float>;
 template class ConvectiveFlux<float, float>;

@@ -1,0 +1,5 @@
+import os
+import subprocess as sp
+
+cwd = Dir('.').srcnode().abspath
+sp.call("doxygen %s html"%(os.path.join(cwd, "Doxyfile")), shell=True)

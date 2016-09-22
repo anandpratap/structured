@@ -53,4 +53,6 @@ void LinearSolverArma<Tx, Tad>::preallocate(int nnz){
 
 };
 
+
+template class LinearSolverArma<double,adouble>;
 #endif

@@ -161,5 +161,9 @@ template class ReconstructionSecondOrder<double, adouble>;
 template class Reconstruction<double, double>;
 template class ReconstructionFirstOrder<double, double>;
 template class ReconstructionSecondOrder<double, double>;
+
+template class Reconstruction<float, float>;
+template class ReconstructionFirstOrder<float, float>;
+template class ReconstructionSecondOrder<float, float>;
 #endif
 #endif

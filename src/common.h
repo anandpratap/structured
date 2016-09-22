@@ -4,13 +4,13 @@
 #define STR(x) STR_HELPER(x)
 
 #if defined(__ICC)
-#pragma message "__ICC is defined."
+//#pragma message "__ICC is defined."
 #define __COMPILER__ "INTEL"
 #elif defined(__GNUC__)
-#pragma message "__GNUC__ is defined."
+//#pragma message "__GNUC__ is defined."
 #define __COMPILER__ "GNU " STR(__GNUC__) "." STR(__GNUC_MINOR__) "." STR(__GNUC_PATCHLEVEL__)
 #elif defined(__IBMC__)
-#pragma message "__IBMC__ is defined."
+//#pragma message "__IBMC__ is defined."
 #define __COMPILER__ "IBM"
 #endif
 

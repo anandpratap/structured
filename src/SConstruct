@@ -1,0 +1,81 @@
+import os
+from config import *
+
+AddOption("--disable-warnings", action="store_true", dest="disable_warnings", default=False)
+AddOption("--enable-eigen", action="store_true", dest="enable_eigen", default=False)
+AddOption("--enable-arma", action="store_true", dest="enable_arma", default=False)
+AddOption("--enable-petsc", action="store_true", dest="enable_petsc", default=False)
+AddOption("--enable-debug", action="store_true", dest="enable_debug", default=False)
+AddOption("--enable-openmp", action="store_true", dest="enable_openmp", default=False)
+
+cwd = Dir('.').srcnode().abspath
+CPPPATH = [cwd]
+LIBPATH = []
+CCFLAGS = ['-std=c++14']
+LIBS = ["z", "pthread"]
+
+SRCS = ["main.cpp"]
+
+for SRCDIR in ["model", "solver", "linearsolver", "utils", "thirdparty"]:
+    CPPPATH.append(SRCDIR)
+
+for SRCDIR in ["model", "solver", "utils", "thirdparty"]:
+    SRCS.extend(Glob(os.path.join(SRCDIR, "*.cpp")))
+
+if GetOption("enable_debug"):
+    CCFLAGS.append("-O1")
+    CCFLAGS.append("-g")
+    CCFLAGS.append('-DRA_BOUNDSCHECK')
+    CCFLAGS.append("-DDEBUG")
+else:
+    CCFLAGS.append("-O3")
+    CCFLAGS.append('-fstrict-aliasing')
+
+if GetOption("enable_openmp"):
+    CCFLAGS.append("-fopenmp")
+    LIBS.appen("gomp")
+       
+
+
+
+if GetOption('disable_warnings'):
+    CCFLAGS.append("-w")
+
+ls_list = [GetOption('enable_eigen'), GetOption('enable_arma'), GetOption('enable_petsc')]
+if sum(ls_list) > 0:
+    LIBPATH.append(ADOLC_LIB)
+    CPPPATH.append(ADOLC_INC)
+    LIBS.append("adolc")
+    if sum(ls_list) != 1:
+        raise ValueError("Multiple linear solver cannot be used together!")
+    
+if GetOption('enable_eigen'):
+    MAIN = "structured_eigen"
+    CXX = 'g++'
+    CCFLAGS.append('-DENABLE_EIGEN')
+    SRCS.append(os.path.join(cwd, "linearsolver/ls_eigen.cpp"))
+elif GetOption('enable_arma'):
+    MAIN = "structured_arma"
+    CXX = 'g++'
+    CCFLAGS.append('-DENABLE_ARMA')
+    SRCS.append(os.path.join(cwd, "linearsolver/ls_arma.cpp"))
+    CPPPATH.append(ARMA_INC)
+    LIBPATH.append(ARMA_LIB)
+    CPPPATH.append(SUPERLU_INC)
+    LIBPATH.append(SUPERLU_LIB)
+    LIBS.extend(["armadillo", "superlu"])
+elif GetOption('enable_petsc'):
+    MAIN = "structured_petsc"
+    CXX = 'mpicxx'
+    CCFLAGS.append('-DENABLE_PETSC')
+    SRCS.append(os.path.join(cwd, "linearsolver/ls_petsc.cpp"))
+    CPPPATH.append(PETSC_INC)
+    LIBPATH.append(PETSC_LIB)
+    LIBS.extend(["petsc"])
+else:
+    MAIN = "structured_explicit"
+    CXX = 'g++'
+    
+env = Environment(CXX = CXX,	
+                  CCFLAGS = CCFLAGS, CPPPATH = CPPPATH, LIBPATH=LIBPATH, LIBS=LIBS)
+env.Program(MAIN, SRCS)

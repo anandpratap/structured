@@ -258,9 +258,9 @@ void IOManager<Tx, Tad>::write_surface(){
 template class IOManager<double, adouble>;
 #else
 template class IOManager<double, double>;
-template double value<double>;
+template double value<double>(const double);
 template class IOManager<float, float>;
-template float value<float>;
+template float value<float>(const float);
 #endif
 
 #endif

@@ -82,7 +82,20 @@ template double FluidModel<double,adouble>::get_thermal_conductivity<double>(con
 template void FluidModel<double,adouble>::primvars<double>(const Array3D<const double>& Q, Array2D<double>& rho, Array2D<double>& u, Array2D<double>& v, Array2D<double>& p, Array2D<double>& T, const size_t shifti, const size_t shiftj);
 #else
 template class FluidModel<double,double>;
+template double FluidModel<double,double>::get_p_rhoT<double>(const double, const double);
+template double FluidModel<double,double>::get_T_prho<double>(const double, const double);
+template double FluidModel<double,double>::get_rho_pT<double>(const double, const double);
+template double FluidModel<double,double>::get_laminar_viscosity<double>(const double);
+template double FluidModel<double,double>::get_thermal_conductivity<double>(const double);
+template void FluidModel<double,double>::primvars<double>(const Array3D<const double>& Q, Array2D<double>& rho, Array2D<double>& u, Array2D<double>& v, Array2D<double>& p, Array2D<double>& T, const size_t shifti, const size_t shiftj);
+
 template class FluidModel<float,float>;
+template float FluidModel<float,float>::get_p_rhoT<float>(const float, const float);
+template float FluidModel<float,float>::get_T_prho<float>(const float, const float);
+template float FluidModel<float,float>::get_rho_pT<float>(const float, const float);
+template float FluidModel<float,float>::get_laminar_viscosity<float>(const float);
+template float FluidModel<float,float>::get_thermal_conductivity<float>(const float);
+template void FluidModel<float,float>::primvars<float>(const Array3D<const float>& Q, Array2D<float>& rho, Array2D<float>& u, Array2D<float>& v, Array2D<float>& p, Array2D<float>& T, const size_t shifti, const size_t shiftj);
 #endif
 
 #endif

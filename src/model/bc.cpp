@@ -545,5 +545,15 @@ template class BoundaryConditionInviscidWall<double,double>;
 template class BoundaryConditionAdiabaticWall<double,double>;
 template class BoundaryConditionIsothermalWall<double,double>;
 template class BoundaryConditionWake<double,double>;
+
+template class BoundaryContainer<float,float>;
+template class BoundaryCondition<float,float>;
+template class BoundaryConditionFreestream<float,float>;
+template class BoundaryConditionOutflow<float,float>;
+template class BoundaryConditionPeriodic<float,float>;
+template class BoundaryConditionInviscidWall<float,float>;
+template class BoundaryConditionAdiabaticWall<float,float>;
+template class BoundaryConditionIsothermalWall<float,float>;
+template class BoundaryConditionWake<float,float>;
 #endif
 #endif

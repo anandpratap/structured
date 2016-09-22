@@ -239,12 +239,12 @@ void Solver<Tx, Tad>::solve(){
 template class Solver<double, adouble>;
 #else
 template class Solver<double, double>;
-template void set_rarray<double>;
-template void update_forward_euler<double>;
-template void update_rk4<double,size_t>;
+template void set_rarray<double>(size_t size, double* __restrict__ dest, double* __restrict__ src);
+template void update_forward_euler<double>(size_t size, double* __restrict__ q, double* __restrict__ rhs, double* __restrict__ dt);
+template void update_rk4<double,size_t>(size_t size, double* __restrict__ q_i, double* __restrict__ q, double* __restrict__ rhs, double* __restrict__ dt, size_t order);
 template class Solver<float, float>;
-template void set_rarray<float>;
-template void update_forward_euler<float>;
-template void update_rk4<float,size_t>;
+template void set_rarray<float>(size_t size, float* __restrict__ dest, float* __restrict__ src);
+template void update_forward_euler<float>(size_t size, float* __restrict__ q, float* __restrict__ rhs, float* __restrict__ dt);
+template void update_rk4<float,size_t>(size_t size, float* __restrict__ q_i, float* __restrict__ q, float* __restrict__ rhs, float* __restrict__ dt, size_t order);
 #endif
 #endif

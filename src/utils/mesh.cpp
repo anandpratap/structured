@@ -519,6 +519,11 @@ template class Mesh<double, double>;
 template void Mesh<double,double>::calc_face<double>(const Array2D<const double>& q, Array2D<double>& q_chi, Array2D<double>& q_eta);
 template void Mesh<double,double>::calc_gradient<double>(const Array2D<const double>& q, Array3D<double> &grad_q, size_t skipi, size_t skipj);
 template void Mesh<double,double>::calc_gradient<double>(const Array2D<const double>& q, Array3D<double>& grad_chi, Array3D<double>& grad_eta);
+
+template class Mesh<float, float>;
+template void Mesh<float,float>::calc_face<float>(const Array2D<const float>& q, Array2D<float>& q_chi, Array2D<float>& q_eta);
+template void Mesh<float,float>::calc_gradient<float>(const Array2D<const float>& q, Array3D<float> &grad_q, size_t skipi, size_t skipj);
+template void Mesh<float,float>::calc_gradient<float>(const Array2D<const float>& q, Array3D<float>& grad_chi, Array3D<float>& grad_eta);
 #endif
 
 #endif

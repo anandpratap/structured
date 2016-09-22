@@ -13,8 +13,6 @@
 #endif
 
 #if defined(ENABLE_PETSC)
-#include "petsc.h"
-#include "petscksp.h"
 #include "ls_petsc.h"
 #endif
 
