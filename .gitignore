@@ -15,3 +15,4 @@ main_petsc
 *~
 *.pyc
 *.log
+.*
