@@ -16,3 +16,5 @@ main_petsc
 *.pyc
 *.log
 .*
+*.tap
+*.history
