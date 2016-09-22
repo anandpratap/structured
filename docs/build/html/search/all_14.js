@@ -1,0 +1,25 @@
+var searchData=
+[
+  ['u',['u',['../class_euler_equation.html#aa8e6241fff8ba5f4f2dd5da46f3ddb5b',1,'EulerEquation::u()'],['../class_solution.html#a90fc64537f3b72f2677a3597ed23313e',1,'Solution::u()'],['../namespacemms.html#a07c9e5676455f5bf5c249c8402d282f9',1,'mms.u()']]],
+  ['u_5fbar_5fchi',['u_bar_chi',['../class_euler_equation.html#a00b02695bddaff4715921c3c0468e77b',1,'EulerEquation']]],
+  ['u_5fbar_5feta',['u_bar_eta',['../class_euler_equation.html#a1952a5e578744dd923e6c3ec53c0bb09',1,'EulerEquation']]],
+  ['u_5fbc',['u_bc',['../class_boundary_condition_adiabatic_wall.html#af00447dff62b336550e9990ea1352573',1,'BoundaryConditionAdiabaticWall::u_bc()'],['../class_boundary_condition_isothermal_wall.html#a87c3a0d243808c6c2faedf74dee50cff',1,'BoundaryConditionIsothermalWall::u_bc()']]],
+  ['u_5finf',['u_inf',['../class_boundary_condition_freestream.html#aee96eaa004fe700d6d0d5d544109cdd6',1,'BoundaryConditionFreestream::u_inf()'],['../class_boundary_condition_adiabatic_wall.html#a96a54431dd7270e76c4453110f28f457',1,'BoundaryConditionAdiabaticWall::u_inf()'],['../class_boundary_condition_wake.html#abd08c85d2d05549f763bb94c586f0ba5',1,'BoundaryConditionWake::u_inf()'],['../class_boundary_condition_outflow.html#a5535df872f87e4f5d1d14be19c2bd01b',1,'BoundaryConditionOutflow::u_inf()'],['../class_config_freestream.html#a2063e6ce0c182f102fe03cc6d2a67bef',1,'ConfigFreestream::u_inf()']]],
+  ['ulft_5fchi',['ulft_chi',['../class_euler_equation.html#a866fc842c53d4a2b2a9319407e860617',1,'EulerEquation']]],
+  ['ulft_5feta',['ulft_eta',['../class_euler_equation.html#a5b561c7dc530489aa02e548a0ba4035a',1,'EulerEquation']]],
+  ['under_5frelaxation',['under_relaxation',['../class_config_solver.html#acc1e47182ff104b372e107b41a474b2e',1,'ConfigSolver::under_relaxation()'],['../class_solver.html#a707316ea55c642519439653a87268f87',1,'Solver::UNDER_RELAXATION()']]],
+  ['under_5frelaxation_5framp',['under_relaxation_ramp',['../class_config_solver.html#a3e7e82136371daccf2591d275a733375',1,'ConfigSolver']]],
+  ['under_5frelaxation_5framp_5fexponent',['under_relaxation_ramp_exponent',['../class_config_solver.html#a24367e59c5029dff32c448e6ef2ee68c',1,'ConfigSolver']]],
+  ['under_5frelaxation_5framp_5fiteration',['under_relaxation_ramp_iteration',['../class_config_solver.html#afbfe770c3851b301a5142473859ae292',1,'ConfigSolver']]],
+  ['update_5fforward_5feuler',['update_forward_euler',['../solver_8cpp.html#ae8514f05b6dbf976654f37eaf7a99151',1,'update_forward_euler(size_t size, Tx *__restrict__ q, Tx *__restrict__ rhs, Tx *__restrict__ dt):&#160;solver.cpp'],['../solver_8h.html#ae8514f05b6dbf976654f37eaf7a99151',1,'update_forward_euler(size_t size, Tx *__restrict__ q, Tx *__restrict__ rhs, Tx *__restrict__ dt):&#160;solver.cpp']]],
+  ['update_5fforward_5feuler_3c_20double_20_3e',['update_forward_euler&lt; double &gt;',['../solver_8cpp.html#a3e1792cefa94f0b65818467211d780a9',1,'solver.cpp']]],
+  ['update_5fforward_5feuler_3c_20float_20_3e',['update_forward_euler&lt; float &gt;',['../solver_8cpp.html#a62c1b4a16c5c916d226493cb2f3bfb5e',1,'solver.cpp']]],
+  ['update_5frk4',['update_rk4',['../solver_8cpp.html#aa6e9a77cb6d3daba5c5dc845ac3aca87',1,'update_rk4(size_t size, Tx *__restrict__ q_i, Tx *__restrict__ q, Tx *__restrict__ rhs, Tx *__restrict__ dt, To order):&#160;solver.cpp'],['../solver_8h.html#aa6e9a77cb6d3daba5c5dc845ac3aca87',1,'update_rk4(size_t size, Tx *__restrict__ q_i, Tx *__restrict__ q, Tx *__restrict__ rhs, Tx *__restrict__ dt, To order):&#160;solver.cpp']]],
+  ['update_5frk4_3c_20double_2c_20size_5ft_20_3e',['update_rk4&lt; double, size_t &gt;',['../solver_8cpp.html#a2496e3974168b420ef9838cd518f12d4',1,'solver.cpp']]],
+  ['update_5frk4_3c_20float_2c_20size_5ft_20_3e',['update_rk4&lt; float, size_t &gt;',['../solver_8cpp.html#a022dcab4aaadd7348f855ae98d417a86',1,'solver.cpp']]],
+  ['update_5ftime_5fjacobian',['update_time_jacobian',['../class_profiler.html#ad8f43be5b135904da6a60fd32a82aa31',1,'Profiler']]],
+  ['update_5ftime_5flinearsolver',['update_time_linearsolver',['../class_profiler.html#a019aeccf8e4a6911d978741cebb8e5ea',1,'Profiler']]],
+  ['update_5ftime_5fresidual',['update_time_residual',['../class_profiler.html#a8ca867425b2411b0fe61ec18481fb2db',1,'Profiler']]],
+  ['urht_5fchi',['urht_chi',['../class_euler_equation.html#a14a52c259b11e7b0bb43bc26959ecb74',1,'EulerEquation']]],
+  ['urht_5feta',['urht_eta',['../class_euler_equation.html#ab6603942952497b11068ac9d92021665',1,'EulerEquation']]]
+];

@@ -1,0 +1,5 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node1" href="$class_reconstruction.html" title="Base class for classes used to reconstruct/interpolate left and right state for a riemann solver..." alt="" coords="5,39,147,80"/>
+<area shape="rect" id="node2" href="$class_reconstruction_first_order.html" title="First order reconstruction. " alt="" coords="204,5,372,47"/>
+<area shape="rect" id="node3" href="$class_reconstruction_second_order.html" title="Second order reconstruction. " alt="" coords="195,71,381,112"/>
+</map>
