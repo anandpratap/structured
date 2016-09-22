@@ -1,0 +1,72 @@
+[geometry]
+filename = "./channel_3x101.unf2"
+ni = 3
+nj = 101
+tail = 1
+format = "p3d"
+	
+[freestream]
+rho_inf = 1.0
+u_inf = 0.01
+v_inf = 0.0
+p_inf = 0.7142857142857143
+T_inf = 0.7142857142857143
+mu_inf = 1e-2
+pr_inf = 0.7
+
+[source]
+dpdx = -0.02592
+dpdy = 0.0 
+	
+[solver]
+order = 2
+cfl = 0.1
+scheme = "rk4_jameson"
+flux = "roe"
+time_accurate = false
+iteration_max = 1000000
+tolerance = 1e-13
+cfl_ramp = false
+cfl_ramp_iteration = 50
+cfl_ramp_exponent = 1.1
+under_relaxation = 1.0
+under_relaxation_ramp = false
+under_relaxation_ramp_iteration = 5
+under_relaxation_ramp_exponent = 1.2	
+
+[zone]
+istart = 2
+iend = -2
+
+[io]
+stdout_frequency = 1000
+fileout_frequency = 10000
+restart = false
+label = "explicit"
+
+[[boundary]]
+name = ""
+type = "isothermalwall"
+T = 0.7142857142857143
+u = 0.0
+v = 0.0
+face = "top"
+start = 1
+end = -2
+
+[[boundary]]
+name = ""
+type = "isothermalwall"
+T = 0.7142857142857143
+u = 0.0
+v = 0.0
+face = "bottom"
+start = 1 
+end = -2
+
+[[boundary]]
+name = ""
+type = "periodic"
+face = "left"
+start = 0 
+end = -1
