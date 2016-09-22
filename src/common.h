@@ -1,11 +1,17 @@
 #ifndef _COMMON_H
 #define _COMMON_H
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
 #if defined(__ICC)
-#pragma message "__ICC is defined."
+//#pragma message "__ICC is defined."
+#define __COMPILER__ "INTEL"
 #elif defined(__GNUC__)
-#pragma message "__GNUC__ is defined."
+//#pragma message "__GNUC__ is defined."
+#define __COMPILER__ "GNU " STR(__GNUC__) "." STR(__GNUC_MINOR__) "." STR(__GNUC_PATCHLEVEL__)
 #elif defined(__IBMC__)
-#pragma message "__IBMC__ is defined."
+//#pragma message "__IBMC__ is defined."
+#define __COMPILER__ "IBM"
 #endif
 
 #include <omp.h>
@@ -19,6 +25,8 @@
 #include "thirdparty/spdlog/spdlog.h"
 #include "thirdparty/cmdline.h"
 #include "thirdparty/rarray"
+#include "thirdparty/rarrayio"
+
 template<class T>
 using Array3D = rarray<T, 3>;
 
@@ -42,20 +50,6 @@ constexpr auto GAMMA = 1.4;
 
 #if defined(ENABLE_EIGEN) || defined(ENABLE_ARMA) || defined(ENABLE_PETSC)
 #define ENABLE_ADOLC
-#endif
-
-#if defined(ENABLE_ARMA)
-#include <armadillo>
-#endif
-
-#if defined(ENABLE_EIGEN)
-#include <Eigen/Sparse>
-#include <Eigen/Dense>
-#endif
-
-#if defined(ENABLE_PETSC)
-#include "petsc.h"
-#include "petscksp.h"
 #endif
 
 #if defined(ENABLE_ADOLC)

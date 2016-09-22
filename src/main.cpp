@@ -1,8 +1,8 @@
 #include "common.h"
-#include "utils/mesh.h"
-#include "solver/solver.h"
-#include "solver/solution.h"
-#include "utils/config.h"
+#include "mesh.h"
+#include "solver.h"
+#include "solution.h"
+#include "config.h"
 #include <fenv.h>
 
 int main(int argc, char *argv[]){

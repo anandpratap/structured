@@ -1,6 +1,8 @@
 #ifndef _LINEARSOLVER_H
 #define _LINEARSOLVER_H
 #include "common.h"
+#include "mesh.h"
+#include "solution.h"
 
 #if defined(ENABLE_ARMA)
 #include "ls_arma.h"
