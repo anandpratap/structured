@@ -101,7 +101,57 @@ void IOManager<Tx, Tad>::write_tecplot(){
 	outfile.close();
 	spdlog::get("console")->info("Wrote tecplot file {}.", filename);
 }
-	
+
+template<class Tx, class Tad>
+void IOManager<Tx, Tad>::write_tecplot_adjoint(){
+	std::string filename = label + "_adjoint.tec";
+	const auto nic = mesh->nic;
+	const auto njc = mesh->njc;
+	auto q = mesh->solution->psi;
+	auto xc = mesh->xc;
+	auto yc = mesh->yc;
+
+	const auto nq = mesh->solution->nq;
+	const auto ntrans = mesh->solution->ntrans;
+
+	std::ofstream outfile;
+	outfile.open(filename);
+	char buffer [500];
+	outfile<<"title = \"Solution\""<<"\n";
+	outfile<<"variables = \"x\" \"y\"";
+	for(size_t tn=0; tn<nq; tn++){
+		outfile << " \""<<mesh->solution->q_name[tn]<<"\"";
+	}
+	for(size_t tn=0; tn<ntrans; tn++){
+		outfile << " \"psi_0\"";
+	}
+
+	outfile << "\n";
+
+	outfile<<"zone i="<<nic<<", j="<<njc<<", f=point\n";
+		
+	for(size_t j=0; j<njc; j++){
+		for(size_t i=0; i<nic; i++){
+			outfile << xc[i][j] << " ";
+			outfile << yc[i][j] << " ";
+
+			for(size_t k=0; k<nq; k++){
+				outfile << q[i][j][k] << " ";
+			}
+
+			for(size_t tn=0; tn<ntrans; tn++){
+				outfile << q[i][j][4+tn] << " ";
+			}
+
+			outfile << "\n";
+		}
+	}
+		
+	outfile.close();
+	spdlog::get("console")->info("Wrote tecplot file {}.", filename);
+}
+
+
 template<class Tx, class Tad>
 void IOManager<Tx, Tad>::write_npz(){
 	std::string filename = label + ".npz";

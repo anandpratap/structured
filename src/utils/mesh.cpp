@@ -411,6 +411,10 @@ void Mesh<Tx, Tad>::setup(){
 	linearsolver = std::make_shared<LinearSolverPetsc<Tx, Tad>>(this->shared_from_this(), config);
 #endif
 
+	if(config->design->perturb_mode == "xmomentum"){
+		spdlog::get("console")->debug("design_parameters");
+		design_parameters = new DesignParameters<Tx, Tad>(nic, njc);
+	}
 }
 
 template<class Tx, class Tad>

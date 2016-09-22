@@ -23,6 +23,7 @@ public:
 	~IOManager();
 	void write(const size_t iteration);	
 	void write_tecplot();	
+	void write_tecplot_adjoint();	
 	void write_npz();
 	void write_restart();
 	void read_restart();

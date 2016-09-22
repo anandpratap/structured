@@ -4,6 +4,7 @@
 #include "config.h"
 #include <memory>
 #include "fluid.h"
+#include "design.h"
 template<class Tx, class Tad>
 class EulerEquation;
 template<class Tx, class Tad>
@@ -40,7 +41,8 @@ class Mesh: public std::enable_shared_from_this<Mesh<Tx, Tad>>{
 	Array2D<Tx> volume;
 	Array2D<Tx> chi_x, chi_y, eta_x, eta_y;
 	Array2D<Tx> x_chi, y_chi, x_eta, y_eta;
-	
+
+	DesignParameters<Tx,Tad> *design_parameters = nullptr;
 	std::shared_ptr<Solution<Tx,Tad>> solution;
 	std::shared_ptr<IOManager<Tx, Tad>> iomanager;
 	std::shared_ptr<EulerEquation<Tx, Tad>> equation;

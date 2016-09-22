@@ -22,7 +22,12 @@ template <class Tx, class Tad>
 void EulerEquation<Tx, Tad>::calc_source_residual(const Array3D<const Tad>& a_q, Array3D<Tad>& a_rhs){
 	for(size_t i=0; i< nic; i++){
 		for(size_t j=0; j< njc; j++){
-			a_rhs[i][j][1] += -config->solver->dpdx*mesh->volume[i][j];
+			if(config->design->perturb_mode == "xmomentum"){
+				a_rhs[i][j][1] += -config->solver->dpdx*mesh->volume[i][j]*mesh->design_parameters->a_beta[i][j];
+			}
+			else{
+				a_rhs[i][j][1] += -config->solver->dpdx*mesh->volume[i][j];
+			}
 			a_rhs[i][j][2] += -config->solver->dpdy*mesh->volume[i][j];
 		}
 	}

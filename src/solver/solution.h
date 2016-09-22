@@ -6,7 +6,7 @@ template<class Tx, class Tad>
 class Solution{
 public:
 	size_t nic, njc, nq, naux, ntrans;
-	Array3D<Tx> q;
+	Array3D<Tx> q, psi;
 	std::vector<std::string> q_name;
 	Array3D<Tx> q_aux;
 	std::vector<std::string> q_aux_name;

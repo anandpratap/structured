@@ -42,6 +42,11 @@ void ConfigFreestream<Tx>::set(std::shared_ptr<cpptoml::table> config){
 };
 
 template<class Tx>
+void ConfigDesign<Tx>::set(std::shared_ptr<cpptoml::table> config){
+	perturb_mode = config->get_qualified_as<std::string>("design.perturb_mode").value_or("none");
+}
+
+template<class Tx>
 void ConfigSolver<Tx>::set(std::shared_ptr<cpptoml::table> config){
 		iteration_max = config->get_qualified_as<int64_t>("solver.iteration_max").value_or(1);
 
@@ -92,6 +97,7 @@ Config<Tx>::Config(std::string val_filename, int val_argc, char *val_argv[]){
 		argc = val_argc;
 		argv = val_argv;
 		freestream = std::make_shared<ConfigFreestream<Tx>>();
+		design = std::make_shared<ConfigDesign<Tx>>();
 		solver = std::make_shared<ConfigSolver<Tx>>();
 		io = std::make_shared<ConfigIO<Tx>>();
 		geometry = std::make_shared<ConfigGeometry<Tx>>();
@@ -99,6 +105,7 @@ Config<Tx>::Config(std::string val_filename, int val_argc, char *val_argv[]){
 		filename = val_filename;
 		config = cpptoml::parse_file(val_filename);
 		freestream->set(config);
+		design->set(config);
 		solver->set(config);
 		io->set(config);
 		geometry->set(config);
@@ -155,6 +162,7 @@ void Config<Tx>::print(){
 		PRINT_CONFIG(geometry->nj);
 		PRINT_CONFIG(geometry->tail);
 
+		PRINT_CONFIG(design->perturb_mode);
 		logger->info("---------------");
 
 };

@@ -26,6 +26,7 @@ Solution<Tx, Tad>::Solution(std::shared_ptr<Mesh<Tx,Tad>> mesh){
 	njc = mesh->njc;
 
 	q = Array3D<Tx>(nic, njc, nq+ntrans);
+	psi = Array3D<Tx>(nic, njc, nq+ntrans);
 	q_aux = Array3D<Tx>(nic, njc, naux);
 
 	rho = Array2D<Tx>(nic, njc);

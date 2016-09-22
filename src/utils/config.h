@@ -30,6 +30,14 @@ public:
 	bool if_viscous;
 	void set(std::shared_ptr<cpptoml::table> config);
 };
+
+template<class Tx>
+class ConfigDesign{
+public:
+	std::string perturb_mode;
+	void set(std::shared_ptr<cpptoml::table> config);
+};
+
 template<class Tx>
 class ConfigSolver{
 public:
@@ -68,6 +76,7 @@ public:
 	int argc;
 	char **argv;
 	std::shared_ptr<ConfigFreestream<Tx>> freestream;
+	std::shared_ptr<ConfigDesign<Tx>> design;
 	std::shared_ptr<ConfigSolver<Tx>> solver;
 	std::shared_ptr<ConfigIO<Tx>> io;
 	std::shared_ptr<ConfigGeometry<Tx>> geometry;

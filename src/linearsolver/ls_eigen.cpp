@@ -70,5 +70,18 @@ void LinearSolverEigen<Tx, Tad>::solve_and_update(Tx *q, Tx under_relaxation){
 	}
 };
 
+
+template <class Tx, class Tad>
+void LinearSolverEigen<Tx, Tad>::get_solution(Tx *solution){
+	for(size_t i=0; i<n; i++){
+		solution[i] = dq(i,0);
+	}
+}
+
+template <class Tx, class Tad>
+void LinearSolverEigen<Tx, Tad>::reset_lhs(){
+	lhs.setZero();
+}
+
 template class LinearSolverEigen<double,adouble>;
 #endif

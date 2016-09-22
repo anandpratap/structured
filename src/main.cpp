@@ -3,6 +3,7 @@
 #include "solver.h"
 #include "solution.h"
 #include "config.h"
+#include "adjoint.h"
 #include <fenv.h>
 
 int main(int argc, char *argv[]){
@@ -40,6 +41,11 @@ int main(int argc, char *argv[]){
 	s->add_mesh(m);
 	s->solve();
 	config->profiler->print();
+
+	auto adjoint = std::make_shared<AdjointSolver<qtype, aqtype>>();
+	adjoint->solve(m);
+	std::cout<<m->design_parameters;
+	adjoint->calc_sensitivity(m);
 	return 0;
 }
 

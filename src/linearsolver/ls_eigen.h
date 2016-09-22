@@ -29,5 +29,7 @@ public:
 	void set_rhs(Tx *val_rhs);
 	void solve();	
 	void solve_and_update(Tx *q, Tx under_relaxation);
+	void get_solution(Tx *solution);
+	void reset_lhs();
 };
 #endif
