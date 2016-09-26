@@ -42,6 +42,7 @@ void AdjointSolver<Tx, Tad>::solve(std::shared_ptr<Mesh<Tx,Tad>> mesh){
 			}
 		}
 	}
+	spdlog::get("console")->debug("calculating reisudal");
 	equation->calc_residual(solution->a_q.const_ref(), solution->a_rhs, true);
 		
 	for(size_t i=0; i<nic; i++){
@@ -53,11 +54,13 @@ void AdjointSolver<Tx, Tad>::solve(std::shared_ptr<Mesh<Tx,Tad>> mesh){
 	}
 	trace_off();
 	Tx *q_ptr = solution->q.data();
+	spdlog::get("console")->debug("calculating jac");
 	sparse_jac(2,solution->nt,solution->nt,solution->repeat,q_ptr,&solution->nnz,&solution->rind,&solution->cind,&solution->values,solution->options);
 
 	// transpose, see that the rind and cind are swapped!!!
 	linearsolver->reset_lhs();
-	linearsolver->set_lhs(solution->nnz, solution->cind, solution->rind, solution->values);
+	spdlog::get("console")->debug("setting lhs");
+	linearsolver->set_lhs(solution->nnz, solution->rind, solution->cind, solution->values);
 	free(solution->rind); solution->rind=nullptr;
 	free(solution->cind); solution->cind=nullptr;
 	free(solution->values); solution->values=nullptr;
@@ -75,11 +78,11 @@ void AdjointSolver<Tx, Tad>::solve(std::shared_ptr<Mesh<Tx,Tad>> mesh){
 	Tx J;
 	a_J >>= J;
 	trace_off();
+	
 	spdlog::get("console")->info("Objective function: {}", J);
-
 	gradient(3, solution->nt, solution->q.data(), dJdq.data());
 	linearsolver->set_rhs(dJdq.data());
-	linearsolver->solve();
+	linearsolver->solve(true);
 	linearsolver->get_solution(psi.data());
 	mesh->iomanager->write_tecplot_adjoint();
 	// solve for psi

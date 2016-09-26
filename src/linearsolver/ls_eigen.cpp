@@ -48,17 +48,20 @@ void LinearSolverEigen<Tx, Tad>::set_rhs(Tx *val_rhs){
 
 
 template <class Tx, class Tad>
-void LinearSolverEigen<Tx, Tad>::solve(){
+void LinearSolverEigen<Tx, Tad>::solve(bool transpose_lhs){
 	if(number_rhs_update != number_lhs_update){
 		spdlog::get("console")->warn("Number of rhs update does not match with the number of lhs update!");
 	}
-	
-	lhs.makeCompressed();
+	auto lhs_t = lhs;
+	if(transpose_lhs)
+		auto lhs_t = lhs.transpose();
+
+	lhs_t.makeCompressed();
 	if(!pattern_analyzed){
-		solver->analyzePattern(lhs);
+		solver->analyzePattern(lhs_t);
 		pattern_analyzed = true;
 	}
-	solver->factorize(lhs);
+	solver->factorize(lhs_t);
 	dq = solver->solve(rhs);
 }
 	
@@ -80,7 +83,7 @@ void LinearSolverEigen<Tx, Tad>::get_solution(Tx *solution){
 
 template <class Tx, class Tad>
 void LinearSolverEigen<Tx, Tad>::reset_lhs(){
-	lhs.setZero();
+	pattern_analyzed = false;
 }
 
 template class LinearSolverEigen<double,adouble>;

@@ -27,7 +27,7 @@ public:
 	~LinearSolverEigen();
 	void set_lhs(int nnz, unsigned int *rind, unsigned int *cind, Tx *values);
 	void set_rhs(Tx *val_rhs);
-	void solve();	
+	void solve(bool transpose_lhs = false);	
 	void solve_and_update(Tx *q, Tx under_relaxation);
 	void get_solution(Tx *solution);
 	void reset_lhs();
